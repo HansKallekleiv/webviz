@@ -1,0 +1,42 @@
+apiVersion: radix.equinor.com/v1
+kind: RadixApplication
+metadata:
+  name: webviz-4d-test
+spec:
+  #timeoutSec: 10000
+  environments:
+    - name: radix
+      build:
+        from: radix
+    - name: api
+      ingressConfiguration:
+        - websocketfriendly
+      authentication:
+        oauth2:
+          clientId: 900ed417-a860-4970-bd37-73b059ca6f0d
+          scope: openid profile email offline_access 
+          setXAuthRequestHeaders: true
+          setAuthorizationHeader: true
+          sessionStoreType: redis
+          redisStore:
+            connectionUrl: redis://redis:6379
+      ports:
+        - name: http
+          port: 8000
+      secrets:
+        - WEBVIZ_REDIS_PASSWORD
+        - WEBVIZ_CLIENT_SECRET
+        - WEBVIZ_SUMO_RESOURCE_SCOPE
+        - WEBVIZ_SMDA_RESOURCE_SCOPE
+      publicPort: http
+
+    - name: redis
+      image: bitnami/redis:latest
+      secrets:
+        - REDIS_PASSWORD
+      ports:
+        - name: redis
+          port: 6379
+  dnsAppAlias:
+    environment: radix
+    component: api
