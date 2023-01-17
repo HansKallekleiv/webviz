@@ -1,7 +1,7 @@
 apiVersion: radix.equinor.com/v1
 kind: RadixApplication
 metadata:
-  name: webviz-4d-test
+  name: webviz
 spec:
   #timeoutSec: 10000
   environments:
