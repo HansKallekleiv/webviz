@@ -25,6 +25,8 @@ spec:
         - name: http
           port: 8000
       secrets:
+        - WEBVIZ_TENANT_ID
+        - WEBVIZ_CLIENT_ID
         - WEBVIZ_REDIS_PASSWORD
         - WEBVIZ_CLIENT_SECRET
         - WEBVIZ_SUMO_RESOURCE_SCOPE
