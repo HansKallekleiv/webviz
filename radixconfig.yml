@@ -1,7 +1,7 @@
 apiVersion: radix.equinor.com/v1
 kind: RadixApplication
 metadata:
-  name: webviz
+  name: webviz-hakal
 spec:
   #timeoutSec: 10000
   environments:
