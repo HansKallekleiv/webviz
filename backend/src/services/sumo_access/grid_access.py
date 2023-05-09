@@ -65,7 +65,7 @@ class GridAccess:
         print("xtgeo geometrics", flush=True)
         # print(grid_polys[0][0])
         # print("hei")
-        return GridGeometry(polys=grid_polys.tolist(), points=grid_points.tolist(), **grid_geometrics)
+        return {"polys": grid_polys.tolist(), "points": grid_points.tolist(), **grid_geometrics}
         return GridGeometry(polys=[], points=[], **grid_geometrics)
 
 

@@ -1,10 +1,12 @@
 import datetime
 from typing import Dict, Union, NamedTuple
 import psutil
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from functools import lru_cache
 from src.backend.auth.auth_helper import AuthHelper, AuthenticatedUser
 from src.services.sumo_access.grid_access import GridAccess, GridGeometry
+
+import orjson
 
 router = APIRouter()
 
@@ -44,18 +46,20 @@ async def user_session_container(
     }
 
 
-@router.get("/grid")
+@router.get("/grid", response_model=GridGeometry)  # stating response_model here instead of return type apparently disables pydantic validation of the response (https://stackoverflow.com/a/65715205)
 async def grid(
     authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user),
-) -> GridGeometry:
+):
     """ """
 
     griddata = get_grid(authenticated_user.get_sumo_access_token())
     print("Sending data to primary", flush=True)
-    return griddata
+
+    # using orjson instead of slow FastAPI default encoder (json.dumps)
+    return Response(orjson.dumps(griddata), media_type="application/json")
 
 
-# @lru_cache
+@lru_cache
 def get_grid(token: str):
     grid_access = GridAccess(token, None, None)
 
