@@ -60,3 +60,11 @@ async def user_session_container(
 ) -> StreamingResponse:
     """Get information about user session container (note that one is started if not already running)."""
     return await proxy_to_user_session(request, authenticated_user)
+
+
+@router.get("/grid")
+async def grid(
+    request: Request, authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user)
+) -> StreamingResponse:
+    """Get a grid"""
+    return await proxy_to_user_session(request, authenticated_user)

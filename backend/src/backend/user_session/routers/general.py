@@ -2,12 +2,15 @@ import datetime
 from typing import Dict, Union, NamedTuple
 import psutil
 from fastapi import APIRouter, Depends
-
+from functools import lru_cache
 from src.backend.auth.auth_helper import AuthHelper, AuthenticatedUser
+from src.services.sumo_access.grid_access import GridAccess, GridGeometry
 
 router = APIRouter()
 
 START_TIME_CONTAINER = datetime.datetime.now()
+
+grid_data = None
 
 
 def human_readable(psutil_object: NamedTuple) -> Dict[str, Union[str, Dict[str, str]]]:
@@ -39,3 +42,21 @@ async def user_session_container(
         "memory_system": human_readable(psutil.virtual_memory()),
         "memory_python_process": human_readable(psutil.Process().memory_info()),
     }
+
+
+@router.get("/grid")
+async def grid(
+    authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user),
+) -> GridGeometry:
+    """ """
+
+    griddata = get_grid(authenticated_user.get_sumo_access_token())
+    print("Sending data to primary", flush=True)
+    return griddata
+
+
+# @lru_cache
+def get_grid(token: str):
+    grid_access = GridAccess(token, None, None)
+
+    return grid_access.get_grid_geometry()
