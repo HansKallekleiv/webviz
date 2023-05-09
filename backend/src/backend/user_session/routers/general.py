@@ -46,7 +46,9 @@ async def user_session_container(
     }
 
 
-@router.get("/grid", response_model=GridGeometry)  # stating response_model here instead of return type apparently disables pydantic validation of the response (https://stackoverflow.com/a/65715205)
+@router.get(
+    "/grid/grid_geometry", response_model=GridGeometry
+)  # stating response_model here instead of return type apparently disables pydantic validation of the response (https://stackoverflow.com/a/65715205)
 async def grid(
     authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user),
 ):

@@ -36,6 +36,7 @@ LOGGER = logging.getLogger(__name__)
 class GridGeometry(BaseModel):
     polys: List[float]
     points: List[float]
+    property: List[float]
     xmin: float
     xmax: float
     ymin: float
@@ -57,16 +58,24 @@ class GridAccess:
         bytes = BytesIO(stream)
         grid_geom = xtgeo.grid_from_file(bytes)
         print("generating polydata", flush=True)
-        grid_polys, grid_points, grid_scalar = get_surface(grid_geom)
+        stream = self._sumo_client.get(f"/objects('53dbe599-4f55-100c-2a31-ddc7eeed6b57')/blob")
+        bytes = BytesIO(stream)
+        grid_param = xtgeo.gridproperty_from_file(bytes)
+        grid_polys, grid_points, grid_scalar = get_surface(grid_geom, grid_param)
         print("done", flush=True)
         # print("polys")
 
         grid_geometrics = grid_geom.get_geometrics(allcells=True, return_dict=True)
+        print(grid_geom, flush=True)
         print("xtgeo geometrics", flush=True)
         # print(grid_polys[0][0])
         # print("hei")
-        return {"polys": grid_polys.tolist(), "points": grid_points.tolist(), **grid_geometrics}
-        return GridGeometry(polys=[], points=[], **grid_geometrics)
+        return {
+            "polys": grid_polys.tolist(),
+            "points": grid_points.tolist(),
+            "property": grid_scalar.tolist(),
+            **grid_geometrics,
+        }
 
 
 def _create_vtk_esgrid_from_verts_and_conn(
