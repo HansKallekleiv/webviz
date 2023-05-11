@@ -9,6 +9,7 @@ export { CancelablePromise, CancelError } from './core/CancelablePromise';
 export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
+export type { B64EncodedNumpyArray } from './models/B64EncodedNumpyArray';
 export type { Body_get_realizations_response } from './models/Body_get_realizations_response';
 export type { Case } from './models/Case';
 export type { DynamicSurfaceDirectory } from './models/DynamicSurfaceDirectory';

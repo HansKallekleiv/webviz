@@ -5,6 +5,10 @@ import state from "./state";
 import { view } from "./view";
 
 const initialState: state = {
+    gridName: "Simgrid",
+    parameterName: "PORO",
+    realizations: ["0"],
+    useStatistics: false,
 
 };
 
