@@ -1,7 +1,7 @@
 from sumo.wrapper import SumoClient
 
 
-SUMO_ENV = "prod"
+SUMO_ENV = "dev"
 
 
 def create_sumo_client_instance(access_token: str) -> SumoClient:

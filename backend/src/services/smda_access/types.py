@@ -25,8 +25,8 @@ class WellBoreTrajectory(BaseModel):
 class WellBoreHeader(BaseModel):
     wellbore_uuid: str
     unique_wellbore_identifier: str
-    easting: float
-    northing: float
+    easting: Optional[float] = None
+    northing: Optional[float] = None
     wellbore_purpose: str
     parent_wellbore: Optional[str] = None
     total_depth_driller_tvd: Optional[float] = None
