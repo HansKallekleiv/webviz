@@ -12,6 +12,7 @@ import "./Sensitivity/registerModule";
 import "./SimulationTimeSeries/registerModule";
 import "./SimulationTimeSeriesSensitivity/registerModule";
 import "./TimeSeriesParameterDistribution/registerModule";
+import "./StructuralUncertainty/registerModule";
 
 if (isDevMode()) {
     import("./MyModule2/registerModule");
