@@ -37,3 +37,8 @@ class SurfaceData(BaseModel):
     val_max: float
     rot_deg: float
     mesh_data: str
+
+class SurfaceType(str, Enum):
+    DEPTH = "depth"
+    TIME = "time"
+    PROPERTY = "property"
