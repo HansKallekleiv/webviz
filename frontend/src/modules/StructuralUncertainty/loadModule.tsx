@@ -6,7 +6,7 @@ import { State } from "./state";
 import { view } from "./view";
 
 const defaultState: State = {
-
+    surfaceAddresses: [],intersectionAddress:null
 };
 
 const module = ModuleRegistry.initModule<State>("StructuralUncertainty", defaultState);

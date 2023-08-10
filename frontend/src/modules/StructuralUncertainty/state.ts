@@ -1,9 +1,8 @@
-
-import { EnsembleIdent } from "@framework/EnsembleIdent";
-
-
-
-
+import { SurfAddr } from "./SurfAddr";
+import { IntersectionAddr } from "./IntersectionAddr";
 export interface State {
-
+    surfaceAddresses: SurfAddr[] | null;
+    intersectionAddress: IntersectionAddr | null;
 }
+
+

@@ -1,4 +1,4 @@
-import { SumoContent_api, StaticSurfaceDirectory_api, SurfaceData_api } from "@api";
+import { SumoContent_api, StaticSurfaceDirectory_api, WellBoreHeader_api } from "@api";
 import { apiService } from "@framework/ApiService";
 import { QueryFunction, QueryKey, UseQueryResult, useQuery } from "@tanstack/react-query";
 
@@ -18,5 +18,17 @@ export function useStaticSurfaceDirectoryQuery(
         staleTime: STALE_TIME,
         cacheTime: STALE_TIME,
         enabled: allowEnable && caseUuid && ensembleName ? true : false,
+    });
+}
+
+export function useWellBoreHeaderQuery(
+    caseUuid: string | undefined,
+): UseQueryResult<WellBoreHeader_api[]> {
+    return useQuery({
+        queryKey: ["getWellHeaders", caseUuid],
+        queryFn: () => apiService.well.getWellHeaders(caseUuid ?? ""),
+        staleTime: STALE_TIME,
+        cacheTime: STALE_TIME,
+        enabled: caseUuid ? true : false,
     });
 }

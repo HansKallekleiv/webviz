@@ -9,10 +9,14 @@ import { useElementSize } from "@lib/hooks/useElementSize";
 import { indexOf } from "lodash";
 
 import { BroadcastChannelNames } from "./channelDefs";
-
 import { State } from "./state";
 
 export const view = ({ moduleContext, workbenchSession }: ModuleFCProps<State>) => {
+    const intersectionAddress = moduleContext.useStoreValue("intersectionAddress");
+    const surfaceAddresses = moduleContext.useStoreValue("surfaceAddresses");
+
+    console.log(intersectionAddress);
+    console.log(surfaceAddresses);
     const wrapperDivRef = React.useRef<HTMLDivElement>(null);
-    return <div></div>
-}
+    return <div></div>;
+};
