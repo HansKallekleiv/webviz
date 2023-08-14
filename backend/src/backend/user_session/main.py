@@ -7,11 +7,13 @@ from .routers.general import router as general_router
 
 # mypy: disable-error-code="attr-defined"
 from .routers.grid.router import router as grid_router
+from .routers.intersection.router import router as intersection_router
 
 app = FastAPI(default_response_class=ORJSONResponse)
 
 app.include_router(general_router)
 app.include_router(grid_router, prefix="/grid")
+app.include_router(intersection_router, prefix="/intersection")
 add_shared_middlewares(app)
 
 # We shut down the user session container after some

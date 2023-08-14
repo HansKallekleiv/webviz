@@ -10,6 +10,7 @@ import { DefaultService } from './services/DefaultService';
 import { ExploreService } from './services/ExploreService';
 import { GridService } from './services/GridService';
 import { InplaceVolumetricsService } from './services/InplaceVolumetricsService';
+import { IntersectionService } from './services/IntersectionService';
 import { ParametersService } from './services/ParametersService';
 import { PvtService } from './services/PvtService';
 import { SurfaceService } from './services/SurfaceService';
@@ -25,6 +26,7 @@ export class ApiService {
     public readonly explore: ExploreService;
     public readonly grid: GridService;
     public readonly inplaceVolumetrics: InplaceVolumetricsService;
+    public readonly intersection: IntersectionService;
     public readonly parameters: ParametersService;
     public readonly pvt: PvtService;
     public readonly surface: SurfaceService;
@@ -51,6 +53,7 @@ export class ApiService {
         this.explore = new ExploreService(this.request);
         this.grid = new GridService(this.request);
         this.inplaceVolumetrics = new InplaceVolumetricsService(this.request);
+        this.intersection = new IntersectionService(this.request);
         this.parameters = new ParametersService(this.request);
         this.pvt = new PvtService(this.request);
         this.surface = new SurfaceService(this.request);

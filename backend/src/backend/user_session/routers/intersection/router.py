@@ -21,15 +21,14 @@ router = APIRouter()
 LOGGER = logging.getLogger(__name__)
 
 
-@router.get("/well_polyline", response_model=schemas.IntersectionPolyLine)
-async def well_polyline(
+@router.post("/static_surface_realizations", response_model=List[schemas.IntersectionPolyLine])
+async def static_surface_realizations(
     request: Request,
+    body: schemas.StaticSurfaceRealizationsIntersectionRequest,
     authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user),
 ):
     """ """
-    case_uuid = request.query_params.get("case_uuid")
-    ensemble_name = request.query_params.get("ensemble_name")
-    grid_name = request.query_params.get("grid_name")
-    realization = request.query_params.get("realization")
-
+    print("HELLO2", flush=True)
+    print(request.query_params, flush=True)
     # return ORJSONResponse(grid_surface_payload.dict())
+    return []

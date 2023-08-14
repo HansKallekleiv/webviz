@@ -16,7 +16,7 @@ import { Select, SelectOption } from "@lib/components/Select";
 
 import { IntersectionAddr, IntersectionAddrFactory } from "./IntersectionAddr";
 import { SurfAddr, SurfAddrFactory } from "./SurfAddr";
-import { useStaticSurfaceDirectoryQuery, useWellBoreHeaderQuery } from "./queryHooks";
+import { useStaticSurfaceDirectoryQuery, useWellBoreHeadersQuery } from "./queryHooks";
 import { State } from "./state";
 
 //-----------------------------------------------------------------------------------------------------------
@@ -50,7 +50,7 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
         true
     );
 
-    const wellBoreHeaderQuery = useWellBoreHeaderQuery(computedEnsembleIdent?.getCaseUuid());
+    const wellBoreHeaderQuery = useWellBoreHeadersQuery(computedEnsembleIdent?.getCaseUuid());
 
     function handleEnsembleSelectionChange(ensembleIdentArr: EnsembleIdent[]) {
         console.debug("handleEnsembleSelectionChange()", ensembleIdentArr);

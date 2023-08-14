@@ -8,30 +8,24 @@ from src.backend.auth.auth_helper import AuthHelper
 from src.backend.primary.user_session_proxy import proxy_to_user_session
 
 from src.services.sumo_access.grid_access import GridAccess
-from .schemas import IntersectionPolyLine
+from . import schemas
+from src.services.smda_access.types import WellBoreHeader
 
 router = APIRouter()
 
-
 # Primary backend
-@router.get("/grid_surface")
-async def grid_surface(
+@router.post("/static_surface_realizations")
+async def compute_static_surface_realizations(
     request: Request,
-    case_uuid: str = Query(description="Sumo case uuid"),
-    ensemble_name: str = Query(description="Ensemble name"),
-    grid_name: str = Query(description="Grid name"),
-    realization: str = Query(description="Realization"),
+    body: schemas.StaticSurfaceRealizationsIntersectionRequest,
     authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user),
-) -> IntersectionPolyLine:
+) -> List[schemas.IntersectionPolyLine]:
     """
     Get a polyline for a well for an intersection
     """
 
     query_params = {
-        "case_uuid": case_uuid,
-        "ensemble_name": ensemble_name,
-        "grid_name": grid_name,
-        "realization": int(realization),
+        "body": body,
     }
 
     # Add query parameters to the request URL
