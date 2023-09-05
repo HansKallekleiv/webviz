@@ -20,8 +20,15 @@ import { Select, SelectOption } from "@lib/components/Select";
 import { SurfAddr, SurfAddrFactory } from "./SurfaceAddress";
 import { SurfacePolygonsAddress } from "./SurfacePolygonsAddress";
 import { AggregationSelector } from "./components/AggregationSelector";
+import { TimeType } from "./components/SurfaceSelector/surfaceDirectoryProvider";
+import { SurfaceSelector } from "./components/SurfaceSelector/surfaceSelector";
 import { PolygonDirectoryProvider } from "./polygonsDirectoryProvider";
-import { useGetWellHeaders, usePolygonDirectoryQuery, useSurfaceDirectoryQuery } from "./queryHooks";
+import {
+    useGetWellHeaders,
+    usePolygonDirectoryQuery,
+    useStaticSurfaceDirectoryQuery,
+    useSurfaceDirectoryQuery,
+} from "./queryHooks";
 import { state } from "./state";
 import { SurfaceDirectoryProvider } from "./surfaceDirectoryProvider";
 
@@ -81,11 +88,16 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
         setSelectedEnsembleIdent(computedEnsembleIdent);
     }
     // Mesh surface
-    const meshSurfDirQuery = useSurfaceDirectoryQuery(
+    const meshSurfDirQuery = useStaticSurfaceDirectoryQuery(
         computedEnsembleIdent?.getCaseUuid(),
         computedEnsembleIdent?.getEnsembleName(),
         [SumoContent_api.DEPTH]
     );
+    const surfDirQuery = useSurfaceDirectoryQuery(
+        computedEnsembleIdent?.getCaseUuid(),
+        computedEnsembleIdent?.getEnsembleName()
+    );
+    console.log(surfDirQuery.data);
     const meshSurfDirProvider = new SurfaceDirectoryProvider(meshSurfDirQuery, "tops");
     const computedMeshSurfaceName = meshSurfDirProvider.validateOrResetSurfaceName(selectedMeshSurfaceName);
     const computedMeshSurfaceAttribute = meshSurfDirProvider.validateOrResetSurfaceAttribute(
@@ -108,7 +120,7 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
         .map((attr) => ({ value: attr, label: attr }));
 
     // Property surface
-    const propertySurfDirQuery = useSurfaceDirectoryQuery(
+    const propertySurfDirQuery = useStaticSurfaceDirectoryQuery(
         computedEnsembleIdent?.getCaseUuid(),
         computedEnsembleIdent?.getEnsembleName() // Should be SumoContent_api.PROPERTY
     );
@@ -372,6 +384,14 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
                     </Label>
                 )}
             </CollapsibleGroup>
+            <SurfaceSelector
+                title="Mesh"
+                ensembleIdent={computedEnsembleIdent}
+                content={["depth"]}
+                timeType={TimeType.None}
+                moduleContext={moduleContext}
+                workbenchServices={workbenchServices}
+            />
             <CollapsibleGroup expanded={true} title="Depth surface">
                 <ApiStateWrapper
                     apiResult={meshSurfDirQuery}

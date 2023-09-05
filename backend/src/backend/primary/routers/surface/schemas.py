@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -41,3 +41,15 @@ class SurfaceData(BaseModel):
     val_max: float
     rot_deg: float
     mesh_data: str
+
+
+class SurfaceMeta(BaseModel):
+    name: str
+    tagname: str
+    t_start: Optional[str]
+    t_end: Optional[str]
+    content: str
+    is_observation: bool
+    is_stratigraphic: bool
+    zmin: float
+    zmax: float

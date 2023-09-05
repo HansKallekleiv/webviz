@@ -11,7 +11,7 @@ from src.services.utils.perf_timer import PerfTimer
 from src.services.utils.statistic_function import StatisticFunction
 
 from ._helpers import create_sumo_client_instance
-from .surface_types import DynamicSurfaceDirectory, StaticSurfaceDirectory
+from .surface_types import DynamicSurfaceDirectory, StaticSurfaceDirectory, SurfaceMeta
 from .generic_types import SumoContent
 
 LOGGER = logging.getLogger(__name__)
@@ -63,6 +63,41 @@ class SurfaceAccess:
         LOGGER.debug(f"Downloaded and built dynamic surface directory in: {timer.elapsed_ms():}ms")
 
         return surf_dir
+
+    def get_surface_directory(self) -> List[SurfaceMeta]:
+        case = self._get_my_sumo_case_obj()
+        surface_collection: SurfaceCollection = case.surfaces.filter(
+            iteration=self._iteration_name,
+            aggregation=False,
+            realization=0,
+        )
+
+        surfs: List[SurfaceMeta] = []
+        for s in surface_collection:
+            name = s["data"]["name"]
+            tagname = s["data"]["tagname"]
+            t_start = s["data"].get("time", {}).get("t0", {}).get("value", None)
+            t_end = s["data"].get("time", {}).get("t1", {}).get("value", None)
+            content = s["data"]["content"]
+            is_observation = s["data"]["is_observation"]
+            is_stratigraphic = s["data"]["stratigraphic"]
+            zmin = s["data"]["bbox"]["zmin"]
+            zmax = s["data"]["bbox"]["zmax"]
+
+            surfs.append(
+                SurfaceMeta(
+                    name=name,
+                    tagname=tagname,
+                    t_start=t_start,
+                    t_end=t_end,
+                    content=content,
+                    is_observation=is_observation,
+                    is_stratigraphic=is_stratigraphic,
+                    zmin=zmin,
+                    zmax=zmax,
+                )
+            )
+        return surfs
 
     def get_static_surf_dir(self, content_filter: Optional[List[SumoContent]] = None) -> StaticSurfaceDirectory:
         """

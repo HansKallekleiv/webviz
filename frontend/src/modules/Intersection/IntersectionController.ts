@@ -153,7 +153,7 @@ export class ControllerHandler {
         // Need to calculate y...
         const hMid: number = curtain ? (curtain[0][0] + curtain[curtain.length - 1][0]) / 2 - extension : 1000;
 
-        this.controller.setViewport(hMid, 1750, 5000);
+        // this.controller.setViewport(hMid, 1750, 5000);
 
         this.controller.adjustToSize(width, height);
         this.controller.zoomPanHandler.zFactor = zScale;

@@ -22,6 +22,21 @@ LOGGER = logging.getLogger(__name__)
 router = APIRouter()
 
 
+@router.get("/surface_directory/")
+def get_surface_directory(
+    authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user),
+    case_uuid: str = Query(description="Sumo case uuid"),
+    ensemble_name: str = Query(description="Ensemble name"),
+) -> List[schemas.SurfaceMeta]:
+    """
+    Get a directory of surfaces in a Sumo ensemble
+    """
+    access = SurfaceAccess(authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name)
+    surf_dir = access.get_surface_directory()
+
+    return [schemas.SurfaceMeta(**surf_meta.__dict__) for surf_meta in surf_dir]
+
+
 @router.get("/dynamic_surface_directory/")
 def get_dynamic_surface_directory(
     authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user),

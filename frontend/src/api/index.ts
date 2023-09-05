@@ -45,6 +45,7 @@ export type { StratigraphicUnit as StratigraphicUnit_api } from './models/Strati
 export { SumoContent as SumoContent_api } from './models/SumoContent';
 export type { SurfaceData as SurfaceData_api } from './models/SurfaceData';
 export type { SurfaceIntersectionData as SurfaceIntersectionData_api } from './models/SurfaceIntersectionData';
+export type { SurfaceMeta as SurfaceMeta_api } from './models/SurfaceMeta';
 export type { SurfacePolygonDirectory as SurfacePolygonDirectory_api } from './models/SurfacePolygonDirectory';
 export { SurfaceStatisticFunction as SurfaceStatisticFunction_api } from './models/SurfaceStatisticFunction';
 export type { UserInfo as UserInfo_api } from './models/UserInfo';

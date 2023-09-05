@@ -96,9 +96,9 @@ def get_seismic(
 ) -> schemas.CubeIntersectionData:
     seismic_access = SeismicAccess(authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name)
     timestamp = None
-    timestep = None
+    timeinterval = None
     if "--" in seismic_timestamp_or_timestep:
-        timestep = seismic_timestamp_or_timestep
+        timeinterval = seismic_timestamp_or_timestep
     else:
         timestamp = seismic_timestamp_or_timestep
 
@@ -107,7 +107,7 @@ def get_seismic(
             realization=realization_num,
             iteration=ensemble_name,
             cube_tagname=seismic_cube_attribute,
-            timestep=timestep,
+            timeinterval=timeinterval,
             timestamp=timestamp,
             observed=observed,
         )

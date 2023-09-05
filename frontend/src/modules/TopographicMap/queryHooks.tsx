@@ -3,6 +3,7 @@ import {
     StaticSurfaceDirectory_api,
     SumoContent_api,
     SurfaceData_api,
+    SurfaceMeta_api,
     SurfacePolygonDirectory_api,
     WellBoreHeader_api,
     WellBoreTrajectory_api,
@@ -16,7 +17,7 @@ import { SurfacePolygonsAddress } from "./SurfacePolygonsAddress";
 const STALE_TIME = 60 * 1000;
 const CACHE_TIME = 60 * 1000;
 
-export function useSurfaceDirectoryQuery(
+export function useStaticSurfaceDirectoryQuery(
     caseUuid: string | undefined,
     ensembleName: string | undefined,
     contentFilter?: SumoContent_api[]
@@ -30,6 +31,18 @@ export function useSurfaceDirectoryQuery(
     });
 }
 
+export function useSurfaceDirectoryQuery(
+    caseUuid: string | undefined,
+    ensembleName: string | undefined
+): UseQueryResult<SurfaceMeta_api[]> {
+    return useQuery({
+        queryKey: ["getSurfaceDirectory", caseUuid, ensembleName],
+        queryFn: () => apiService.surface.getSurfaceDirectory(caseUuid ?? "", ensembleName ?? ""),
+        staleTime: STALE_TIME,
+        cacheTime: STALE_TIME,
+        enabled: caseUuid && ensembleName ? true : false,
+    });
+}
 export function usePolygonDirectoryQuery(
     caseUuid: string | undefined,
     ensembleName: string | undefined

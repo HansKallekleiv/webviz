@@ -76,18 +76,32 @@ class SeismicAccess:
         realization: int,
         iteration: str,
         timestamp: Optional[str] = None,
-        timestep: Optional[str] = None,
+        timeinterval: Optional[str] = None,
         observed: bool = False,
     ) -> VdsHandle:
         """get vds handle for a cube"""
         case = self._get_sumo_case()
 
+        if timestamp is None and timeinterval is None:
+            raise ValueError("timestamp or interval must be set")
+        if timestamp is not None and timeinterval is not None:
+            raise ValueError("timestamp and interval cannot both be set")
+
+        timefilter = (
+            TimeFilter(TimeType.TIMESTAMP, start=timestamp)
+            if timestamp is not None
+            else TimeFilter(TimeType.INTERVAL, start=timeinterval.split("--")[0], end=timeinterval.split("--")[1])
+        )
+
         cube_collection: CubeCollection = case.cubes.filter(
             tagname=cube_tagname,
             realization=realization,
             iteration=iteration,
+            time=timefilter,
+            # is_observation=observed,
         )
-
+        print(len(cube_collection))
+        # cube = cube_collection[0]
         cube = None
         for potential_cube in cube_collection:
             if observed and potential_cube["data"]["is_observation"]:
@@ -101,27 +115,24 @@ class SeismicAccess:
             raise ValueError(f"No observed sumo cubes found {cube_tagname=}, {realization=}, {iteration=}")
         if not cube and not observed:
             raise ValueError(f"No simulated sumo cubes found {cube_tagname=}, {realization=}, {iteration=}")
+        print("Found cube", cube["data"], "is observed:", cube["data"]["is_observation"], observed)
 
-        if timestamp is not None:
-            cube = next((cube for cube in cube_collection if cube.timestamp == timestamp), None)
+        return VdsHandle(
+            sas_token=cube.sas,
+            vds_url=clean_vds_url(cube.url),
+        )
+
+        if timeinterval is not None:
+            timeinterval = string_to_sumo_time_interval(timeinterval)
+            cube = next((cube for cube in cube_collection if cube.interval == timeinterval), None)
             if cube is None:
-                raise ValueError(f"timestamp {timestamp} not found for cube {cube_tagname}")
+                raise ValueError(f"interval {timeinterval} not found for cube {cube_tagname}")
             return VdsHandle(
                 sas_token=cube.sas,
                 vds_url=clean_vds_url(cube.url),
             )
 
-        if timestep is not None:
-            timestep = string_to_sumo_time_interval(timestep)
-            cube = next((cube for cube in cube_collection if cube.interval == timestep), None)
-            if cube is None:
-                raise ValueError(f"Timestep {timestep} not found for cube {cube_tagname}")
-            return VdsHandle(
-                sas_token=cube.sas,
-                vds_url=clean_vds_url(cube.url),
-            )
-
-        raise ValueError("timestep or interval must be set")
+        raise ValueError("timestamp or interval must be set")
 
 
 def sumo_time_interval_to_string(interval: Tuple[str, str]) -> str:

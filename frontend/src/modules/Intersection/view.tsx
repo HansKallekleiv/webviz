@@ -115,7 +115,7 @@ export function view({ moduleContext, workbenchSession, workbenchSettings, workb
         h_arr: curtain ? curtain.map((c: number[]) => c[0] - viewSettings.extension) : [],
     };
     const timeString = seismicAddress?.timeString?.replaceAll("Z", "").replaceAll(".000", "");
-
+    console.log(seismicAddress?.observed, "is observed");
     const seismicFenceQuery = useSeismicIntersectionQuery(
         seismicAddress?.caseUuid,
         seismicAddress?.ensemble,

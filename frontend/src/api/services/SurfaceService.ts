@@ -5,6 +5,7 @@ import type { DynamicSurfaceDirectory } from '../models/DynamicSurfaceDirectory'
 import type { StaticSurfaceDirectory } from '../models/StaticSurfaceDirectory';
 import type { SumoContent } from '../models/SumoContent';
 import type { SurfaceData } from '../models/SurfaceData';
+import type { SurfaceMeta } from '../models/SurfaceMeta';
 import type { SurfaceStatisticFunction } from '../models/SurfaceStatisticFunction';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -13,6 +14,31 @@ import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class SurfaceService {
 
     constructor(public readonly httpRequest: BaseHttpRequest) {}
+
+    /**
+     * Get Surface Directory
+     * Get a directory of surfaces in a Sumo ensemble
+     * @param caseUuid Sumo case uuid
+     * @param ensembleName Ensemble name
+     * @returns SurfaceMeta Successful Response
+     * @throws ApiError
+     */
+    public getSurfaceDirectory(
+        caseUuid: string,
+        ensembleName: string,
+    ): CancelablePromise<Array<SurfaceMeta>> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/surface/surface_directory/',
+            query: {
+                'case_uuid': caseUuid,
+                'ensemble_name': ensembleName,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
 
     /**
      * Get Dynamic Surface Directory
