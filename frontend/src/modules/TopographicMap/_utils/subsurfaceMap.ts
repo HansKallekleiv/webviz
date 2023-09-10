@@ -53,7 +53,6 @@ export function colorScaleToSubsurfaceMapColorScale(colorScale: ColorScale): col
             rgbArr.push([color[0], rgb[0], rgb[1], rgb[2]]);
         }
     });
-    console.log([{ name: "Continuous", discrete: false, colors: rgbArr }]);
     return [{ name: "Continuous", discrete: false, colors: rgbArr }];
 }
 export function createNorthArrowLayer(visible?: boolean): Record<string, unknown> {

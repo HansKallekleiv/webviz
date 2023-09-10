@@ -97,7 +97,7 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
         computedEnsembleIdent?.getCaseUuid(),
         computedEnsembleIdent?.getEnsembleName()
     );
-    console.log(surfDirQuery.data);
+    console.log("all data", surfDirQuery.data);
     const meshSurfDirProvider = new SurfaceDirectoryProvider(meshSurfDirQuery, "tops");
     const computedMeshSurfaceName = meshSurfDirProvider.validateOrResetSurfaceName(selectedMeshSurfaceName);
     const computedMeshSurfaceAttribute = meshSurfDirProvider.validateOrResetSurfaceAttribute(
@@ -384,11 +384,33 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
                     </Label>
                 )}
             </CollapsibleGroup>
-            <SurfaceSelector
+            {/* <SurfaceSelector
                 title="Mesh"
                 ensembleIdent={computedEnsembleIdent}
                 content={["depth"]}
                 timeType={TimeType.None}
+                moduleContext={moduleContext}
+                workbenchServices={workbenchServices}
+            />
+            <SurfaceSelector
+                title="Property static"
+                ensembleIdent={computedEnsembleIdent}
+                content={["property"]}
+                timeType={TimeType.None}
+                moduleContext={moduleContext}
+                workbenchServices={workbenchServices}
+            /> */}
+            <SurfaceSelector
+                title="Property timestamp"
+                ensembleIdent={computedEnsembleIdent}
+                timeType={TimeType.Timestamp}
+                moduleContext={moduleContext}
+                workbenchServices={workbenchServices}
+            />
+            <SurfaceSelector
+                title="Property interval"
+                ensembleIdent={computedEnsembleIdent}
+                timeType={TimeType.Interval}
                 moduleContext={moduleContext}
                 workbenchServices={workbenchServices}
             />

@@ -21,26 +21,40 @@ export enum TimeType {
 export class SurfaceDirectoryProvider {
     private _surfaceList: SurfaceMeta_api[] = [];
     private _timeType: TimeType;
-    constructor(surfaceDirectoryQuery: UseQueryResult<SurfaceMeta_api[]>, timeType: TimeType, content: string[]) {
+    constructor(
+        surfaceDirectoryQuery: UseQueryResult<SurfaceMeta_api[]>,
+        timeType: TimeType,
+        content: string[] | null
+    ) {
         if (surfaceDirectoryQuery.data) {
-            let filterCondition: (surface: SurfaceMeta_api) => boolean;
+            let filterTimeType: (surface: SurfaceMeta_api) => boolean;
             switch (timeType) {
                 case TimeType.None:
-                    filterCondition = (surface) =>
-                        content.includes(surface.content) && !surface.t_start && !surface.t_end;
+                    console.log("no time");
+                    filterTimeType = (surface) => !surface.t_start && !surface.t_end;
                     break;
                 case TimeType.Timestamp:
-                    filterCondition = (surface) =>
-                        content.includes(surface.content) && surface.t_start !== null && surface.t_end === null;
+                    console.log("timestamp");
+                    filterTimeType = (surface) => surface.t_start != null && surface.t_end == null;
                     break;
                 default:
-                    filterCondition = (surface) =>
-                        content.includes(surface.content) && surface.t_start !== null && surface.t_end !== null;
+                    console.log("interval");
+                    filterTimeType = (surface) => surface.t_start != null && surface.t_end != null;
                     break;
             }
-            this._surfaceList = [...new Set(surfaceDirectoryQuery.data.filter(filterCondition))];
+
+            if (content && content.length > 0) {
+                console.log("has content", content);
+                const filterContent = (surface: SurfaceMeta_api) => content.includes(surface.content);
+                this._surfaceList = [
+                    ...new Set(surfaceDirectoryQuery.data.filter(filterTimeType).filter(filterContent)),
+                ];
+            } else {
+                console.log("no content", filterTimeType);
+                this._surfaceList = [...new Set(surfaceDirectoryQuery.data.filter(filterTimeType))];
+            }
         }
-        console.log(this._surfaceList);
+        console.log("surface list", this._surfaceList);
         this._timeType = timeType;
     }
 

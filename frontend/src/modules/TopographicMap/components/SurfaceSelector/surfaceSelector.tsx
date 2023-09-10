@@ -21,7 +21,7 @@ export interface SurfaceSelectorProps {
     ensembleIdent: EnsembleIdent | null;
     surfaceAddress?: SurfAddr | null;
     setSurfaceAddress?: React.Dispatch<React.SetStateAction<SurfAddr | null>>;
-    content: string[];
+    content?: string[] | null;
     timeType: TimeType;
     moduleContext: ModuleContext<any>;
     workbenchServices: WorkbenchServices;
@@ -37,9 +37,10 @@ export function SurfaceSelector(props: SurfaceSelectorProps): JSX.Element {
         props.ensembleIdent?.getCaseUuid(),
         props.ensembleIdent?.getEnsembleName()
     );
-    const SurfDirProvider = new SurfaceDirectoryProvider(surfaceDirectoryQuery, props.timeType, props.content);
+    const SurfDirProvider = new SurfaceDirectoryProvider(surfaceDirectoryQuery, props.timeType, props.content ?? null);
 
     const attributes = SurfDirProvider.getAttributes();
+    console.log(props.title, attributes[0], SurfDirProvider.getAttributes());
     const computedSurfaceAttribute = SurfDirProvider.NameAttributePairExists(
         selectedSurfaceName,
         selectedSurfaceAttribute
