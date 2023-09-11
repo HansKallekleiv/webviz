@@ -41,7 +41,7 @@ export function useSurfaceDataQueryByAddress(surfAddr: SurfAddr | null): UseQuer
             reject(null);
         });
     }
-    
+
     if (!surfAddr) {
         return useQuery({
             queryKey: ["getSurfaceData_DUMMY_ALWAYS_DISABLED"],

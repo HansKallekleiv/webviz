@@ -17,32 +17,6 @@ import { SurfacePolygonsAddress } from "./SurfacePolygonsAddress";
 const STALE_TIME = 60 * 1000;
 const CACHE_TIME = 60 * 1000;
 
-export function useStaticSurfaceDirectoryQuery(
-    caseUuid: string | undefined,
-    ensembleName: string | undefined,
-    contentFilter?: SumoContent_api[]
-): UseQueryResult<StaticSurfaceDirectory_api> {
-    return useQuery({
-        queryKey: ["getStaticSurfaceDirectory", caseUuid, ensembleName, contentFilter],
-        queryFn: () => apiService.surface.getStaticSurfaceDirectory(caseUuid ?? "", ensembleName ?? "", contentFilter),
-        staleTime: STALE_TIME,
-        cacheTime: STALE_TIME,
-        enabled: caseUuid && ensembleName ? true : false,
-    });
-}
-
-export function useSurfaceDirectoryQuery(
-    caseUuid: string | undefined,
-    ensembleName: string | undefined
-): UseQueryResult<SurfaceMeta_api[]> {
-    return useQuery({
-        queryKey: ["getSurfaceDirectory", caseUuid, ensembleName],
-        queryFn: () => apiService.surface.getSurfaceDirectory(caseUuid ?? "", ensembleName ?? ""),
-        staleTime: STALE_TIME,
-        cacheTime: STALE_TIME,
-        enabled: caseUuid && ensembleName ? true : false,
-    });
-}
 export function usePolygonDirectoryQuery(
     caseUuid: string | undefined,
     ensembleName: string | undefined

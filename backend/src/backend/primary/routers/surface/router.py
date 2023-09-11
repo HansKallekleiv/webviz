@@ -37,50 +37,6 @@ def get_surface_directory(
     return [schemas.SurfaceMeta(**surf_meta.__dict__) for surf_meta in surf_dir]
 
 
-@router.get("/dynamic_surface_directory/")
-def get_dynamic_surface_directory(
-    authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user),
-    case_uuid: str = Query(description="Sumo case uuid"),
-    ensemble_name: str = Query(description="Ensemble name"),
-) -> schemas.DynamicSurfaceDirectory:
-    """
-    Get a directory of surface names, attributes and time/interval strings for simulated dynamic surfaces.
-    """
-    access = SurfaceAccess(authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name)
-    surf_dir = access.get_dynamic_surf_dir()
-
-    ret_dir = schemas.DynamicSurfaceDirectory(
-        names=surf_dir.names,
-        attributes=surf_dir.attributes,
-        time_or_interval_strings=surf_dir.date_strings,
-    )
-
-    return ret_dir
-
-
-@router.get("/static_surface_directory/")
-def get_static_surface_directory(
-    authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user),
-    case_uuid: str = Query(description="Sumo case uuid"),
-    ensemble_name: str = Query(description="Ensemble name"),
-    sumo_content_filter: List[SumoContent] = Query(default=None, description="Optional filter by Sumo content type"),
-) -> schemas.StaticSurfaceDirectory:
-    """
-    Get a directory of surface names and attributes for static surfaces.
-    These are the non-observed surfaces that do NOT have time stamps
-    """
-    access = SurfaceAccess(authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name)
-    surf_dir = access.get_static_surf_dir(content_filter=sumo_content_filter)
-
-    ret_dir = schemas.StaticSurfaceDirectory(
-        names=surf_dir.names,
-        attributes=surf_dir.attributes,
-        valid_attributes_for_name=surf_dir.valid_attributes_for_name,
-    )
-
-    return ret_dir
-
-
 @router.get("/static_surface_data/")
 def get_static_surface_data(
     authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user),
