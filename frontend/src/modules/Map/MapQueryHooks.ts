@@ -1,4 +1,4 @@
-import { DynamicSurfaceDirectory_api, StaticSurfaceDirectory_api, SurfaceData_api } from "@api";
+import { SurfaceData_api } from "@api";
 import { apiService } from "@framework/ApiService";
 import { QueryFunction, QueryKey, UseQueryResult, useQuery } from "@tanstack/react-query";
 
@@ -7,41 +7,13 @@ import { SurfAddr } from "./SurfAddr";
 const STALE_TIME = 60 * 1000;
 const CACHE_TIME = 60 * 1000;
 
-export function useDynamicSurfaceDirectoryQuery(
-    caseUuid: string | undefined,
-    ensembleName: string | undefined,
-    allowEnable: boolean
-): UseQueryResult<DynamicSurfaceDirectory_api> {
-    return useQuery({
-        queryKey: ["getDynamicSurfaceDirectory", caseUuid, ensembleName],
-        queryFn: () => apiService.surface.getDynamicSurfaceDirectory(caseUuid ?? "", ensembleName ?? ""),
-        staleTime: STALE_TIME,
-        cacheTime: STALE_TIME,
-        enabled: allowEnable && caseUuid && ensembleName ? true : false,
-    });
-}
-
-export function useStaticSurfaceDirectoryQuery(
-    caseUuid: string | undefined,
-    ensembleName: string | undefined,
-    allowEnable: boolean
-): UseQueryResult<StaticSurfaceDirectory_api> {
-    return useQuery({
-        queryKey: ["getStaticSurfaceDirectory", caseUuid, ensembleName],
-        queryFn: () => apiService.surface.getStaticSurfaceDirectory(caseUuid ?? "", ensembleName ?? ""),
-        staleTime: STALE_TIME,
-        cacheTime: STALE_TIME,
-        enabled: allowEnable && caseUuid && ensembleName ? true : false,
-    });
-}
-
 export function useSurfaceDataQueryByAddress(surfAddr: SurfAddr | null): UseQueryResult<SurfaceData_api> {
     function dummyApiCall(): Promise<SurfaceData_api> {
         return new Promise((_resolve, reject) => {
             reject(null);
         });
     }
-    
+
     if (!surfAddr) {
         return useQuery({
             queryKey: ["getSurfaceData_DUMMY_ALWAYS_DISABLED"],

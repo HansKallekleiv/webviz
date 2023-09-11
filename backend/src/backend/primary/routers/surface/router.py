@@ -1,9 +1,12 @@
 import logging
 from typing import List
-
-from fastapi import APIRouter, Depends, HTTPException, Query
+import numpy as np
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
+import json
 
 from src.services.sumo_access.surface_access import SurfaceAccess
+from src.services.sumo_access.iteration_inspector import IterationInspector
+from src.services.sumo_access.case_inspector import CaseInspector
 from src.services.utils.statistic_function import StatisticFunction
 from src.services.utils.authenticated_user import AuthenticatedUser
 from src.services.utils.perf_timer import PerfTimer
@@ -12,54 +15,26 @@ from src.services.sumo_access.generic_types import SumoContent
 
 from . import converters
 from . import schemas
+from src.services.sumo_access.generic_types import SumoContent
 
 LOGGER = logging.getLogger(__name__)
 
 router = APIRouter()
 
 
-@router.get("/dynamic_surface_directory/")
-def get_dynamic_surface_directory(
+@router.get("/surface_directory/")
+def get_surface_directory(
     authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user),
     case_uuid: str = Query(description="Sumo case uuid"),
     ensemble_name: str = Query(description="Ensemble name"),
-) -> schemas.DynamicSurfaceDirectory:
+) -> List[schemas.SurfaceMeta]:
     """
-    Get a directory of surface names, attributes and time/interval strings for simulated dynamic surfaces.
-    """
-    access = SurfaceAccess(authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name)
-    surf_dir = access.get_dynamic_surf_dir()
-
-    ret_dir = schemas.DynamicSurfaceDirectory(
-        names=surf_dir.names,
-        attributes=surf_dir.attributes,
-        time_or_interval_strings=surf_dir.date_strings,
-    )
-
-    return ret_dir
-
-
-@router.get("/static_surface_directory/")
-def get_static_surface_directory(
-    authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user),
-    case_uuid: str = Query(description="Sumo case uuid"),
-    ensemble_name: str = Query(description="Ensemble name"),
-    sumo_content_filter: List[SumoContent] = Query(default=None, description="Optional filter by Sumo content type"),
-) -> schemas.StaticSurfaceDirectory:
-    """
-    Get a directory of surface names and attributes for static surfaces.
-    These are the non-observed surfaces that do NOT have time stamps
+    Get a directory of surfaces in a Sumo ensemble
     """
     access = SurfaceAccess(authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name)
-    surf_dir = access.get_static_surf_dir(content_filter=sumo_content_filter)
+    surf_dir = access.get_surface_directory()
 
-    ret_dir = schemas.StaticSurfaceDirectory(
-        names=surf_dir.names,
-        attributes=surf_dir.attributes,
-        valid_attributes_for_name=surf_dir.valid_attributes_for_name,
-    )
-
-    return ret_dir
+    return [schemas.SurfaceMeta(**surf_meta.__dict__) for surf_meta in surf_dir]
 
 
 @router.get("/static_surface_data/")

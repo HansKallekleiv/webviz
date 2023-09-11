@@ -1,10 +1,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { DynamicSurfaceDirectory } from '../models/DynamicSurfaceDirectory';
-import type { StaticSurfaceDirectory } from '../models/StaticSurfaceDirectory';
-import type { SumoContent } from '../models/SumoContent';
 import type { SurfaceData } from '../models/SurfaceData';
+import type { SurfaceMeta } from '../models/SurfaceMeta';
 import type { SurfaceStatisticFunction } from '../models/SurfaceStatisticFunction';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -15,52 +13,23 @@ export class SurfaceService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
 
     /**
-     * Get Dynamic Surface Directory
-     * Get a directory of surface names, attributes and time/interval strings for simulated dynamic surfaces.
+     * Get Surface Directory
+     * Get a directory of surfaces in a Sumo ensemble
      * @param caseUuid Sumo case uuid
      * @param ensembleName Ensemble name
-     * @returns DynamicSurfaceDirectory Successful Response
+     * @returns SurfaceMeta Successful Response
      * @throws ApiError
      */
-    public getDynamicSurfaceDirectory(
+    public getSurfaceDirectory(
         caseUuid: string,
         ensembleName: string,
-    ): CancelablePromise<DynamicSurfaceDirectory> {
+    ): CancelablePromise<Array<SurfaceMeta>> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/surface/dynamic_surface_directory/',
+            url: '/surface/surface_directory/',
             query: {
                 'case_uuid': caseUuid,
                 'ensemble_name': ensembleName,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-
-    /**
-     * Get Static Surface Directory
-     * Get a directory of surface names and attributes for static surfaces.
-     * These are the non-observed surfaces that do NOT have time stamps
-     * @param caseUuid Sumo case uuid
-     * @param ensembleName Ensemble name
-     * @param sumoContentFilter Optional filter by Sumo content type
-     * @returns StaticSurfaceDirectory Successful Response
-     * @throws ApiError
-     */
-    public getStaticSurfaceDirectory(
-        caseUuid: string,
-        ensembleName: string,
-        sumoContentFilter?: Array<SumoContent>,
-    ): CancelablePromise<StaticSurfaceDirectory> {
-        return this.httpRequest.request({
-            method: 'GET',
-            url: '/surface/static_surface_directory/',
-            query: {
-                'case_uuid': caseUuid,
-                'ensemble_name': ensembleName,
-                'sumo_content_filter': sumoContentFilter,
             },
             errors: {
                 422: `Validation Error`,

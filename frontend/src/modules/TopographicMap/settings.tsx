@@ -1,7 +1,6 @@
 import React from "react";
 
 import { SurfaceStatisticFunction_api } from "@api";
-import { SumoContent_api } from "@api";
 import { EnsembleIdent } from "@framework/EnsembleIdent";
 import { ModuleFCProps } from "@framework/Module";
 import { SyncSettingKey, SyncSettingsHelper } from "@framework/SyncSettings";
@@ -20,10 +19,10 @@ import { Select, SelectOption } from "@lib/components/Select";
 import { SurfAddr, SurfAddrFactory } from "./SurfaceAddress";
 import { SurfacePolygonsAddress } from "./SurfacePolygonsAddress";
 import { AggregationSelector } from "./components/AggregationSelector";
+import { EnsembleSurfaceAddress, SurfaceContent, SurfaceSelect, TimeType } from "./components/SurfaceSelect";
 import { PolygonDirectoryProvider } from "./polygonsDirectoryProvider";
-import { useGetWellHeaders, usePolygonDirectoryQuery, useSurfaceDirectoryQuery } from "./queryHooks";
+import { useGetWellHeaders, usePolygonDirectoryQuery } from "./queryHooks";
 import { state } from "./state";
-import { SurfaceDirectoryProvider } from "./surfaceDirectoryProvider";
 
 //-----------------------------------------------------------------------------------------------------------
 type LabelledCheckboxProps = {
@@ -51,11 +50,11 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
 
     const ensembleSet = useEnsembleSet(workbenchSession);
     const [selectedEnsembleIdent, setSelectedEnsembleIdent] = React.useState<EnsembleIdent | null>(null);
-    const [selectedMeshSurfaceName, setSelectedMeshSurfaceName] = React.useState<string | null>(null);
-    const [selectedMeshSurfaceAttribute, setSelectedMeshSurfaceAttribute] = React.useState<string | null>(null);
+    const [meshSurfaceAddress, setMeshSurfaceAddress] = React.useState<EnsembleSurfaceAddress | null>(null);
+    const [propertySurfaceAddress, setPropertySurfaceAddress] = React.useState<EnsembleSurfaceAddress | null>(null);
+
     const [usePropertySurface, setUsePropertySurface] = React.useState<boolean>(false);
-    const [selectedPropertySurfaceName, setSelectedPropertySurfaceName] = React.useState<string | null>(null);
-    const [selectedPropertySurfaceAttribute, setSelectedPropertySurfaceAttribute] = React.useState<string | null>(null);
+
     const [selectedPolygonName, setSelectedPolygonName] = React.useState<string | null>(null);
     const [selectedPolygonAttribute, setSelectedPolygonAttribute] = React.useState<string | null>(null);
     const [linkPolygonNameToSurfaceName, setLinkPolygonNameToSurfaceName] = React.useState<boolean>(true);
@@ -80,56 +79,6 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
     if (computedEnsembleIdent && !computedEnsembleIdent.equals(selectedEnsembleIdent)) {
         setSelectedEnsembleIdent(computedEnsembleIdent);
     }
-    // Mesh surface
-    const meshSurfDirQuery = useSurfaceDirectoryQuery(
-        computedEnsembleIdent?.getCaseUuid(),
-        computedEnsembleIdent?.getEnsembleName(),
-        [SumoContent_api.DEPTH]
-    );
-    const meshSurfDirProvider = new SurfaceDirectoryProvider(meshSurfDirQuery, "tops");
-    const computedMeshSurfaceName = meshSurfDirProvider.validateOrResetSurfaceName(selectedMeshSurfaceName);
-    const computedMeshSurfaceAttribute = meshSurfDirProvider.validateOrResetSurfaceAttribute(
-        computedMeshSurfaceName,
-        selectedMeshSurfaceAttribute
-    );
-
-    if (computedMeshSurfaceName && computedMeshSurfaceName !== selectedMeshSurfaceName) {
-        setSelectedMeshSurfaceName(computedMeshSurfaceName);
-    }
-    if (computedMeshSurfaceAttribute && computedMeshSurfaceAttribute !== selectedMeshSurfaceAttribute) {
-        setSelectedMeshSurfaceAttribute(computedMeshSurfaceAttribute);
-    }
-
-    let meshSurfNameOptions: SelectOption[] = [];
-    let meshSurfAttributeOptions: SelectOption[] = [];
-    meshSurfNameOptions = meshSurfDirProvider.surfaceNames().map((name) => ({ value: name, label: name }));
-    meshSurfAttributeOptions = meshSurfDirProvider
-        .attributesForSurfaceName(computedMeshSurfaceName)
-        .map((attr) => ({ value: attr, label: attr }));
-
-    // Property surface
-    const propertySurfDirQuery = useSurfaceDirectoryQuery(
-        computedEnsembleIdent?.getCaseUuid(),
-        computedEnsembleIdent?.getEnsembleName() // Should be SumoContent_api.PROPERTY
-    );
-    const propertySurfDirProvider = new SurfaceDirectoryProvider(propertySurfDirQuery, "formations");
-    const computedPropertySurfaceName = propertySurfDirProvider.validateOrResetSurfaceName(selectedPropertySurfaceName);
-    const computedPropertySurfaceAttribute = propertySurfDirProvider.validateOrResetSurfaceAttribute(
-        computedPropertySurfaceName,
-        selectedPropertySurfaceAttribute
-    );
-    if (computedPropertySurfaceName && computedPropertySurfaceName !== selectedPropertySurfaceName) {
-        setSelectedPropertySurfaceName(computedPropertySurfaceName);
-    }
-    if (computedPropertySurfaceAttribute && computedPropertySurfaceAttribute !== selectedPropertySurfaceAttribute) {
-        setSelectedPropertySurfaceAttribute(computedPropertySurfaceAttribute);
-    }
-    let propertySurfNameOptions: SelectOption[] = [];
-    let propertySurfAttributeOptions: SelectOption[] = [];
-    propertySurfNameOptions = propertySurfDirProvider.surfaceNames().map((name) => ({ value: name, label: name }));
-    propertySurfAttributeOptions = propertySurfDirProvider
-        .attributesForSurfaceName(computedPropertySurfaceName)
-        .map((attr) => ({ value: attr, label: attr }));
 
     // Polygon
     const polygonDirQuery = usePolygonDirectoryQuery(
@@ -139,7 +88,7 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
     const polygonDirProvider = new PolygonDirectoryProvider(polygonDirQuery);
 
     const computedPolygonName = linkPolygonNameToSurfaceName
-        ? polygonDirProvider.validateOrResetPolygonNameFromSurfaceName(computedMeshSurfaceName)
+        ? polygonDirProvider.validateOrResetPolygonNameFromSurfaceName(meshSurfaceAddress?.name || null)
         : polygonDirProvider.validateOrResetPolygonName(selectedPolygonName);
     const computedPolygonAttribute = polygonDirProvider.validateOrResetPolygonAttribute(
         computedPolygonName,
@@ -163,12 +112,12 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
         function propagateMeshSurfaceSelectionToView() {
             let surfAddr: SurfAddr | null = null;
 
-            if (computedEnsembleIdent && computedMeshSurfaceName && computedMeshSurfaceAttribute) {
+            if (meshSurfaceAddress) {
                 const addrFactory = new SurfAddrFactory(
-                    computedEnsembleIdent.getCaseUuid(),
-                    computedEnsembleIdent.getEnsembleName(),
-                    computedMeshSurfaceName,
-                    computedMeshSurfaceAttribute
+                    meshSurfaceAddress.caseUuid,
+                    meshSurfaceAddress.ensemble,
+                    meshSurfaceAddress.name,
+                    meshSurfaceAddress.attribute
                 );
 
                 if (aggregation === null) {
@@ -181,7 +130,7 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
             console.debug(`propagateSurfaceSelectionToView() => ${surfAddr ? "valid surfAddr" : "NULL surfAddr"}`);
             moduleContext.getStateStore().setValue("meshSurfaceAddress", surfAddr);
         },
-        [selectedEnsembleIdent, selectedMeshSurfaceName, selectedMeshSurfaceAttribute, aggregation, realizationNum]
+        [meshSurfaceAddress, aggregation, realizationNum]
     );
     React.useEffect(
         function propagatePropertySurfaceSelectionToView() {
@@ -190,12 +139,12 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
                 moduleContext.getStateStore().setValue("propertySurfaceAddress", surfAddr);
                 return;
             }
-            if (computedEnsembleIdent && computedPropertySurfaceName && computedPropertySurfaceAttribute) {
+            if (propertySurfaceAddress) {
                 const addrFactory = new SurfAddrFactory(
-                    computedEnsembleIdent.getCaseUuid(),
-                    computedEnsembleIdent.getEnsembleName(),
-                    computedPropertySurfaceName,
-                    computedPropertySurfaceAttribute
+                    propertySurfaceAddress.caseUuid,
+                    propertySurfaceAddress.ensemble,
+                    propertySurfaceAddress.name,
+                    propertySurfaceAddress.attribute
                 );
 
                 if (aggregation === null) {
@@ -208,14 +157,7 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
             console.debug(`propagateSurfaceSelectionToView() => ${surfAddr ? "valid surfAddr" : "NULL surfAddr"}`);
             moduleContext.getStateStore().setValue("propertySurfaceAddress", surfAddr);
         },
-        [
-            selectedEnsembleIdent,
-            selectedPropertySurfaceName,
-            selectedPropertySurfaceAttribute,
-            aggregation,
-            realizationNum,
-            usePropertySurface,
-        ]
+        [propertySurfaceAddress, aggregation, realizationNum, usePropertySurface]
     );
     React.useEffect(
         function propogatePolygonsSelectionToView() {
@@ -234,7 +176,7 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
         },
         [
             selectedEnsembleIdent,
-            selectedMeshSurfaceName,
+            meshSurfaceAddress,
             selectedPolygonName,
             selectedPolygonAttribute,
             linkPolygonNameToSurfaceName,
@@ -294,34 +236,6 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
         }
     }
 
-    function handleMeshSurfNameSelectionChange(selectedSurfNames: string[]) {
-        const newName = selectedSurfNames[0] ?? null;
-        setSelectedMeshSurfaceName(newName);
-        if (newName && computedMeshSurfaceAttribute) {
-            syncHelper.publishValue(SyncSettingKey.SURFACE, "global.syncValue.surface", {
-                name: newName,
-                attribute: computedMeshSurfaceAttribute,
-            });
-        }
-    }
-    function handleMeshSurfAttributeSelectionChange(selectedSurfAttributes: string[]) {
-        const newAttr = selectedSurfAttributes[0] ?? null;
-        setSelectedMeshSurfaceAttribute(newAttr);
-        if (newAttr && computedMeshSurfaceName) {
-            syncHelper.publishValue(SyncSettingKey.SURFACE, "global.syncValue.surface", {
-                name: computedMeshSurfaceName,
-                attribute: newAttr,
-            });
-        }
-    }
-    function handlePropertySurfNameSelectionChange(selectedSurfNames: string[]) {
-        const newName = selectedSurfNames[0] ?? null;
-        setSelectedPropertySurfaceName(newName);
-    }
-    function handlePropertySurfAttributeSelectionChange(selectedSurfAttributes: string[]) {
-        const newAttr = selectedSurfAttributes[0] ?? null;
-        setSelectedPropertySurfaceAttribute(newAttr);
-    }
     function handlePolyNameSelectionChange(selectedPolyNames: string[]) {
         const newName = selectedPolyNames[0] ?? null;
         setSelectedPolygonName(newName);
@@ -373,34 +287,14 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
                 )}
             </CollapsibleGroup>
             <CollapsibleGroup expanded={true} title="Depth surface">
-                <ApiStateWrapper
-                    apiResult={meshSurfDirQuery}
-                    errorComponent={"Error loading surface directory"}
-                    loadingComponent={<CircularProgress />}
-                >
-                    <Label
-                        text="Stratigraphic name"
-                        labelClassName={syncHelper.isSynced(SyncSettingKey.SURFACE) ? "bg-indigo-700 text-white" : ""}
-                    >
-                        <Select
-                            options={meshSurfNameOptions}
-                            value={computedMeshSurfaceName ? [computedMeshSurfaceName] : []}
-                            onChange={handleMeshSurfNameSelectionChange}
-                            size={5}
-                        />
-                    </Label>
-                    <Label
-                        text="Attribute"
-                        labelClassName={syncHelper.isSynced(SyncSettingKey.SURFACE) ? "bg-indigo-700 text-white" : ""}
-                    >
-                        <Select
-                            options={meshSurfAttributeOptions}
-                            value={computedMeshSurfaceAttribute ? [computedMeshSurfaceAttribute] : []}
-                            onChange={handleMeshSurfAttributeSelectionChange}
-                            size={5}
-                        />
-                    </Label>
-                </ApiStateWrapper>
+                <SurfaceSelect
+                    ensembleIdent={computedEnsembleIdent}
+                    includeContent={[SurfaceContent.Depth]}
+                    timeType={TimeType.None}
+                    setSurfaceAddress={setMeshSurfaceAddress}
+                    moduleContext={moduleContext}
+                    workbenchServices={workbenchServices}
+                />
             </CollapsibleGroup>
             <CollapsibleGroup expanded={false} title="Property surface (color)">
                 <>
@@ -417,38 +311,14 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
                         </div>
                     </Label>
                     {usePropertySurface && (
-                        <ApiStateWrapper
-                            apiResult={propertySurfDirQuery}
-                            errorComponent={"Error loading surface directory"}
-                            loadingComponent={<CircularProgress />}
-                        >
-                            <Label
-                                text="Stratigraphic name"
-                                labelClassName={
-                                    syncHelper.isSynced(SyncSettingKey.SURFACE) ? "bg-indigo-700 text-white" : ""
-                                }
-                            >
-                                <Select
-                                    options={propertySurfNameOptions}
-                                    value={computedPropertySurfaceName ? [computedPropertySurfaceName] : []}
-                                    onChange={handlePropertySurfNameSelectionChange}
-                                    size={5}
-                                />
-                            </Label>
-                            <Label
-                                text="Attribute"
-                                labelClassName={
-                                    syncHelper.isSynced(SyncSettingKey.SURFACE) ? "bg-indigo-700 text-white" : ""
-                                }
-                            >
-                                <Select
-                                    options={propertySurfAttributeOptions}
-                                    value={computedPropertySurfaceAttribute ? [computedPropertySurfaceAttribute] : []}
-                                    onChange={handlePropertySurfAttributeSelectionChange}
-                                    size={5}
-                                />
-                            </Label>
-                        </ApiStateWrapper>
+                        <SurfaceSelect
+                            ensembleIdent={computedEnsembleIdent}
+                            excludeContent={[SurfaceContent.Depth]}
+                            timeType={TimeType.None}
+                            setSurfaceAddress={setPropertySurfaceAddress}
+                            moduleContext={moduleContext}
+                            workbenchServices={workbenchServices}
+                        />
                     )}
                 </>
             </CollapsibleGroup>
@@ -498,7 +368,7 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
                                 value={computedPolygonAttribute ? [computedPolygonAttribute] : []}
                                 placeholder={
                                     linkPolygonNameToSurfaceName
-                                        ? `No attributes found for ${computedMeshSurfaceName}`
+                                        ? `No attributes found for ${meshSurfaceAddress?.name}`
                                         : `No attributes found for ${computedPolygonName}`
                                 }
                                 onChange={handlePolyAttributeSelectionChange}

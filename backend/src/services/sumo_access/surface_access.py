@@ -1,6 +1,6 @@
 import logging
 from io import BytesIO
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 import xtgeo
 from fmu.sumo.explorer import TimeFilter, TimeType
@@ -11,8 +11,8 @@ from src.services.utils.perf_timer import PerfTimer
 from src.services.utils.statistic_function import StatisticFunction
 
 from ._helpers import create_sumo_client_instance
-from .surface_types import DynamicSurfaceDirectory, StaticSurfaceDirectory
-from .generic_types import SumoContent
+from .surface_types import SurfaceMeta
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -24,111 +24,40 @@ class SurfaceAccess:
         self._iteration_name = iteration_name
         self._sumo_case_obj: Optional[Case] = None
 
-    def get_dynamic_surf_dir(self) -> DynamicSurfaceDirectory:
-        """
-        Get a directory of surface names, attributes and date strings for simulated dynamic surfaces.
-        These are the non-observed surfaces that DO have time stamps or time intervals
-        """
-        timer = PerfTimer()
-
-        LOGGER.debug("Getting data for dynamic surface directory...")
-
+    def get_surface_directory(self) -> List[SurfaceMeta]:
         case = self._get_my_sumo_case_obj()
-
-        filter_with_timestamp_or_interval = TimeFilter(TimeType.ALL)
         surface_collection: SurfaceCollection = case.surfaces.filter(
             iteration=self._iteration_name,
             aggregation=False,
-            time=filter_with_timestamp_or_interval,
-        )
-
-        names = sorted(surface_collection.names)
-        attributes = sorted(surface_collection.tagnames)
-        timestamps: List[str] = surface_collection.timestamps
-        intervals: List[Tuple[str, str]] = surface_collection.intervals
-        available_contents = list(set(surf["data"]["content"] for surf in surface_collection))
-
-        LOGGER.debug(f"available surface contents: {available_contents}")
-
-        # ISO 8601 recommends '/' as separator, alternatively '--'
-        # https://en.wikipedia.org/wiki/ISO_8601#Time_intervals
-        intervals_as_strings: List[str] = [f"{interval[0]}--{interval[1]}" for interval in intervals]
-
-        date_strings: List[str] = []
-        date_strings.extend(timestamps)
-        date_strings.extend(intervals_as_strings)
-
-        surf_dir = DynamicSurfaceDirectory(names=names, attributes=attributes, date_strings=date_strings)
-
-        LOGGER.debug(f"Downloaded and built dynamic surface directory in: {timer.elapsed_ms():}ms")
-
-        return surf_dir
-
-    def get_static_surf_dir(self, content_filter: Optional[List[SumoContent]] = None) -> StaticSurfaceDirectory:
-        """
-        Get a directory of surface names and attributes for static surfaces.
-        These are the non-observed surfaces that do NOT have time stamps
-        """
-        timer = PerfTimer()
-
-        LOGGER.debug("Getting data for static surface directory...")
-
-        case = self._get_my_sumo_case_obj()
-
-        filter_no_time_data = TimeFilter(TimeType.NONE)
-        surface_collection: SurfaceCollection = case.surfaces.filter(
-            iteration=self._iteration_name,
-            aggregation=False,
-            time=filter_no_time_data,
             realization=0,
         )
 
-        names = sorted(surface_collection.names)
-        attributes = sorted(surface_collection.tagnames)
-        available_contents = list(set(surf["data"]["content"] for surf in surface_collection))
+        surfs: List[SurfaceMeta] = []
+        for s in surface_collection:
+            name = s["data"]["name"]
+            tagname = s["data"]["tagname"]
+            t_start = s["data"].get("time", {}).get("t0", {}).get("value", None)
+            t_end = s["data"].get("time", {}).get("t1", {}).get("value", None)
+            content = s["data"]["content"]
+            is_observation = s["data"]["is_observation"]
+            is_stratigraphic = s["data"]["stratigraphic"]
+            zmin = s["data"]["bbox"]["zmin"]
+            zmax = s["data"]["bbox"]["zmax"]
 
-        LOGGER.debug(f"available surface contents: {available_contents}")
-
-        if content_filter is not None:
-            if not any(SumoContent.has(content) for content in content_filter):
-                raise ValueError(f"Invalid content filter: {content_filter}")
-            surfaces_with_filtered_content = [
-                surf for surf in surface_collection if surf["data"]["content"] in content_filter
-            ]
-
-            names = sorted(list(set(surf.name for surf in surfaces_with_filtered_content)))
-            attributes = sorted(list(set(surf.tagname for surf in surfaces_with_filtered_content)))
-
-        else:
-            names = sorted(surface_collection.names)
-            attributes = sorted(surface_collection.tagnames)
-
-        LOGGER.debug(
-            f"Build valid name/attribute combinations for static surface directory "
-            f"(num names={len(names)}, num attributes={len(attributes)})..."
-        )
-
-        valid_attributes_for_name: List[List[int]] = []
-
-        for name in names:
-            filtered_coll = surface_collection.filter(name=name)
-            filtered_attributes = [tagname for tagname in filtered_coll.tagnames if tagname in attributes]
-            attribute_indices: List[int] = []
-            for attr in filtered_attributes:
-                attr_idx = attributes.index(attr)
-                attribute_indices.append(attr_idx)
-
-            valid_attributes_for_name.append(attribute_indices)
-
-        surf_dir = StaticSurfaceDirectory(
-            names=names,
-            attributes=attributes,
-            valid_attributes_for_name=valid_attributes_for_name,
-        )
-
-        LOGGER.debug(f"Downloaded and built static surface directory in: {timer.elapsed_ms():}ms")
-
-        return surf_dir
+            surfs.append(
+                SurfaceMeta(
+                    name=name,
+                    tagname=tagname,
+                    t_start=t_start,
+                    t_end=t_end,
+                    content=content,
+                    is_observation=is_observation,
+                    is_stratigraphic=is_stratigraphic,
+                    zmin=zmin,
+                    zmax=zmax,
+                )
+            )
+        return surfs
 
     def get_dynamic_surf(
         self, real_num: int, name: str, attribute: str, time_or_interval_str: str

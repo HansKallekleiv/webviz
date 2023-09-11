@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List
+from typing import Optional
 
 from pydantic import BaseModel
 
@@ -14,16 +14,16 @@ class SurfaceStatisticFunction(str, Enum):
     P50 = "P50"
 
 
-class DynamicSurfaceDirectory(BaseModel):
-    names: List[str]
-    attributes: List[str]
-    time_or_interval_strings: List[str]
-
-
-class StaticSurfaceDirectory(BaseModel):
-    names: List[str]
-    attributes: List[str]
-    valid_attributes_for_name: List[List[int]]
+class SurfaceMeta(BaseModel):
+    name: str
+    tagname: str
+    t_start: Optional[str]
+    t_end: Optional[str]
+    content: str
+    is_observation: bool
+    is_stratigraphic: bool
+    zmin: float
+    zmax: float
 
 
 class SurfaceData(BaseModel):
