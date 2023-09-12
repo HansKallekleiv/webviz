@@ -2,7 +2,7 @@ from typing import List
 
 
 from ..types import StratigraphicUnit, StratigraphicSurface
-from ..stratigraphy_access import sort_stratigraphic_names_by_hierarchy, sort_stratigraphic_units_by_hierarchy
+from ..stratigraphy_utils import sort_stratigraphic_names_by_hierarchy, sort_stratigraphic_units_by_hierarchy
 
 STRAT_UNITS = [
     StratigraphicUnit(
