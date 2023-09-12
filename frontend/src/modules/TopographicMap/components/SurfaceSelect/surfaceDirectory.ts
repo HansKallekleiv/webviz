@@ -42,7 +42,6 @@ export class SurfaceDirectory {
             : (filteredList = filteredList.filter((surface) => !surface.is_observation));
 
         this._surfaceList = filteredList;
-        console.log(this._surfaceList);
     }
 
     // Filters directory based on time type.
