@@ -19,6 +19,7 @@ def create_hierarchical_structure(strat_units: List[StratigraphicUnit]) -> List[
 
 
 def flatten_hierarchical_structure(units: List[StratigraphicUnit], unit_by_id: Dict) -> List[StratigraphicUnit]:
+    """Flatten the hierarchical structure into a single list of stratigraphic units, preserving the order."""
     flattened_list = []
 
     for unit in units:
@@ -31,6 +32,7 @@ def flatten_hierarchical_structure(units: List[StratigraphicUnit], unit_by_id: D
 def flatten_hierarchical_structure_to_surface_name(
     units: List[StratigraphicUnit], unit_by_id: Dict
 ) -> List[StratigraphicSurface]:
+    """Flatten the hierarchical structure into a single list of stratigraphical top/unit/base names, preserving the order."""
     flattened_list = []
 
     for unit in units:
@@ -45,6 +47,7 @@ def flatten_hierarchical_structure_to_surface_name(
 
 
 def sort_stratigraphic_names_by_hierarchy(strat_units: List[StratigraphicUnit]) -> List[StratigraphicSurface]:
+    """Sort stratigraphic top/unit/base by hierarchy."""
     unit_by_id = {unit.identifier: {"unit": unit, "children": []} for unit in strat_units}
 
     for unit in strat_units:
@@ -57,6 +60,7 @@ def sort_stratigraphic_names_by_hierarchy(strat_units: List[StratigraphicUnit]) 
 
 
 def sort_stratigraphic_units_by_hierarchy(strat_units: List[StratigraphicUnit]) -> List[StratigraphicUnit]:
+    """Sort stratigraphic units by hierarchy."""
     unit_by_id = {unit.identifier: {"unit": unit, "children": []} for unit in strat_units}
 
     for unit in strat_units:
