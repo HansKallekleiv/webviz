@@ -31,7 +31,7 @@ def create_hierarchical_structure(strat_units: List[StratigraphicUnit]) -> List[
     for unit in strat_units:
         if unit.strat_unit_parent and unit.strat_unit_parent in unit_by_id:
             parent = unit_by_id[unit.strat_unit_parent]
-            parent["children"].append(unit)  # pylint: disable=attr-defined
+            parent["children"].append(unit)  # type: ignore
         else:
             roots.append(unit)
 
@@ -71,11 +71,9 @@ def sort_stratigraphic_names_by_hierarchy(strat_units: List[StratigraphicUnit]) 
 
     for unit in strat_units:
         if unit.strat_unit_parent and unit.strat_unit_parent in unit_by_id:
-            unit_by_id[unit.strat_unit_parent]["children"].append(unit)  # pylint: disable=attr-defined
+            unit_by_id[unit.strat_unit_parent]["children"].append(unit)  # type: ignore
 
-    roots = [
-        data["unit"] for data in unit_by_id.values() if not data["unit"].strat_unit_parent
-    ]  # pylint: disable=attr-defined
+    roots = [data["unit"] for data in unit_by_id.values() if not data["unit"].strat_unit_parent]  # type: ignore
     sorted_units = flatten_hierarchical_structure_to_surface_name(roots, unit_by_id)
     return sorted_units
 
@@ -86,8 +84,8 @@ def sort_stratigraphic_units_by_hierarchy(strat_units: List[StratigraphicUnit]) 
 
     for unit in strat_units:
         if unit.strat_unit_parent and unit.strat_unit_parent in unit_by_id:
-            unit_by_id[unit.strat_unit_parent]["children"].append(unit)  # pylint: disable=attr-defined
+            unit_by_id[unit.strat_unit_parent]["children"].append(unit)  # type: ignore
 
     roots = [data["unit"] for data in unit_by_id.values() if not data["unit"].strat_unit_parent]
-    sorted_units = flatten_hierarchical_structure(roots, unit_by_id)  # pylint: disable=attr-defined
+    sorted_units = flatten_hierarchical_structure(roots, unit_by_id)  # type: ignore
     return sorted_units

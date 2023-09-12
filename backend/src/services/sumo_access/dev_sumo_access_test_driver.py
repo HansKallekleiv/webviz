@@ -106,7 +106,7 @@ def main() -> None:
     print("\n\n")
     print(iterations)
 
-    iteration_name = iterations[0].name
+    # iteration_name = iterations[0].name
 
     # summary_access = SummaryAccess(access_token=access_token, case_uuid=sumo_case_id, iteration_name=iteration_name)
     # test_summary_access(summary_access)
