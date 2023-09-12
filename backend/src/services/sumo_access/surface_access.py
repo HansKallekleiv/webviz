@@ -12,6 +12,7 @@ from src.services.utils.statistic_function import StatisticFunction
 
 from ._helpers import create_sumo_client_instance
 from .surface_types import SurfaceMeta
+from .generic_types import SumoContent
 from ..utils.date_utils import iso_datetime_to_date, iso_datetime_to_date_interval
 
 LOGGER = logging.getLogger(__name__)
@@ -45,9 +46,9 @@ class SurfaceAccess:
 
             surf_meta = SurfaceMeta(
                 name=s["data"]["name"],
-                tagname=s["data"]["tagname"],
+                tagname=s["data"].get("tagname", "Unknown"),
                 iso_date_or_interval=iso_string_or_time_interval,
-                content=s["data"]["content"],
+                content=s["data"].get("content", SumoContent.DEPTH),
                 is_observation=s["data"]["is_observation"],
                 is_stratigraphic=s["data"]["stratigraphic"],
                 zmin=s["data"]["bbox"]["zmin"],

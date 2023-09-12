@@ -3,6 +3,7 @@ from typing import List
 import orjson
 import xtgeo
 from src.services.sumo_access.surface_types import SurfaceMeta as SumoSurfaceMeta
+from src.services.smda_access.types import StratigraphicUnit
 from src.services.utils.surface_to_float32 import surface_to_float32_array
 from . import schemas
 
@@ -44,13 +45,17 @@ def to_api_surface_data(xtgeo_surf: xtgeo.RegularSurface) -> schemas.SurfaceData
     )
 
 
-def to_api_surface_directory(sumo_surface_dir: List[SumoSurfaceMeta]) -> List[schemas.SurfaceMeta]:
+def to_api_surface_directory(
+    sumo_surface_dir: List[SumoSurfaceMeta], straigraphic_names: List[str]
+) -> List[schemas.SurfaceMeta]:
     """
     Convert Sumo surface directory to API surface directory
     """
     surface_metas: List[schemas.SurfaceMeta] = []
     for sumo_meta in sumo_surface_dir:
         surface_metas.append(_sumo_surface_meta_to_api(sumo_meta))
+
+    surface_metas = _sort_by_stratigraphical_order(surface_metas, straigraphic_names)
     return surface_metas
 
 
@@ -62,6 +67,32 @@ def _sumo_surface_meta_to_api(sumo_meta: SumoSurfaceMeta) -> schemas.SurfaceMeta
         attribute_type=schemas.SurfaceAttributeType(sumo_meta.content.value),  # Map SumoContent to SurfaceAttributeType
         iso_date_or_interval=sumo_meta.iso_date_or_interval,
         is_observation=sumo_meta.is_observation,
-        zmin=sumo_meta.zmin,
-        zmax=sumo_meta.zmax,
+        value_min=sumo_meta.zmin,
+        value_max=sumo_meta.zmax,
     )
+
+
+def _sort_by_stratigraphical_order(
+    surface_metas: List[schemas.SurfaceMeta], stratigraphic_names: List[str]
+) -> List[schemas.SurfaceMeta]:
+    """Sort the surface meta list by the order they appear in the stratigraphic column.
+    Non-stratigraphical surfaces are appended at the end of the list."""
+
+    surface_metas_with_official_strat_name = []
+    surface_metas_with_custom_names = []
+
+    for strat_name in stratigraphic_names:
+        for surface_meta in surface_metas:
+            if surface_meta.stratigraphic_name == strat_name:
+                surface_meta.stratigraphic_name_is_official = True
+                surface_metas_with_official_strat_name.append(surface_meta)
+
+    # Append non-official strat names
+    for surface_meta in surface_metas:
+        if surface_meta.stratigraphic_name not in [
+            s.stratigraphic_name for s in surface_metas_with_official_strat_name
+        ]:
+            surface_meta.stratigraphic_name_is_official = False
+            surface_metas_with_custom_names.append(surface_meta)
+
+    return surface_metas_with_official_strat_name + surface_metas_with_custom_names

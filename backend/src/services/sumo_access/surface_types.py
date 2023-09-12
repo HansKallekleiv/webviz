@@ -13,5 +13,5 @@ class SurfaceMeta(BaseModel):
     content: SumoContent
     is_observation: bool
     is_stratigraphic: bool
-    zmin: float
-    zmax: float
+    zmin: Optional[float]
+    zmax: Optional[float]

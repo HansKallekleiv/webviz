@@ -88,7 +88,7 @@ export class SurfaceDirectory {
     public getStratigraphicNames(timeType: TimeType | null, attributeName: string | null): string[] {
         let filteredList = this.filterOnTimeType(this._surfaceList, timeType);
         filteredList = this.filterOnAttribute(filteredList, attributeName);
-        return [...new Set(filteredList.map((surface) => surface.stratigraphic_name))].sort();
+        return [...new Set(filteredList.map((surface) => surface.stratigraphic_name))];
     }
 
     // Retrieves unique timestamps for a given surface name and attribute.

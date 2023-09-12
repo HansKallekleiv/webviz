@@ -1,21 +1,22 @@
 import logging
-from typing import List
+from typing import List, Union
 import numpy as np
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 import json
 
 from src.services.sumo_access.surface_access import SurfaceAccess
-from src.services.sumo_access.iteration_inspector import IterationInspector
 from src.services.sumo_access.case_inspector import CaseInspector
+from src.services.smda_access.stratigraphy_access import StratigraphyAccess
+from src.services.smda_access.mocked_drogon_smda_access import _mocked_stratigraphy_access
 from src.services.utils.statistic_function import StatisticFunction
 from src.services.utils.authenticated_user import AuthenticatedUser
 from src.services.utils.perf_timer import PerfTimer
 from src.backend.auth.auth_helper import AuthHelper
-from src.services.sumo_access.generic_types import SumoContent
+
 
 from . import converters
 from . import schemas
-from src.services.sumo_access.generic_types import SumoContent
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -31,10 +32,21 @@ def get_surface_directory(
     """
     Get a directory of surfaces in a Sumo ensemble
     """
-    access = SurfaceAccess(authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name)
-    sumo_surf_dir = access.get_surface_directory()
+    surface_access = SurfaceAccess(authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name)
+    sumo_surf_dir = surface_access.get_surface_directory()
 
-    return converters.to_api_surface_directory(sumo_surf_dir)
+    case_inspector = CaseInspector(authenticated_user.get_sumo_access_token(), case_uuid)
+    strat_column_identifier = case_inspector.get_stratigraphic_column_identifier()
+    strat_access: Union[StratigraphyAccess, _mocked_stratigraphy_access.StratigraphyAccess]
+
+    if strat_column_identifier == "DROGON_HAS_NO_STRATCOLUMN":
+        strat_access = _mocked_stratigraphy_access.StratigraphyAccess(authenticated_user.get_smda_access_token())
+    else:
+        strat_access = StratigraphyAccess(authenticated_user.get_smda_access_token())
+
+    stratigraphic_names = strat_access.get_stratigraphic_names(strat_column_identifier)
+
+    return converters.to_api_surface_directory(sumo_surf_dir, stratigraphic_names)
 
 
 @router.get("/static_surface_data/")
