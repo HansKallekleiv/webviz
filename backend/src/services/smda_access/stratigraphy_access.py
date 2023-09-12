@@ -1,7 +1,7 @@
 from typing import List, Dict
 
 from .queries.get_stratigraphic_units import get_stratigraphic_units
-from .types import StratigraphicUnit
+from .types import StratigraphicUnit, StratigraphicSurface, StratigraphicFeature
 
 
 class StratigraphyAccess:
@@ -15,7 +15,7 @@ class StratigraphyAccess:
         sorted_units = sort_stratigraphic_units_by_hierarchy(stratigraphic_units)
         return sorted_units
 
-    def get_stratigraphic_names(self, stratigraphic_column_identifier: str) -> List[str]:
+    def get_stratigraphic_surfaces(self, stratigraphic_column_identifier: str) -> List[StratigraphicSurface]:
         """Get a flatten list of top/unit/base surface names in lithostratigraphical order"""
         stratigraphic_units = get_stratigraphic_units(self._smda_token, stratigraphic_column_identifier)
 
@@ -50,18 +50,20 @@ def flatten_hierarchical_structure(units: List[StratigraphicUnit], unit_by_id: D
     return flattened_list
 
 
-def flatten_hierarchical_structure_to_surface_name(units: List[StratigraphicUnit], unit_by_id: Dict) -> List[str]:
+def flatten_hierarchical_structure_to_surface_name(
+    units: List[StratigraphicUnit], unit_by_id: Dict
+) -> List[StratigraphicSurface]:
     """Flatten the hierarchical structure into a single list of stratigraphical top/unit/base names, preserving the order."""
     flattened_list = []
 
     for unit in units:
-        flattened_list.append(unit.top)
-        flattened_list.append(unit.identifier)
+        flattened_list.append(StratigraphicSurface(name=unit.top, feature=StratigraphicFeature.HORIZON))
+        flattened_list.append(StratigraphicSurface(name=unit.identifier, feature=StratigraphicFeature.ZONE))
         if unit.identifier in unit_by_id:
             flattened_list.extend(
                 flatten_hierarchical_structure_to_surface_name(unit_by_id[unit.identifier]["children"], unit_by_id)
             )
-        flattened_list.append(unit.base)
+        flattened_list.append(StratigraphicSurface(name=unit.base, feature=StratigraphicFeature.HORIZON))
     return flattened_list
 
 

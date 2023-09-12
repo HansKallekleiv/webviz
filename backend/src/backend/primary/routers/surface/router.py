@@ -44,7 +44,7 @@ def get_surface_directory(
     else:
         strat_access = StratigraphyAccess(authenticated_user.get_smda_access_token())
 
-    stratigraphic_names = strat_access.get_stratigraphic_names(strat_column_identifier)
+    stratigraphic_names = strat_access.get_stratigraphic_surfaces(strat_column_identifier)
 
     return converters.to_api_surface_directory(sumo_surf_dir, stratigraphic_names)
 

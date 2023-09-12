@@ -1,7 +1,7 @@
 from typing import List
 
 
-from ..types import StratigraphicUnit
+from ..types import StratigraphicUnit, StratigraphicSurface
 from ..stratigraphy_access import sort_stratigraphic_names_by_hierarchy, sort_stratigraphic_units_by_hierarchy
 
 STRAT_UNITS = [
@@ -63,6 +63,5 @@ class StratigraphyAccess:
 
     # type: ignore
     # pylint: disable=unused-argument
-    def get_stratigraphic_names(self, stratigraphic_column_identifier: str) -> List[StratigraphicUnit]:
-        print(sort_stratigraphic_names_by_hierarchy(STRAT_UNITS))
+    def get_stratigraphic_surfaces(self, stratigraphic_column_identifier: str) -> List[StratigraphicSurface]:
         return sort_stratigraphic_names_by_hierarchy(STRAT_UNITS)

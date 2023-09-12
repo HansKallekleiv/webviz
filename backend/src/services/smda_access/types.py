@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import List, Optional
 from pydantic import BaseModel
 
@@ -46,3 +47,15 @@ class StratigraphicUnit(BaseModel):
     color_r: int
     color_g: int
     color_b: int
+
+
+class StratigraphicFeature(str, Enum):
+    """The stratigraphic feature of a surface"""
+
+    ZONE = "unit"
+    HORIZON = "horizon"
+
+
+class StratigraphicSurface(BaseModel):
+    name: str
+    feature: StratigraphicFeature

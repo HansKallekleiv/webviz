@@ -1,6 +1,6 @@
 from enum import Enum
 from typing import Optional
-
+from src.services.smda_access.types import StratigraphicFeature
 from pydantic import BaseModel
 
 
@@ -35,18 +35,10 @@ class SurfaceAttributeType(str, Enum):
     FLUID_CONTACT = "fluid_contact"  # Values are fluid contacts (oil-water, gas-water, etc.)
 
 
-class StratigraphicPosition(str, Enum):
-    """The stratigraphic type of a surface"""
-
-    UNIT = "unit"
-    TOP = "top"
-    BASE = "base"
-
-
 class SurfaceMeta(BaseModel):
     stratigraphic_name: str
     stratigraphic_name_is_official: bool
-    stratigraphic_position: Optional[StratigraphicPosition]
+    stratigraphic_feature: Optional[StratigraphicFeature]
     attribute_name: str
     attribute_type: SurfaceAttributeType
     iso_date_or_interval: Optional[str]
