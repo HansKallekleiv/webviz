@@ -38,13 +38,13 @@ class SurfaceAttributeType(str, Enum):
 class SurfaceMeta(BaseModel):
     stratigraphic_name: str
     stratigraphic_name_is_official: bool
-    stratigraphic_feature: Optional[StratigraphicFeature]
+    stratigraphic_feature: Optional[StratigraphicFeature] = None  # Distinguish between horizon and unit
     attribute_name: str
     attribute_type: SurfaceAttributeType
-    iso_date_or_interval: Optional[str]
+    iso_date_or_interval: Optional[str] = None
     is_observation: bool  # Can only be true for seismic surfaces
-    value_min: Optional[float]
-    value_max: Optional[float]
+    value_min: Optional[float] = None
+    value_max: Optional[float] = None
 
 
 class SurfaceData(BaseModel):
