@@ -34,25 +34,25 @@ class SurfaceAccess:
         )
 
         surfs: List[SurfaceMeta] = []
-        for s in surface_collection:
+        for surf in surface_collection:
             iso_string_or_time_interval = None
 
-            t_start = s["data"].get("time", {}).get("t0", {}).get("value", None)
-            t_end = s["data"].get("time", {}).get("t1", {}).get("value", None)
+            t_start = surf["data"].get("time", {}).get("t0", {}).get("value", None)
+            t_end = surf["data"].get("time", {}).get("t1", {}).get("value", None)
             if t_start and not t_end:
                 iso_string_or_time_interval = iso_datetime_to_date(t_start)
             if t_start and t_end:
                 iso_string_or_time_interval = iso_datetime_to_date_interval(t_start, t_end)
 
             surf_meta = SurfaceMeta(
-                name=s["data"]["name"],
-                tagname=s["data"].get("tagname", "Unknown"),
+                name=surf["data"]["name"],
+                tagname=surf["data"].get("tagname", "Unknown"),
                 iso_date_or_interval=iso_string_or_time_interval,
-                content=s["data"].get("content", SumoContent.DEPTH),
-                is_observation=s["data"]["is_observation"],
-                is_stratigraphic=s["data"]["stratigraphic"],
-                zmin=s["data"]["bbox"]["zmin"],
-                zmax=s["data"]["bbox"]["zmax"],
+                content=surf["data"].get("content", SumoContent.DEPTH),
+                is_observation=surf["data"]["is_observation"],
+                is_stratigraphic=surf["data"]["stratigraphic"],
+                zmin=surf["data"]["bbox"]["zmin"],
+                zmax=surf["data"]["bbox"]["zmax"],
             )
 
             surfs.append(surf_meta)
