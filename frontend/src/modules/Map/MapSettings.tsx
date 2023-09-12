@@ -58,23 +58,14 @@ export function MapSettings(props: ModuleFCProps<MapState>) {
                 ensembleSurfaceAddress.caseUuid,
                 ensembleSurfaceAddress.ensemble,
                 ensembleSurfaceAddress.name,
-                ensembleSurfaceAddress.attribute
+                ensembleSurfaceAddress.attribute,
+                ensembleSurfaceAddress.timeString
             );
-            if (
-                ensembleSurfaceAddress.timeString &&
-                (timeType === TimeType.Timestamp || timeType === TimeType.Interval)
-            ) {
-                if (aggregation === null) {
-                    surfAddr = addrFactory.createDynamicAddr(realizationNum, ensembleSurfaceAddress.timeString);
-                } else {
-                    surfAddr = addrFactory.createStatisticalDynamicAddr(aggregation, ensembleSurfaceAddress.timeString);
-                }
-            } else if (timeType === TimeType.None) {
-                if (aggregation === null) {
-                    surfAddr = addrFactory.createStaticAddr(realizationNum);
-                } else {
-                    surfAddr = addrFactory.createStatisticalStaticAddr(aggregation);
-                }
+
+            if (aggregation === null) {
+                surfAddr = addrFactory.createRealizationAddress(realizationNum);
+            } else {
+                surfAddr = addrFactory.createStatisticalAddress(aggregation);
             }
         }
 

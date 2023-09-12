@@ -16,13 +16,14 @@ import { Input } from "@lib/components/Input";
 import { Label } from "@lib/components/Label";
 import { Select, SelectOption } from "@lib/components/Select";
 
-import { SurfAddr, SurfAddrFactory } from "./SurfaceAddress";
 import { SurfacePolygonsAddress } from "./SurfacePolygonsAddress";
 import { AggregationSelector } from "./components/AggregationSelector";
 import { EnsembleSurfaceAddress, SurfaceSelect, TimeType } from "./components/SurfaceSelect";
 import { PolygonDirectoryProvider } from "./polygonsDirectoryProvider";
 import { useGetWellHeaders, usePolygonDirectoryQuery } from "./queryHooks";
 import { state } from "./state";
+
+import { SurfAddr, SurfAddrFactory } from "../Map/SurfAddr";
 
 //-----------------------------------------------------------------------------------------------------------
 type LabelledCheckboxProps = {
@@ -121,9 +122,9 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
                 );
 
                 if (aggregation === null) {
-                    surfAddr = addrFactory.createStaticAddr(realizationNum);
+                    surfAddr = addrFactory.createRealizationAddress(realizationNum);
                 } else {
-                    surfAddr = addrFactory.createStatisticalStaticAddr(aggregation);
+                    surfAddr = addrFactory.createStatisticalAddress(aggregation);
                 }
             }
 
@@ -148,9 +149,9 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
                 );
 
                 if (aggregation === null) {
-                    surfAddr = addrFactory.createStaticAddr(realizationNum);
+                    surfAddr = addrFactory.createRealizationAddress(realizationNum);
                 } else {
-                    surfAddr = addrFactory.createStatisticalStaticAddr(aggregation);
+                    surfAddr = addrFactory.createStatisticalAddress(aggregation);
                 }
             }
 

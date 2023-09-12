@@ -26,86 +26,46 @@ export function useSurfaceDataQueryByAddress(surfAddr: SurfAddr | null): UseQuer
     let queryKey: QueryKey | null = null;
 
     // Dynamic, per realization surface
-    if (surfAddr.addressType === "dynamic") {
+    if (surfAddr.addressType === "realization") {
         queryKey = [
-            "getDynamicSurfaceData",
+            "getRealizationSurfaceData",
             surfAddr.caseUuid,
             surfAddr.ensemble,
             surfAddr.realizationNum,
             surfAddr.name,
             surfAddr.attribute,
-            surfAddr.timeOrInterval,
+            surfAddr.isoDateOrInterval,
         ];
         queryFn = () =>
-            apiService.surface.getDynamicSurfaceData(
+            apiService.surface.getRealizationSurfaceData(
                 surfAddr.caseUuid,
                 surfAddr.ensemble,
                 surfAddr.realizationNum,
                 surfAddr.name,
                 surfAddr.attribute,
-                surfAddr.timeOrInterval
+                surfAddr.isoDateOrInterval
             );
     }
 
     // Dynamic, statistical surface
-    else if (surfAddr.addressType === "statistical-dynamic") {
+    else if (surfAddr.addressType === "statistical") {
         queryKey = [
-            "getStatisticalDynamicSurfaceData",
+            "getStatisticalSurfaceData",
             surfAddr.caseUuid,
             surfAddr.ensemble,
             surfAddr.statisticFunction,
             surfAddr.name,
             surfAddr.attribute,
-            surfAddr.timeOrInterval,
+            surfAddr.isoDateOrInterval,
         ];
         queryFn = () =>
-            apiService.surface.getStatisticalDynamicSurfaceData(
+            apiService.surface.getStatisticalSurfaceData(
                 surfAddr.caseUuid,
                 surfAddr.ensemble,
                 surfAddr.statisticFunction,
                 surfAddr.name,
                 surfAddr.attribute,
-                surfAddr.timeOrInterval
-            );
-    }
-
-    // Static, per realization surface
-    else if (surfAddr.addressType === "static") {
-        queryKey = [
-            "getStaticSurfaceData",
-            surfAddr.caseUuid,
-            surfAddr.ensemble,
-            surfAddr.realizationNum,
-            surfAddr.name,
-            surfAddr.attribute,
-        ];
-        queryFn = () =>
-            apiService.surface.getStaticSurfaceData(
-                surfAddr.caseUuid,
-                surfAddr.ensemble,
-                surfAddr.realizationNum,
-                surfAddr.name,
-                surfAddr.attribute
-            );
-    }
-
-    // Static, statistical surface
-    else if (surfAddr.addressType === "statistical-static") {
-        queryKey = [
-            "getStatisticalStaticSurfaceData",
-            surfAddr.caseUuid,
-            surfAddr.ensemble,
-            surfAddr.statisticFunction,
-            surfAddr.name,
-            surfAddr.attribute,
-        ];
-        queryFn = () =>
-            apiService.surface.getStatisticalStaticSurfaceData(
-                surfAddr.caseUuid,
-                surfAddr.ensemble,
-                surfAddr.statisticFunction,
-                surfAddr.name,
-                surfAddr.attribute
+                surfAddr.isoDateOrInterval
             );
     } else {
         throw new Error("Invalid surface address type");

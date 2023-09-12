@@ -139,18 +139,18 @@ export class SurfaceDirectory {
         );
     }
 
-    // Get min/max value for a given surface name and attribute.
-    public getMinMax(
-        stratigraphicName: string | null,
-        surfaceAttribute: string | null,
-        timeType: TimeType | null
-    ): { min: number; max: number } {
-        if (!surfaceAttribute || !stratigraphicName) return { min: 0, max: 0 };
-        let filteredList = this.filterOnTimeType(this._surfaceList, timeType);
-        filteredList = this.filterOnAttribute(this._surfaceList, surfaceAttribute);
-        filteredList = this.filterOnName(filteredList, stratigraphicName);
-        const min = Math.min(...filteredList.map((surface) => surface.zmin));
-        const max = Math.max(...filteredList.map((surface) => surface.zmax));
-        return { min, max };
-    }
+    // // Get min/max value for a given surface name and attribute.
+    // public getMinMax(
+    //     stratigraphicName: string | null,
+    //     surfaceAttribute: string | null,
+    //     timeType: TimeType | null
+    // ): { min: number; max: number } {
+    //     if (!surfaceAttribute || !stratigraphicName) return { min: 0, max: 0 };
+    //     let filteredList = this.filterOnTimeType(this._surfaceList, timeType);
+    //     filteredList = this.filterOnAttribute(this._surfaceList, surfaceAttribute);
+    //     filteredList = this.filterOnName(filteredList, stratigraphicName);
+    //     const min = Math.min(...filteredList.map((surface) => surface.value_min));
+    //     const max = Math.max(...filteredList.map((surface) => surface.value_max));
+    //     return { min, max };
+    // }
 }

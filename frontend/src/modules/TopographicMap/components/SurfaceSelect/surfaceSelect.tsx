@@ -150,7 +150,6 @@ export function SurfaceSelect(props: SurfaceSelectProps): JSX.Element {
         label: timeInterval,
     }));
 
-    console.log(surfaceDirectory.getMinMax(computedSurfaceName, computedSurfaceAttribute, props.timeType));
     function handleSurfNameSelectionChange(selectedSurfNames: string[]) {
         const newName = selectedSurfNames[0] ?? null;
         setSelectedSurfaceName(newName);

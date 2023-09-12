@@ -1,44 +1,26 @@
 import { SurfaceStatisticFunction_api } from "@api";
 
-export interface StaticSurfAddr {
-    addressType: "static";
+export interface RealizationSurfaceAddress {
+    addressType: "realization";
     caseUuid: string;
     ensemble: string;
     name: string;
     attribute: string;
     realizationNum: number;
+    isoDateOrInterval?: string;
 }
 
-export interface DynamicSurfAddr {
-    addressType: "dynamic";
+export interface StatisticalSurfaceAddress {
+    addressType: "statistical";
     caseUuid: string;
     ensemble: string;
     name: string;
     attribute: string;
-    realizationNum: number;
-    timeOrInterval: string;
-}
-
-export interface StatisticalStaticSurfAddr {
-    addressType: "statistical-static";
-    caseUuid: string;
-    ensemble: string;
-    name: string;
-    attribute: string;
+    isoDateOrInterval?: string;
     statisticFunction: SurfaceStatisticFunction_api;
 }
 
-export interface StatisticalDynamicSurfAddr {
-    addressType: "statistical-dynamic";
-    caseUuid: string;
-    ensemble: string;
-    name: string;
-    attribute: string;
-    timeOrInterval: string;
-    statisticFunction: SurfaceStatisticFunction_api;
-}
-
-export type SurfAddr = StaticSurfAddr | DynamicSurfAddr | StatisticalDynamicSurfAddr | StatisticalStaticSurfAddr;
+export type SurfAddr = RealizationSurfaceAddress | StatisticalSurfaceAddress;
 
 export function makeSurfAddrString(addr: SurfAddr): string {
     const valueArr = Object.values(addr);
@@ -51,59 +33,36 @@ export class SurfAddrFactory {
     private _ensemble: string;
     private _name: string;
     private _attribute: string;
+    private _isoDateOrInterval: string | undefined;
 
-    constructor(caseUuid: string, ensemble: string, name: string, attribute: string) {
+    constructor(caseUuid: string, ensemble: string, name: string, attribute: string, isoDateOrInterval?: string) {
         this._caseUuid = caseUuid;
         this._ensemble = ensemble;
         this._name = name;
         this._attribute = attribute;
+        this._isoDateOrInterval = isoDateOrInterval;
     }
 
-    createDynamicAddr(realizationNum: number, timeOrInterval: string): DynamicSurfAddr {
+    createRealizationAddress(realizationNum: number): RealizationSurfaceAddress {
         return {
-            addressType: "dynamic",
+            addressType: "realization",
             caseUuid: this._caseUuid,
             ensemble: this._ensemble,
             name: this._name,
             attribute: this._attribute,
             realizationNum: realizationNum,
-            timeOrInterval: timeOrInterval,
+            isoDateOrInterval: this._isoDateOrInterval,
         };
     }
 
-    createStaticAddr(realizationNum: number): StaticSurfAddr {
+    createStatisticalAddress(statFunction: SurfaceStatisticFunction_api): StatisticalSurfaceAddress {
         return {
-            addressType: "static",
+            addressType: "statistical",
             caseUuid: this._caseUuid,
             ensemble: this._ensemble,
             name: this._name,
             attribute: this._attribute,
-            realizationNum: realizationNum,
-        };
-    }
-
-    createStatisticalDynamicAddr(
-        statFunction: SurfaceStatisticFunction_api,
-        timeOrInterval: string
-    ): StatisticalDynamicSurfAddr {
-        return {
-            addressType: "statistical-dynamic",
-            caseUuid: this._caseUuid,
-            ensemble: this._ensemble,
-            name: this._name,
-            attribute: this._attribute,
-            timeOrInterval: timeOrInterval,
-            statisticFunction: statFunction,
-        };
-    }
-
-    createStatisticalStaticAddr(statFunction: SurfaceStatisticFunction_api): StatisticalStaticSurfAddr {
-        return {
-            addressType: "statistical-static",
-            caseUuid: this._caseUuid,
-            ensemble: this._ensemble,
-            name: this._name,
-            attribute: this._attribute,
+            isoDateOrInterval: this._isoDateOrInterval,
             statisticFunction: statFunction,
         };
     }
