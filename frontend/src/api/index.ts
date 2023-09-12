@@ -32,6 +32,7 @@ export type { PvtData as PvtData_api } from './models/PvtData';
 export { SensitivityType as SensitivityType_api } from './models/SensitivityType';
 export { StatisticFunction as StatisticFunction_api } from './models/StatisticFunction';
 export type { StatisticValueObject as StatisticValueObject_api } from './models/StatisticValueObject';
+export { StratigraphicFeature as StratigraphicFeature_api } from './models/StratigraphicFeature';
 export { SurfaceAttributeType as SurfaceAttributeType_api } from './models/SurfaceAttributeType';
 export type { SurfaceData as SurfaceData_api } from './models/SurfaceData';
 export type { SurfaceMeta as SurfaceMeta_api } from './models/SurfaceMeta';

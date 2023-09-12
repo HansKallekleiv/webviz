@@ -38,31 +38,70 @@ export class SurfaceService {
     }
 
     /**
-     * Get Static Surface Data
+     * Get Realization Surface Data
      * @param caseUuid Sumo case uuid
      * @param ensembleName Ensemble name
      * @param realizationNum Realization number
      * @param name Surface name
      * @param attribute Surface attribute
+     * @param isoDateOrInterval Timestamp or time interval string
      * @returns SurfaceData Successful Response
      * @throws ApiError
      */
-    public getStaticSurfaceData(
+    public getRealizationSurfaceData(
         caseUuid: string,
         ensembleName: string,
         realizationNum: number,
         name: string,
         attribute: string,
+        isoDateOrInterval?: string,
     ): CancelablePromise<SurfaceData> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/surface/static_surface_data/',
+            url: '/surface/realization_surface_data/',
             query: {
                 'case_uuid': caseUuid,
                 'ensemble_name': ensembleName,
                 'realization_num': realizationNum,
                 'name': name,
                 'attribute': attribute,
+                'iso_date_or_interval': isoDateOrInterval,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get Statistical Surface Data
+     * @param caseUuid Sumo case uuid
+     * @param ensembleName Ensemble name
+     * @param statisticFunction Statistics to calculate
+     * @param name Surface name
+     * @param attribute Surface attribute
+     * @param timeOrInterval Timestamp or time interval string
+     * @returns SurfaceData Successful Response
+     * @throws ApiError
+     */
+    public getStatisticalSurfaceData(
+        caseUuid: string,
+        ensembleName: string,
+        statisticFunction: SurfaceStatisticFunction,
+        name: string,
+        attribute: string,
+        timeOrInterval?: string,
+    ): CancelablePromise<SurfaceData> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/surface/statistical_surface_data/',
+            query: {
+                'case_uuid': caseUuid,
+                'ensemble_name': ensembleName,
+                'statistic_function': statisticFunction,
+                'name': name,
+                'attribute': attribute,
+                'time_or_interval': timeOrInterval,
             },
             errors: {
                 422: `Validation Error`,
@@ -144,111 +183,6 @@ export class SurfaceService {
                 'attribute_mesh': attributeMesh,
                 'name_property': nameProperty,
                 'attribute_property': attributeProperty,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-
-    /**
-     * Get Dynamic Surface Data
-     * @param caseUuid Sumo case uuid
-     * @param ensembleName Ensemble name
-     * @param realizationNum Realization number
-     * @param name Surface name
-     * @param attribute Surface attribute
-     * @param timeOrInterval Timestamp or time interval string
-     * @returns SurfaceData Successful Response
-     * @throws ApiError
-     */
-    public getDynamicSurfaceData(
-        caseUuid: string,
-        ensembleName: string,
-        realizationNum: number,
-        name: string,
-        attribute: string,
-        timeOrInterval: string,
-    ): CancelablePromise<SurfaceData> {
-        return this.httpRequest.request({
-            method: 'GET',
-            url: '/surface/dynamic_surface_data/',
-            query: {
-                'case_uuid': caseUuid,
-                'ensemble_name': ensembleName,
-                'realization_num': realizationNum,
-                'name': name,
-                'attribute': attribute,
-                'time_or_interval': timeOrInterval,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-
-    /**
-     * Get Statistical Dynamic Surface Data
-     * @param caseUuid Sumo case uuid
-     * @param ensembleName Ensemble name
-     * @param statisticFunction Statistics to calculate
-     * @param name Surface name
-     * @param attribute Surface attribute
-     * @param timeOrInterval Timestamp or time interval string
-     * @returns SurfaceData Successful Response
-     * @throws ApiError
-     */
-    public getStatisticalDynamicSurfaceData(
-        caseUuid: string,
-        ensembleName: string,
-        statisticFunction: SurfaceStatisticFunction,
-        name: string,
-        attribute: string,
-        timeOrInterval: string,
-    ): CancelablePromise<SurfaceData> {
-        return this.httpRequest.request({
-            method: 'GET',
-            url: '/surface/statistical_dynamic_surface_data/',
-            query: {
-                'case_uuid': caseUuid,
-                'ensemble_name': ensembleName,
-                'statistic_function': statisticFunction,
-                'name': name,
-                'attribute': attribute,
-                'time_or_interval': timeOrInterval,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-
-    /**
-     * Get Statistical Static Surface Data
-     * @param caseUuid Sumo case uuid
-     * @param ensembleName Ensemble name
-     * @param statisticFunction Statistics to calculate
-     * @param name Surface name
-     * @param attribute Surface attribute
-     * @returns SurfaceData Successful Response
-     * @throws ApiError
-     */
-    public getStatisticalStaticSurfaceData(
-        caseUuid: string,
-        ensembleName: string,
-        statisticFunction: SurfaceStatisticFunction,
-        name: string,
-        attribute: string,
-    ): CancelablePromise<SurfaceData> {
-        return this.httpRequest.request({
-            method: 'GET',
-            url: '/surface/statistical_static_surface_data/',
-            query: {
-                'case_uuid': caseUuid,
-                'ensemble_name': ensembleName,
-                'statistic_function': statisticFunction,
-                'name': name,
-                'attribute': attribute,
             },
             errors: {
                 422: `Validation Error`,
