@@ -12,7 +12,7 @@ from src.services.utils.statistic_function import StatisticFunction
 
 from ._helpers import create_sumo_client_instance
 from .surface_types import SurfaceMeta
-
+from ..utils.date_utils import iso_datetime_to_date, iso_datetime_to_date_interval
 
 LOGGER = logging.getLogger(__name__)
 
@@ -34,29 +34,28 @@ class SurfaceAccess:
 
         surfs: List[SurfaceMeta] = []
         for s in surface_collection:
-            name = s["data"]["name"]
-            tagname = s["data"]["tagname"]
+            iso_string_or_time_interval = None
+
             t_start = s["data"].get("time", {}).get("t0", {}).get("value", None)
             t_end = s["data"].get("time", {}).get("t1", {}).get("value", None)
-            content = s["data"]["content"]
-            is_observation = s["data"]["is_observation"]
-            is_stratigraphic = s["data"]["stratigraphic"]
-            zmin = s["data"]["bbox"]["zmin"]
-            zmax = s["data"]["bbox"]["zmax"]
+            if t_start and not t_end:
+                iso_string_or_time_interval = iso_datetime_to_date(t_start)
+            if t_start and t_end:
+                iso_string_or_time_interval = iso_datetime_to_date_interval(t_start, t_end)
 
-            surfs.append(
-                SurfaceMeta(
-                    name=name,
-                    tagname=tagname,
-                    t_start=t_start,
-                    t_end=t_end,
-                    content=content,
-                    is_observation=is_observation,
-                    is_stratigraphic=is_stratigraphic,
-                    zmin=zmin,
-                    zmax=zmax,
-                )
+            surf_meta = SurfaceMeta(
+                name=s["data"]["name"],
+                tagname=s["data"]["tagname"],
+                iso_date_or_interval=iso_string_or_time_interval,
+                content=s["data"]["content"],
+                is_observation=s["data"]["is_observation"],
+                is_stratigraphic=s["data"]["stratigraphic"],
+                zmin=s["data"]["bbox"]["zmin"],
+                zmax=s["data"]["bbox"]["zmax"],
             )
+
+            surfs.append(surf_meta)
+
         return surfs
 
     def get_dynamic_surf(
@@ -72,7 +71,7 @@ class SurfaceAccess:
         if not time_or_interval_str or len(time_or_interval_str) < 1:
             raise ValueError("time_or_interval_str must contain a non-empty string")
 
-        timestamp_arr = time_or_interval_str.split("--", 1)
+        timestamp_arr = time_or_interval_str.split("/", 1)
         if len(timestamp_arr) == 0 or len(timestamp_arr) > 2:
             raise ValueError("time_or_interval_str must contain a single timestamp or interval")
 

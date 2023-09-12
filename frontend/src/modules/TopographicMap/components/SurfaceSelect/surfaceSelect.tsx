@@ -1,6 +1,6 @@
 import React from "react";
 
-import { SurfaceMeta_api } from "@api";
+import { SurfaceAttributeType_api } from "@api";
 import { EnsembleIdent } from "@framework/EnsembleIdent";
 import { ModuleContext } from "@framework/ModuleContext";
 import { SyncSettingKey, SyncSettingsHelper } from "@framework/SyncSettings";
@@ -13,7 +13,7 @@ import { SurfAddr } from "@modules/TopographicMap/SurfaceAddress";
 import { CircularProgress } from "@mui/material";
 
 import { useSurfaceDirectoryQuery } from "./queryHooks";
-import { SurfaceContent, SurfaceDirectory, TimeType } from "./surfaceDirectory";
+import { SurfaceDirectory, TimeType } from "./surfaceDirectory";
 
 export interface EnsembleSurfaceAddress {
     caseUuid: string;
@@ -28,8 +28,8 @@ export interface SurfaceSelectProps {
     ensembleIdent: EnsembleIdent | null;
     surfaceAddress?: SurfAddr | null;
     setSurfaceAddress?: React.Dispatch<React.SetStateAction<EnsembleSurfaceAddress | null>>;
-    includeContent?: SurfaceContent[] | null;
-    excludeContent?: SurfaceContent[] | null;
+    includeAttributeTypes?: SurfaceAttributeType_api[] | null;
+    excludeAttributeTypes?: SurfaceAttributeType_api[] | null;
     timeType: TimeType;
     observed?: boolean;
     moduleContext: ModuleContext<any>;
@@ -52,19 +52,19 @@ export function SurfaceSelect(props: SurfaceSelectProps): JSX.Element {
 
     const surfaceDirectory = new SurfaceDirectory({
         surfaceDirectoryQueryData: surfaceDirectoryQuery?.data,
-        includeContent: props.includeContent,
-        excludeContent: props.excludeContent,
+        includeAttributeTypes: props.includeAttributeTypes,
+        excludeAttributeTypes: props.excludeAttributeTypes,
         useObservedSurfaces: props.observed,
     });
 
-    const surfaceNames = surfaceDirectory.getNames(props.timeType, null);
+    const surfaceNames = surfaceDirectory.getStratigraphicNames(props.timeType, null);
     const computedSurfaceName =
         selectedSurfaceName && surfaceNames.includes(selectedSurfaceName) ? selectedSurfaceName : surfaceNames[0];
     if (computedSurfaceName && computedSurfaceName !== selectedSurfaceName) {
         setSelectedSurfaceName(computedSurfaceName);
     }
 
-    const surfaceAttributes = surfaceDirectory.getAttributes(props.timeType, computedSurfaceName);
+    const surfaceAttributes = surfaceDirectory.getAttributeNames(props.timeType, computedSurfaceName);
     const computedSurfaceAttribute =
         selectedSurfaceAttribute && surfaceAttributes.includes(selectedSurfaceAttribute)
             ? selectedSurfaceAttribute

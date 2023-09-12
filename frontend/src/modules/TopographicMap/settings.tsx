@@ -1,6 +1,6 @@
 import React from "react";
 
-import { SurfaceStatisticFunction_api } from "@api";
+import { SurfaceAttributeType_api, SurfaceStatisticFunction_api } from "@api";
 import { EnsembleIdent } from "@framework/EnsembleIdent";
 import { ModuleFCProps } from "@framework/Module";
 import { SyncSettingKey, SyncSettingsHelper } from "@framework/SyncSettings";
@@ -19,7 +19,7 @@ import { Select, SelectOption } from "@lib/components/Select";
 import { SurfAddr, SurfAddrFactory } from "./SurfaceAddress";
 import { SurfacePolygonsAddress } from "./SurfacePolygonsAddress";
 import { AggregationSelector } from "./components/AggregationSelector";
-import { EnsembleSurfaceAddress, SurfaceContent, SurfaceSelect, TimeType } from "./components/SurfaceSelect";
+import { EnsembleSurfaceAddress, SurfaceSelect, TimeType } from "./components/SurfaceSelect";
 import { PolygonDirectoryProvider } from "./polygonsDirectoryProvider";
 import { useGetWellHeaders, usePolygonDirectoryQuery } from "./queryHooks";
 import { state } from "./state";
@@ -289,7 +289,7 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
             <CollapsibleGroup expanded={true} title="Depth surface">
                 <SurfaceSelect
                     ensembleIdent={computedEnsembleIdent}
-                    includeContent={[SurfaceContent.Depth]}
+                    includeAttributeTypes={[SurfaceAttributeType_api.DEPTH]}
                     timeType={TimeType.None}
                     setSurfaceAddress={setMeshSurfaceAddress}
                     moduleContext={moduleContext}
@@ -313,7 +313,7 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
                     {usePropertySurface && (
                         <SurfaceSelect
                             ensembleIdent={computedEnsembleIdent}
-                            excludeContent={[SurfaceContent.Depth]}
+                            excludeAttributeTypes={[SurfaceAttributeType_api.DEPTH]}
                             timeType={TimeType.None}
                             setSurfaceAddress={setPropertySurfaceAddress}
                             moduleContext={moduleContext}

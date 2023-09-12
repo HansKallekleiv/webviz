@@ -14,14 +14,23 @@ class SurfaceStatisticFunction(str, Enum):
     P50 = "P50"
 
 
+class SurfaceAttributeType(str, Enum):
+    """Enum for the different possible types of surfaces (domain specific)."""
+
+    DEPTH = "depth"
+    TIME = "time"
+    PROPERTY = "property"
+    SEISMIC = "seismic"
+    THICKNESS = "thickness"
+
+
 class SurfaceMeta(BaseModel):
-    name: str
-    tagname: str
-    t_start: Optional[str]
-    t_end: Optional[str]
-    content: str
+    stratigraphic_name: str
+    stratigraphic_name_is_official: bool
+    attribute_name: str
+    attribute_type: SurfaceAttributeType
+    iso_date_or_interval: Optional[str]
     is_observation: bool
-    is_stratigraphic: bool
     zmin: float
     zmax: float
 

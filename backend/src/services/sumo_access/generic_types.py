@@ -65,7 +65,8 @@ class SumoContent(str, Enum):
     DEPTH = "depth"
     TIME = "time"
     PROPERTY = "property"
-    WELLPICKS = "wellpicks"
+    SEISMIC = "seismic"
+    THICKNESS = "thickness"
 
     @classmethod
     def values(cls) -> List[str]:

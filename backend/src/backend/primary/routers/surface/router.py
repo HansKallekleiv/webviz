@@ -32,9 +32,9 @@ def get_surface_directory(
     Get a directory of surfaces in a Sumo ensemble
     """
     access = SurfaceAccess(authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name)
-    surf_dir = access.get_surface_directory()
+    sumo_surf_dir = access.get_surface_directory()
 
-    return [schemas.SurfaceMeta(**surf_meta.__dict__) for surf_meta in surf_dir]
+    return converters.to_api_surface_directory(sumo_surf_dir)
 
 
 @router.get("/static_surface_data/")

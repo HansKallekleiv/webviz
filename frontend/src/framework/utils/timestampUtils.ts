@@ -8,7 +8,7 @@ export function hasTime(isoDateTimeString: string): boolean {
 
 // Check if specified date-time string contains timezone information
 export function hasTimezone(isoDateTimeString: string): boolean {
-    const regex = /T.*(Z|[+-]\d{2})/
+    const regex = /T.*(Z|[+-]\d{2})/;
     return regex.test(isoDateTimeString);
 }
 
@@ -42,7 +42,8 @@ export function timestampUtcMsToCompactIsoString(timestampUtcMs: number): string
     const fullIsoString = date.toISOString();
 
     const hasMilliseconds = date.getUTCMilliseconds() !== 0;
-    const hasTime = date.getUTCHours() !== 0 || date.getUTCMinutes() !== 0 || date.getUTCSeconds() !== 0 || hasMilliseconds;
+    const hasTime =
+        date.getUTCHours() !== 0 || date.getUTCMinutes() !== 0 || date.getUTCSeconds() !== 0 || hasMilliseconds;
 
     if (!hasTime) {
         return fullIsoString.split("T")[0];
@@ -58,4 +59,15 @@ export function timestampUtcMsToCompactIsoString(timestampUtcMs: number): string
 // Returns same as timestampUtcMsToIsoString() but with timezone (Z) stripped away
 export function timestampUtcMsToIsoStringStripTz(timestampUtcMs: number): string {
     return timestampUtcMsToIsoString(timestampUtcMs).replace("Z", "");
+}
+// Check if the given string is a valid  date string (YYYY-MM-DD)
+export function isDateString(input: string): boolean {
+    const regex = /^\d{4}-\d{2}-\d{2}$/;
+    return regex.test(input);
+}
+
+// Check if the given string is a valid  date interval (YYYY-MM-DD/YYYY-MM-DD)
+export function isDateInterval(input: string): boolean {
+    const regex = /^\d{4}-\d{2}-\d{2}\/\d{4}-\d{2}-\d{2}$/;
+    return regex.test(input);
 }

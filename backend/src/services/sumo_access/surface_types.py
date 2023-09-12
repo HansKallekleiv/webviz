@@ -3,14 +3,14 @@ from __future__ import annotations
 from typing import Optional
 
 from pydantic import BaseModel
+from .generic_types import SumoContent
 
 
 class SurfaceMeta(BaseModel):
     name: str
     tagname: str
-    t_start: Optional[str]
-    t_end: Optional[str]
-    content: str
+    iso_date_or_interval: Optional[str]
+    content: SumoContent
     is_observation: bool
     is_stratigraphic: bool
     zmin: float
