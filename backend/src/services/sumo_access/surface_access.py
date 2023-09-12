@@ -63,7 +63,7 @@ class SurfaceAccess:
         self, real_num: int, name: str, attribute: str, time_or_interval_str: Optional[str] = None
     ) -> Optional[xtgeo.RegularSurface]:
         """
-        Get actual surface data for a simulated dynamic surface
+        Get surface data for a realization surface
         """
         timer = PerfTimer()
         addr_str = self._make_addr_str(real_num, name, attribute, time_or_interval_str)
@@ -124,7 +124,7 @@ class SurfaceAccess:
         time_or_interval_str: Optional[str] = None,
     ) -> Optional[xtgeo.RegularSurface]:
         """
-        Compute statistic and return surface data for a dynamic surface
+        Compute statistic and return surface data
         """
         timer = PerfTimer()
         addr_str = self._make_addr_str(-1, name, attribute, time_or_interval_str)
@@ -164,7 +164,7 @@ class SurfaceAccess:
 
         surf_count = len(surface_collection)
         if surf_count == 0:
-            LOGGER.warning(f"No dynamic surfaces found in Sumo for {addr_str}")
+            LOGGER.warning(f"No statistical surfaces found in Sumo for {addr_str}")
             return None
 
         realizations = surface_collection.realizations
@@ -173,7 +173,7 @@ class SurfaceAccess:
         et_calc_stat_ms = timer.lap_ms()
 
         if not xtgeo_surf:
-            LOGGER.warning(f"Could not calculate dynamic statistical surface using Sumo for {addr_str}")
+            LOGGER.warning(f"Could not calculate statistical surface using Sumo for {addr_str}")
             return None
 
         LOGGER.debug(
