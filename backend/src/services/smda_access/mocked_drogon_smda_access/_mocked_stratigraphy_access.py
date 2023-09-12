@@ -15,6 +15,7 @@ STRAT_UNITS = [
         strat_unit_level=2,
         strat_unit_type="formation",
         strat_unit_parent="VOLANTIS GP.",
+        top_age=1,
     ),
     StratigraphicUnit(
         identifier="Therys Fm.",
@@ -26,6 +27,7 @@ STRAT_UNITS = [
         strat_unit_level=2,
         strat_unit_type="formation",
         strat_unit_parent="VOLANTIS GP.",
+        top_age=2,
     ),
     StratigraphicUnit(
         identifier="Volon Fm.",
@@ -37,6 +39,7 @@ STRAT_UNITS = [
         strat_unit_level=2,
         strat_unit_type="formation",
         strat_unit_parent="VOLANTIS GP.",
+        top_age=3,
     ),
     StratigraphicUnit(
         identifier="VOLANTIS GP.",
@@ -48,6 +51,7 @@ STRAT_UNITS = [
         strat_unit_level=1,
         strat_unit_type="group",
         strat_unit_parent=None,
+        top_age=4,
     ),
 ]
 
