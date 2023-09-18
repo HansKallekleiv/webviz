@@ -8,7 +8,7 @@ class HierarchicalStratigraphicUnit(BaseModel):
     """A stratigraphic unit within a hierarchical structure, i.e a multi-level stratigraphical column"""
 
     unit: StratigraphicUnit
-    children: Optional[List["HierarchicalStratigraphicUnit"]]
+    children: List["HierarchicalStratigraphicUnit"] = []
 
 
 def create_hierarchical_structure(strat_units: List[StratigraphicUnit]) -> List[HierarchicalStratigraphicUnit]:
