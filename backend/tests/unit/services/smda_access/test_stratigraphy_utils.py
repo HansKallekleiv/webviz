@@ -6,13 +6,16 @@ from services.smda_access.stratigraphy_utils import (
     sort_stratigraphic_units_by_hierarchy,
 )
 from services.smda_access.types import StratigraphicUnit, StratigraphicSurface, StratigraphicFeature
-from services.smda_access.mocked_drogon_smda_access._mocked_stratigraphy_access import STRAT_UNITS
+from services.smda_access.mocked_drogon_smda_access._mocked_stratigraphy_access import DROGON_STRAT_UNITS
 
 
 @pytest.mark.parametrize(
     "strat_units, expected_output",
     [
-        (STRAT_UNITS, [STRAT_UNITS[3], STRAT_UNITS[0], STRAT_UNITS[1], STRAT_UNITS[2]]),
+        (
+            DROGON_STRAT_UNITS,
+            [DROGON_STRAT_UNITS[3], DROGON_STRAT_UNITS[0], DROGON_STRAT_UNITS[1], DROGON_STRAT_UNITS[2]],
+        ),
     ],
 )
 def test_sort_stratigraphic_units_by_hierarchy(
@@ -26,7 +29,7 @@ def test_sort_stratigraphic_units_by_hierarchy(
     "strat_units, expected_output",
     [
         (
-            STRAT_UNITS,
+            DROGON_STRAT_UNITS,
             [
                 StratigraphicSurface(name="VOLANTIS GP. Top", feature=StratigraphicFeature.HORIZON),
                 StratigraphicSurface(name="VOLANTIS GP.", feature=StratigraphicFeature.ZONE),

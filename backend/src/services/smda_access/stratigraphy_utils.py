@@ -1,7 +1,10 @@
+import logging
 from typing import List
 from pydantic import BaseModel
 
 from .types import StratigraphicUnit, StratigraphicSurface, StratigraphicFeature
+
+LOGGER = logging.getLogger(__name__)
 
 
 class HierarchicalStratigraphicUnit(BaseModel):
@@ -44,7 +47,7 @@ def flatten_hierarchical_structure(units: List[HierarchicalStratigraphicUnit]) -
 
 
 def flatten_hierarchical_structure_to_surface_name(
-    units: List[HierarchicalStratigraphicUnit],
+    units: List[HierarchicalStratigraphicUnit], idx=0
 ) -> List[StratigraphicSurface]:
     """Flattens the hierarchy of stratigraphic units to a list of stratigraphic surfaces preserving the order.
     On Drogon this will result in the following list:
@@ -62,23 +65,50 @@ def flatten_hierarchical_structure_to_surface_name(
 
     for hierarchical_unit in units:
         unit = hierarchical_unit.unit
-        flattened_list.append(StratigraphicSurface(name=unit.top, feature=StratigraphicFeature.HORIZON))
-        flattened_list.append(StratigraphicSurface(name=unit.identifier, feature=StratigraphicFeature.ZONE))
-        flattened_list.extend(flatten_hierarchical_structure_to_surface_name(hierarchical_unit.children))
-        flattened_list.append(StratigraphicSurface(name=unit.base, feature=StratigraphicFeature.HORIZON))
+        LOGGER.info(f"Ordered stratigraphic top: {idx * ' '}{unit.top}")
+        LOGGER.info(f"Ordered stratigraphic identifier: {idx * ' '}{unit.identifier}")
+        flattened_list.append(
+            StratigraphicSurface(
+                name=unit.top,
+                feature=StratigraphicFeature.HORIZON,
+                strat_unit_parent=unit.strat_unit_parent,
+                relative_strat_unit_level=idx,
+                strat_unit_identifier=unit.identifier,
+            )
+        )
+        flattened_list.append(
+            StratigraphicSurface(
+                name=unit.identifier,
+                feature=StratigraphicFeature.ZONE,
+                strat_unit_parent=unit.strat_unit_parent,
+                relative_strat_unit_level=idx,
+                strat_unit_identifier=unit.identifier,
+            )
+        )
+        flattened_list.extend(flatten_hierarchical_structure_to_surface_name(hierarchical_unit.children, idx=idx + 1))
+        flattened_list.append(
+            StratigraphicSurface(
+                name=unit.base,
+                feature=StratigraphicFeature.HORIZON,
+                strat_unit_parent=unit.strat_unit_parent,
+                relative_strat_unit_level=idx,
+                strat_unit_identifier=unit.identifier,
+            )
+        )
+        LOGGER.info(f"Ordered stratigraphic base: {idx * ' '}{unit.base}")
 
     return flattened_list
 
 
 def sort_stratigraphic_names_by_hierarchy(strat_units: List[StratigraphicUnit]) -> List[StratigraphicSurface]:
-    """Creates hierarchy then flattens to a list of surfaces."""
+    """Get a flatten list of top/unit/base surface names in lithostratigraphical order"""
     hierarchical_units = create_hierarchical_structure(strat_units)
     sorted_surfaces = flatten_hierarchical_structure_to_surface_name(hierarchical_units)
     return sorted_surfaces
 
 
 def sort_stratigraphic_units_by_hierarchy(strat_units: List[StratigraphicUnit]) -> List[StratigraphicUnit]:
-    """Creates hierarchy then flattens to a list of units."""
+    """Get stratigraphic units for stratigraphic column in lithostratigraphical order."""
     hierarchical_units = create_hierarchical_structure(strat_units)
     sorted_units = flatten_hierarchical_structure(hierarchical_units)
     return sorted_units

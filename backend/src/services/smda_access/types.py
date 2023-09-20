@@ -42,7 +42,7 @@ class StratigraphicUnit(BaseModel):
     base: str
     strat_unit_level: int
     strat_unit_type: str
-    top_age: Optional[int]
+    top_age: Optional[int | float]
     strat_unit_parent: Optional[str]
     color_r: int
     color_g: int
@@ -52,10 +52,13 @@ class StratigraphicUnit(BaseModel):
 class StratigraphicFeature(str, Enum):
     """The stratigraphic feature of a surface"""
 
-    ZONE = "unit"
-    HORIZON = "horizon"
+    ZONE = "zone"  # identifier
+    HORIZON = "horizon"  # top/base
 
 
 class StratigraphicSurface(BaseModel):
     name: str
     feature: StratigraphicFeature
+    relative_strat_unit_level: int = 0
+    strat_unit_parent: Optional[str] = None
+    strat_unit_identifier: Optional[str] = None

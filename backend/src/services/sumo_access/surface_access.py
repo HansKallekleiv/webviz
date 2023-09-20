@@ -13,7 +13,6 @@ from src.services.utils.statistic_function import StatisticFunction
 from ._helpers import create_sumo_client_instance
 from .surface_types import SurfaceMeta
 from .generic_types import SumoContent
-from ..utils.date_utils import iso_datetime_to_date, iso_datetime_to_date_interval
 
 LOGGER = logging.getLogger(__name__)
 
@@ -40,9 +39,9 @@ class SurfaceAccess:
             t_start = surf["data"].get("time", {}).get("t0", {}).get("value", None)
             t_end = surf["data"].get("time", {}).get("t1", {}).get("value", None)
             if t_start and not t_end:
-                iso_string_or_time_interval = iso_datetime_to_date(t_start)
+                iso_string_or_time_interval = t_start
             if t_start and t_end:
-                iso_string_or_time_interval = iso_datetime_to_date_interval(t_start, t_end)
+                iso_string_or_time_interval = f"{t_start}/{t_end}"
 
             surf_meta = SurfaceMeta(
                 name=surf["data"]["name"],

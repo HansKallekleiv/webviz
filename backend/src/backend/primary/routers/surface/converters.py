@@ -51,49 +51,57 @@ def to_api_surface_directory(
     """
     Convert Sumo surface directory to API surface directory
     """
-    surface_metas: List[schemas.SurfaceMeta] = []
-    for sumo_meta in sumo_surface_dir:
-        surface_metas.append(_sumo_surface_meta_to_api(sumo_meta))
 
-    surface_metas = _sort_by_stratigraphical_order(surface_metas, stratigraphical_names)
+    surface_metas = _sort_by_stratigraphical_order(sumo_surface_dir, stratigraphical_names)
     return surface_metas
 
 
-def _sumo_surface_meta_to_api(sumo_meta: SumoSurfaceMeta) -> schemas.SurfaceMeta:
-    return schemas.SurfaceMeta(
-        stratigraphic_name=sumo_meta.name,
-        stratigraphic_name_is_official=sumo_meta.is_stratigraphic,
-        attribute_name=sumo_meta.tagname,
-        attribute_type=schemas.SurfaceAttributeType(sumo_meta.content.value),  # Map SumoContent to SurfaceAttributeType
-        iso_date_or_interval=sumo_meta.iso_date_or_interval,
-        is_observation=sumo_meta.is_observation,
-        value_min=sumo_meta.zmin,
-        value_max=sumo_meta.zmax,
-    )
-
-
 def _sort_by_stratigraphical_order(
-    surface_metas: List[schemas.SurfaceMeta], stratigraphic_surfaces: List[StratigraphicSurface]
+    sumo_surface_metas: List[SumoSurfaceMeta], stratigraphic_surfaces: List[StratigraphicSurface]
 ) -> List[schemas.SurfaceMeta]:
-    """Sort the surface meta list by the order they appear in the stratigraphic column.
+    """Sort the Sumo surface meta list by the order they appear in the stratigraphic column.
     Non-stratigraphical surfaces are appended at the end of the list."""
 
     surface_metas_with_official_strat_name = []
     surface_metas_with_custom_names = []
 
     for strat_surface in stratigraphic_surfaces:
-        for surface_meta in surface_metas:
-            if surface_meta.stratigraphic_name == strat_surface.name:
-                surface_meta.stratigraphic_name_is_official = True
-                surface_meta.stratigraphic_feature = strat_surface.feature
+        for sumo_surface_meta in sumo_surface_metas:
+            if sumo_surface_meta.name == strat_surface.name:
+                surface_meta = schemas.SurfaceMeta(
+                    stratigraphic_name=sumo_surface_meta.name,
+                    is_observation=sumo_surface_meta.is_observation,
+                    iso_date_or_interval=sumo_surface_meta.iso_date_or_interval,
+                    value_min=sumo_surface_meta.zmin,
+                    value_max=sumo_surface_meta.zmax,
+                    stratigraphic_name_is_official=True,
+                    stratigraphic_feature=strat_surface.feature,
+                    relative_stratigraphic_level=strat_surface.relative_strat_unit_level,
+                    stratigraphic_unit_parent=strat_surface.strat_unit_parent,
+                    stratigraphic_identifier=strat_surface.strat_unit_identifier,
+                    attribute_name=sumo_surface_meta.tagname,
+                    attribute_type=schemas.SurfaceAttributeType(sumo_surface_meta.content.value),
+                )
                 surface_metas_with_official_strat_name.append(surface_meta)
 
     # Append non-official strat names
-    for surface_meta in surface_metas:
-        if surface_meta.stratigraphic_name not in [
-            s.stratigraphic_name for s in surface_metas_with_official_strat_name
-        ]:
-            surface_meta.stratigraphic_name_is_official = False
+    for sumo_surface_meta in sumo_surface_metas:
+        if sumo_surface_meta.name not in [s.stratigraphic_name for s in surface_metas_with_official_strat_name]:
+            surface_meta = schemas.SurfaceMeta(
+                stratigraphic_name=sumo_surface_meta.name,
+                is_observation=sumo_surface_meta.is_observation,
+                iso_date_or_interval=sumo_surface_meta.iso_date_or_interval,
+                value_min=sumo_surface_meta.zmin,
+                value_max=sumo_surface_meta.zmax,
+                stratigraphic_name_is_official=False,
+                stratigraphic_feature=None,
+                relative_stratigraphic_level=0,
+                stratigraphic_unit_parent=None,
+                stratigraphic_identifier=None,
+                attribute_name=sumo_surface_meta.tagname,
+                attribute_type=schemas.SurfaceAttributeType(sumo_surface_meta.content.value),
+            )
+
             surface_metas_with_custom_names.append(surface_meta)
 
     return surface_metas_with_official_strat_name + surface_metas_with_custom_names

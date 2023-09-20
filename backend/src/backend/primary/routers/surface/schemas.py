@@ -36,8 +36,11 @@ class SurfaceAttributeType(str, Enum):
 
 
 class SurfaceMeta(BaseModel):
-    stratigraphic_name: str
+    stratigraphic_name: str  # Svarte fm. top / Svarte fm. / Svarte fm. base
+    stratigraphic_identifier: Optional[str] = None  # Svarte fm.
     stratigraphic_name_is_official: bool
+    relative_stratigraphic_level: int
+    stratigraphic_unit_parent: Optional[str] = None
     stratigraphic_feature: Optional[StratigraphicFeature] = None  # Distinguish between horizon and unit
     attribute_name: str
     attribute_type: SurfaceAttributeType

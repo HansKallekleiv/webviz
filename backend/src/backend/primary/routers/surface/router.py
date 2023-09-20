@@ -7,6 +7,7 @@ import json
 from src.services.sumo_access.surface_access import SurfaceAccess
 from src.services.sumo_access.case_inspector import CaseInspector
 from src.services.smda_access.stratigraphy_access import StratigraphyAccess
+from src.services.smda_access.stratigraphy_utils import sort_stratigraphic_names_by_hierarchy
 from src.services.smda_access.mocked_drogon_smda_access import _mocked_stratigraphy_access
 from src.services.utils.statistic_function import StatisticFunction
 from src.services.utils.authenticated_user import AuthenticatedUser
@@ -43,10 +44,10 @@ def get_surface_directory(
         strat_access = _mocked_stratigraphy_access.StratigraphyAccess(authenticated_user.get_smda_access_token())
     else:
         strat_access = StratigraphyAccess(authenticated_user.get_smda_access_token())
+    strat_units = strat_access.get_stratigraphic_units(strat_column_identifier)
+    sorted_stratigraphic_surfaces = sort_stratigraphic_names_by_hierarchy(strat_units)
 
-    stratigraphic_names = strat_access.get_stratigraphic_surfaces(strat_column_identifier)
-
-    return converters.to_api_surface_directory(sumo_surf_dir, stratigraphic_names)
+    return converters.to_api_surface_directory(sumo_surf_dir, sorted_stratigraphic_surfaces)
 
 
 @router.get("/realization_surface_data/")

@@ -4,7 +4,7 @@ from typing import List
 from ..types import StratigraphicUnit, StratigraphicSurface
 from ..stratigraphy_utils import sort_stratigraphic_names_by_hierarchy, sort_stratigraphic_units_by_hierarchy
 
-STRAT_UNITS = [
+DROGON_STRAT_UNITS = [
     StratigraphicUnit(
         identifier="Valysar Fm.",
         top="Valysar Fm. Top",
@@ -63,9 +63,9 @@ class StratigraphyAccess:
     # type: ignore
     # pylint: disable=unused-argument
     def get_stratigraphic_units(self, stratigraphic_column_identifier: str) -> List[StratigraphicUnit]:
-        return sort_stratigraphic_units_by_hierarchy(STRAT_UNITS)
+        return sort_stratigraphic_units_by_hierarchy(DROGON_STRAT_UNITS)
 
     # type: ignore
     # pylint: disable=unused-argument
     def get_stratigraphic_surfaces(self, stratigraphic_column_identifier: str) -> List[StratigraphicSurface]:
-        return sort_stratigraphic_names_by_hierarchy(STRAT_UNITS)
+        return sort_stratigraphic_names_by_hierarchy(DROGON_STRAT_UNITS)
