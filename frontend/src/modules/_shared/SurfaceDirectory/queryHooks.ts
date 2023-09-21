@@ -1,13 +1,26 @@
-import { SurfaceData_api } from "@api";
+import { SurfaceData_api, SurfaceMeta_api } from "@api";
 import { apiService } from "@framework/ApiService";
 import { QueryFunction, QueryKey, UseQueryResult, useQuery } from "@tanstack/react-query";
 
-import { SurfAddr } from "./SurfAddr";
+import { SurfaceAddress } from "./surfaceAddress";
 
 const STALE_TIME = 60 * 1000;
 const CACHE_TIME = 60 * 1000;
 
-export function useSurfaceDataQueryByAddress(surfAddr: SurfAddr | null): UseQueryResult<SurfaceData_api> {
+export function useSurfaceDirectoryQuery(
+    caseUuid: string | undefined,
+    ensembleName: string | undefined
+): UseQueryResult<SurfaceMeta_api[]> {
+    return useQuery({
+        queryKey: ["getSurfaceDirectory", caseUuid, ensembleName],
+        queryFn: () => apiService.surface.getSurfaceDirectory(caseUuid ?? "", ensembleName ?? ""),
+        staleTime: STALE_TIME,
+        cacheTime: CACHE_TIME,
+        enabled: caseUuid && ensembleName ? true : false,
+    });
+}
+
+export function useSurfaceDataQueryByAddress(surfAddr: SurfaceAddress | null): UseQueryResult<SurfaceData_api> {
     function dummyApiCall(): Promise<SurfaceData_api> {
         return new Promise((_resolve, reject) => {
             reject(null);

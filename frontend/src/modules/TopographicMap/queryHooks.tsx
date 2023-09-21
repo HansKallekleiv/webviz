@@ -1,5 +1,7 @@
 import {
     PolygonData_api,
+    StaticSurfaceDirectory_api,
+    SumoContent_api,
     SurfaceData_api,
     SurfacePolygonDirectory_api,
     WellBoreHeader_api,
@@ -8,12 +10,25 @@ import {
 import { apiService } from "@framework/ApiService";
 import { QueryFunction, QueryKey, UseQueryResult, useQuery } from "@tanstack/react-query";
 
+import { SurfAddr } from "./SurfaceAddress";
 import { SurfacePolygonsAddress } from "./SurfacePolygonsAddress";
-
-import { SurfAddr } from "../Map/SurfAddr";
 
 const STALE_TIME = 60 * 1000;
 const CACHE_TIME = 60 * 1000;
+
+export function useSurfaceDirectoryQuery(
+    caseUuid: string | undefined,
+    ensembleName: string | undefined,
+    contentFilter?: SumoContent_api[]
+): UseQueryResult<StaticSurfaceDirectory_api> {
+    return useQuery({
+        queryKey: ["getStaticSurfaceDirectory", caseUuid, ensembleName, contentFilter],
+        queryFn: () => apiService.surface.getStaticSurfaceDirectory(caseUuid ?? "", ensembleName ?? "", contentFilter),
+        staleTime: STALE_TIME,
+        cacheTime: STALE_TIME,
+        enabled: caseUuid && ensembleName ? true : false,
+    });
+}
 
 export function usePolygonDirectoryQuery(
     caseUuid: string | undefined,
@@ -79,29 +94,27 @@ export function useSurfaceDataQueryByAddress(
     let queryKey: QueryKey | null = null;
 
     // Static, per realization surface
-    if (surfAddr.addressType === "realization") {
+    if (surfAddr.addressType === "static") {
         queryKey = [
-            "getRealizationSurfaceData",
+            "getStaticSurfaceData",
             surfAddr.caseUuid,
             surfAddr.ensemble,
             surfAddr.realizationNum,
             surfAddr.name,
             surfAddr.attribute,
-            surfAddr.isoDateOrInterval,
         ];
         queryFn = () =>
-            apiService.surface.getRealizationSurfaceData(
+            apiService.surface.getStaticSurfaceData(
                 surfAddr.caseUuid,
                 surfAddr.ensemble,
                 surfAddr.realizationNum,
                 surfAddr.name,
-                surfAddr.attribute,
-                surfAddr.isoDateOrInterval
+                surfAddr.attribute
             );
     }
 
     // Static, statistical surface
-    else if (surfAddr.addressType === "statistical") {
+    else if (surfAddr.addressType === "statistical-static") {
         queryKey = [
             "getStatisticalStaticSurfaceData",
             surfAddr.caseUuid,
@@ -109,16 +122,14 @@ export function useSurfaceDataQueryByAddress(
             surfAddr.statisticFunction,
             surfAddr.name,
             surfAddr.attribute,
-            surfAddr.isoDateOrInterval,
         ];
         queryFn = () =>
-            apiService.surface.getStatisticalSurfaceData(
+            apiService.surface.getStatisticalStaticSurfaceData(
                 surfAddr.caseUuid,
                 surfAddr.ensemble,
                 surfAddr.statisticFunction,
                 surfAddr.name,
-                surfAddr.attribute,
-                surfAddr.isoDateOrInterval
+                surfAddr.attribute
             );
     } else {
         throw new Error("Invalid surface address type");
@@ -155,7 +166,7 @@ export function usePropertySurfaceDataByQueryAddress(
     let queryKey: QueryKey | null = null;
 
     // Static, per realization surface
-    if (meshSurfAddr.addressType === "realization" && propertySurfAddr.addressType === "realization") {
+    if (meshSurfAddr.addressType === "static" && propertySurfAddr.addressType === "static") {
         queryKey = [
             "getPropertySurfaceResampledToStaticSurface",
             meshSurfAddr.caseUuid,
@@ -178,7 +189,10 @@ export function usePropertySurfaceDataByQueryAddress(
                 propertySurfAddr.name,
                 propertySurfAddr.attribute
             );
-    } else if (meshSurfAddr.addressType === "statistical" && propertySurfAddr.addressType === "statistical") {
+    } else if (
+        meshSurfAddr.addressType === "statistical-static" &&
+        propertySurfAddr.addressType === "statistical-static"
+    ) {
         queryKey = [
             "getPropertySurfaceResampledToStaticSurface",
             meshSurfAddr.caseUuid,

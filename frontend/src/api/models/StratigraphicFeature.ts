@@ -6,6 +6,6 @@
  * The stratigraphic feature of a surface
  */
 export enum StratigraphicFeature {
-    UNIT = 'unit',
+    ZONE = 'zone',
     HORIZON = 'horizon',
 }
