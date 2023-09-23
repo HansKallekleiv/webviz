@@ -21,8 +21,6 @@ import {
     useSurfaceDirectoryQuery,
 } from "@modules/_shared/SurfaceDirectory";
 
-import { time } from "console";
-
 import { MapState } from "./MapState";
 import { AggregationDropdown } from "./UiComponents";
 
