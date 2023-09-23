@@ -1,5 +1,5 @@
-import { SurfAddr } from "./SurfAddr";
+import { SurfaceAddress } from "@modules/_shared/SurfaceDirectory/surfaceAddress";
 
 export interface MapState {
-    surfaceAddress: SurfAddr | null;
+    surfaceAddress: SurfaceAddress | null;
 }

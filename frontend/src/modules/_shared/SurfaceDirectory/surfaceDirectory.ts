@@ -1,5 +1,5 @@
 import { SurfaceAttributeType_api, SurfaceMeta_api } from "@api";
-import { isDateInterval, isDateString } from "@framework/utils/timestampUtils";
+import { isoStringIsInterval } from "@framework/utils/timestampUtils";
 
 export enum TimeType {
     None = "None",
@@ -51,11 +51,11 @@ export class SurfaceDirectory {
                 return surfaceList.filter((surface) => !surface.iso_date_or_interval);
             case TimeType.Timestamp:
                 return surfaceList.filter(
-                    (surface) => surface.iso_date_or_interval && isDateString(surface.iso_date_or_interval)
+                    (surface) => surface.iso_date_or_interval && !isoStringIsInterval(surface.iso_date_or_interval)
                 );
             case TimeType.Interval:
                 return surfaceList.filter(
-                    (surface) => surface.iso_date_or_interval && isDateInterval(surface.iso_date_or_interval)
+                    (surface) => surface.iso_date_or_interval && isoStringIsInterval(surface.iso_date_or_interval)
                 );
             default:
                 return surfaceList;
@@ -101,7 +101,7 @@ export class SurfaceDirectory {
         if (filteredList.length === 0) return [];
         const timeStamps: string[] = [];
         filteredList.forEach((surface) => {
-            if (surface.iso_date_or_interval && isDateString(surface.iso_date_or_interval))
+            if (surface.iso_date_or_interval && !isoStringIsInterval(surface.iso_date_or_interval))
                 timeStamps.push(surface.iso_date_or_interval);
         });
         return [...new Set(timeStamps)].sort();
@@ -118,7 +118,7 @@ export class SurfaceDirectory {
         if (filteredList.length === 0) return [];
         const timeIntervals: string[] = [];
         filteredList.forEach((surface) => {
-            if (surface.iso_date_or_interval && isDateInterval(surface.iso_date_or_interval))
+            if (surface.iso_date_or_interval && isoStringIsInterval(surface.iso_date_or_interval))
                 timeIntervals.push(surface.iso_date_or_interval);
         });
         return [...new Set(timeIntervals)].sort();

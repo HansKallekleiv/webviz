@@ -7,7 +7,7 @@ export interface RealizationSurfaceAddress {
     name: string;
     attribute: string;
     realizationNum: number;
-    isoDateOrInterval?: string;
+    isoDateOrInterval: string | null;
 }
 
 export interface StatisticalSurfaceAddress {
@@ -16,7 +16,7 @@ export interface StatisticalSurfaceAddress {
     ensemble: string;
     name: string;
     attribute: string;
-    isoDateOrInterval?: string;
+    isoDateOrInterval: string | null;
     statisticFunction: SurfaceStatisticFunction_api;
 }
 
@@ -33,9 +33,9 @@ export class SurfaceAddressFactory {
     private _ensemble: string;
     private _name: string;
     private _attribute: string;
-    private _isoDateOrInterval: string | undefined;
+    private _isoDateOrInterval: string | null;
 
-    constructor(caseUuid: string, ensemble: string, name: string, attribute: string, isoDateOrInterval?: string) {
+    constructor(caseUuid: string, ensemble: string, name: string, attribute: string, isoDateOrInterval: string | null) {
         this._caseUuid = caseUuid;
         this._ensemble = ensemble;
         this._name = name;
