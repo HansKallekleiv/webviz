@@ -56,7 +56,7 @@ export function useSurfaceDataQueryByAddress(surfAddr: SurfaceAddress | null): U
                 surfAddr.realizationNum,
                 surfAddr.name,
                 surfAddr.attribute,
-                surfAddr.isoDateOrInterval
+                surfAddr.isoDateOrInterval ?? undefined
             );
     }
 
@@ -78,7 +78,7 @@ export function useSurfaceDataQueryByAddress(surfAddr: SurfaceAddress | null): U
                 surfAddr.statisticFunction,
                 surfAddr.name,
                 surfAddr.attribute,
-                surfAddr.isoDateOrInterval
+                surfAddr.isoDateOrInterval ?? undefined
             );
     } else {
         throw new Error("Invalid surface address type");

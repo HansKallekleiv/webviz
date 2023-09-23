@@ -7,13 +7,13 @@ import { SyncSettingKey, SyncSettingsHelper } from "@framework/SyncSettings";
 import { Wellbore } from "@framework/Wellbore";
 import { Button } from "@lib/components/Button";
 import { CircularProgress } from "@lib/components/CircularProgress";
+import { useSurfaceDataQueryByAddress } from "@modules/_shared/SurfaceDirectory";
 import { ViewAnnotation } from "@webviz/subsurface-viewer/dist/components/ViewAnnotation";
 
 import {
     useGetFieldWellsTrajectories,
     usePolygonsDataQueryByAddress,
     usePropertySurfaceDataByQueryAddress,
-    useSurfaceDataQueryByAddress,
 } from "././queryHooks";
 import {
     SurfaceMeta,
@@ -84,7 +84,7 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<state>)
 
     const show3D: boolean = viewSettings?.show3d ?? true;
 
-    const meshSurfDataQuery = useSurfaceDataQueryByAddress(meshSurfAddr, true);
+    const meshSurfDataQuery = useSurfaceDataQueryByAddress(meshSurfAddr);
 
     const hasMeshSurfData = meshSurfDataQuery?.data ? true : false;
     const propertySurfDataQuery = usePropertySurfaceDataByQueryAddress(meshSurfAddr, propertySurfAddr, hasMeshSurfData);

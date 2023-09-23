@@ -1,7 +1,6 @@
 import React from "react";
 
-import { SurfaceStatisticFunction_api } from "@api";
-import { SumoContent_api } from "@api";
+import { SurfaceAttributeType_api, SurfaceStatisticFunction_api } from "@api";
 import { EnsembleIdent } from "@framework/EnsembleIdent";
 import { ModuleFCProps } from "@framework/Module";
 import { SyncSettingKey, SyncSettingsHelper } from "@framework/SyncSettings";
@@ -16,14 +15,19 @@ import { CollapsibleGroup } from "@lib/components/CollapsibleGroup";
 import { Input } from "@lib/components/Input";
 import { Label } from "@lib/components/Label";
 import { Select, SelectOption } from "@lib/components/Select";
+import {
+    SurfaceAddress,
+    SurfaceAddressFactory,
+    SurfaceDirectory,
+    TimeType,
+    useSurfaceDirectoryQuery,
+} from "@modules/_shared/SurfaceDirectory";
 
-import { SurfAddr, SurfAddrFactory } from "./SurfaceAddress";
 import { SurfacePolygonsAddress } from "./SurfacePolygonsAddress";
 import { AggregationSelector } from "./components/AggregationSelector";
 import { PolygonDirectoryProvider } from "./polygonsDirectoryProvider";
-import { useGetWellHeaders, usePolygonDirectoryQuery, useSurfaceDirectoryQuery } from "./queryHooks";
+import { useGetWellHeaders, usePolygonDirectoryQuery } from "./queryHooks";
 import { state } from "./state";
-import { SurfaceDirectoryProvider } from "./surfaceDirectoryProvider";
 
 //-----------------------------------------------------------------------------------------------------------
 type LabelledCheckboxProps = {
@@ -74,7 +78,7 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
     const syncedSettingKeys = moduleContext.useSyncedSettingKeys();
     const syncHelper = new SyncSettingsHelper(syncedSettingKeys, workbenchServices);
     const syncedValueEnsembles = syncHelper.useValue(SyncSettingKey.ENSEMBLE, "global.syncValue.ensembles");
-
+    const syncedValueSurface = syncHelper.useValue(SyncSettingKey.SURFACE, "global.syncValue.surface");
     const candidateEnsembleIdent = maybeAssignFirstSyncedEnsemble(selectedEnsembleIdent, syncedValueEnsembles);
     const computedEnsembleIdent = fixupEnsembleIdent(candidateEnsembleIdent, ensembleSet);
     if (computedEnsembleIdent && !computedEnsembleIdent.equals(selectedEnsembleIdent)) {
@@ -83,15 +87,27 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
     // Mesh surface
     const meshSurfDirQuery = useSurfaceDirectoryQuery(
         computedEnsembleIdent?.getCaseUuid(),
-        computedEnsembleIdent?.getEnsembleName(),
-        [SumoContent_api.DEPTH]
+        computedEnsembleIdent?.getEnsembleName()
     );
-    const meshSurfDirProvider = new SurfaceDirectoryProvider(meshSurfDirQuery, "tops");
-    const computedMeshSurfaceName = meshSurfDirProvider.validateOrResetSurfaceName(selectedMeshSurfaceName);
-    const computedMeshSurfaceAttribute = meshSurfDirProvider.validateOrResetSurfaceAttribute(
-        computedMeshSurfaceName,
-        selectedMeshSurfaceAttribute
-    );
+    const meshSurfaceDirectory = new SurfaceDirectory({
+        surfaceDirectoryQueryData: meshSurfDirQuery.data,
+        includeAttributeTypes: [SurfaceAttributeType_api.DEPTH],
+    });
+
+    let computedMeshSurfaceName: string | null = null;
+    let computedMeshSurfaceAttribute: string | null = null;
+    if (meshSurfaceDirectory) {
+        const computedStaticSurface = fixupStaticSurface(
+            meshSurfaceDirectory,
+            { surfaceName: selectedMeshSurfaceName, surfaceAttribute: selectedMeshSurfaceAttribute },
+            {
+                surfaceName: syncedValueSurface?.name || null,
+                surfaceAttribute: syncedValueSurface?.attribute || null,
+            }
+        );
+        computedMeshSurfaceName = computedStaticSurface.surfaceName;
+        computedMeshSurfaceAttribute = computedStaticSurface.surfaceAttribute;
+    }
 
     if (computedMeshSurfaceName && computedMeshSurfaceName !== selectedMeshSurfaceName) {
         setSelectedMeshSurfaceName(computedMeshSurfaceName);
@@ -102,22 +118,39 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
 
     let meshSurfNameOptions: SelectOption[] = [];
     let meshSurfAttributeOptions: SelectOption[] = [];
-    meshSurfNameOptions = meshSurfDirProvider.surfaceNames().map((name) => ({ value: name, label: name }));
-    meshSurfAttributeOptions = meshSurfDirProvider
-        .attributesForSurfaceName(computedMeshSurfaceName)
+    meshSurfNameOptions = meshSurfaceDirectory
+        .getStratigraphicNames(TimeType.None, null)
+        .map((name) => ({ value: name, label: name }));
+    meshSurfAttributeOptions = meshSurfaceDirectory
+        .getAttributeNames(TimeType.None, computedMeshSurfaceName)
         .map((attr) => ({ value: attr, label: attr }));
 
     // Property surface
+    // TODO add timestamp and time interval surfaces
     const propertySurfDirQuery = useSurfaceDirectoryQuery(
         computedEnsembleIdent?.getCaseUuid(),
-        computedEnsembleIdent?.getEnsembleName() // Should be SumoContent_api.PROPERTY
+        computedEnsembleIdent?.getEnsembleName()
     );
-    const propertySurfDirProvider = new SurfaceDirectoryProvider(propertySurfDirQuery, "formations");
-    const computedPropertySurfaceName = propertySurfDirProvider.validateOrResetSurfaceName(selectedPropertySurfaceName);
-    const computedPropertySurfaceAttribute = propertySurfDirProvider.validateOrResetSurfaceAttribute(
-        computedPropertySurfaceName,
-        selectedPropertySurfaceAttribute
-    );
+    const propertySurfaceDirectory = new SurfaceDirectory({
+        surfaceDirectoryQueryData: propertySurfDirQuery.data,
+        excludeAttributeTypes: [SurfaceAttributeType_api.DEPTH],
+    });
+    let computedPropertySurfaceName: string | null = null;
+    let computedPropertySurfaceAttribute: string | null = null;
+
+    if (propertySurfaceDirectory) {
+        const computedStaticSurface = fixupStaticSurface(
+            propertySurfaceDirectory,
+            { surfaceName: selectedPropertySurfaceName, surfaceAttribute: selectedPropertySurfaceAttribute },
+            {
+                surfaceName: null,
+                surfaceAttribute: null,
+            }
+        );
+        computedPropertySurfaceName = computedStaticSurface.surfaceName;
+        computedPropertySurfaceAttribute = computedStaticSurface.surfaceAttribute;
+    }
+
     if (computedPropertySurfaceName && computedPropertySurfaceName !== selectedPropertySurfaceName) {
         setSelectedPropertySurfaceName(computedPropertySurfaceName);
     }
@@ -126,9 +159,12 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
     }
     let propertySurfNameOptions: SelectOption[] = [];
     let propertySurfAttributeOptions: SelectOption[] = [];
-    propertySurfNameOptions = propertySurfDirProvider.surfaceNames().map((name) => ({ value: name, label: name }));
-    propertySurfAttributeOptions = propertySurfDirProvider
-        .attributesForSurfaceName(computedPropertySurfaceName)
+
+    propertySurfNameOptions = propertySurfaceDirectory
+        .getStratigraphicNames(TimeType.None, null)
+        .map((name) => ({ value: name, label: name }));
+    propertySurfAttributeOptions = propertySurfaceDirectory
+        .getAttributeNames(TimeType.None, computedPropertySurfaceName)
         .map((attr) => ({ value: attr, label: attr }));
 
     // Polygon
@@ -161,20 +197,21 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
 
     React.useEffect(
         function propagateMeshSurfaceSelectionToView() {
-            let surfAddr: SurfAddr | null = null;
+            let surfAddr: SurfaceAddress | null = null;
 
             if (computedEnsembleIdent && computedMeshSurfaceName && computedMeshSurfaceAttribute) {
-                const addrFactory = new SurfAddrFactory(
+                const addrFactory = new SurfaceAddressFactory(
                     computedEnsembleIdent.getCaseUuid(),
                     computedEnsembleIdent.getEnsembleName(),
                     computedMeshSurfaceName,
-                    computedMeshSurfaceAttribute
+                    computedMeshSurfaceAttribute,
+                    null
                 );
 
                 if (aggregation === null) {
-                    surfAddr = addrFactory.createStaticAddr(realizationNum);
+                    surfAddr = addrFactory.createRealizationAddress(realizationNum);
                 } else {
-                    surfAddr = addrFactory.createStatisticalStaticAddr(aggregation);
+                    surfAddr = addrFactory.createStatisticalAddress(aggregation);
                 }
             }
 
@@ -185,23 +222,24 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
     );
     React.useEffect(
         function propagatePropertySurfaceSelectionToView() {
-            let surfAddr: SurfAddr | null = null;
+            let surfAddr: SurfaceAddress | null = null;
             if (!usePropertySurface) {
                 moduleContext.getStateStore().setValue("propertySurfaceAddress", surfAddr);
                 return;
             }
             if (computedEnsembleIdent && computedPropertySurfaceName && computedPropertySurfaceAttribute) {
-                const addrFactory = new SurfAddrFactory(
+                const addrFactory = new SurfaceAddressFactory(
                     computedEnsembleIdent.getCaseUuid(),
                     computedEnsembleIdent.getEnsembleName(),
                     computedPropertySurfaceName,
-                    computedPropertySurfaceAttribute
+                    computedPropertySurfaceAttribute,
+                    null
                 );
 
                 if (aggregation === null) {
-                    surfAddr = addrFactory.createStaticAddr(realizationNum);
+                    surfAddr = addrFactory.createRealizationAddress(realizationNum);
                 } else {
-                    surfAddr = addrFactory.createStatisticalStaticAddr(aggregation);
+                    surfAddr = addrFactory.createStatisticalAddress(aggregation);
                 }
             }
 
@@ -606,4 +644,136 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
             </CollapsibleGroup>
         </div>
     );
+}
+
+function fixupStaticSurface(
+    surfaceDirectory: SurfaceDirectory,
+    selectedSurface: { surfaceName: string | null; surfaceAttribute: string | null },
+    syncedSurface: { surfaceName: string | null; surfaceAttribute: string | null }
+): { surfaceName: string | null; surfaceAttribute: string | null } {
+    const surfaceNames = surfaceDirectory.getStratigraphicNames(TimeType.None, null);
+    let finalSurfaceName: string | null = null;
+    let finalSurfaceAttribute: string | null = null;
+    finalSurfaceName = fixupSyncedOrSelectedOrFirstValue(
+        syncedSurface.surfaceName,
+        selectedSurface.surfaceName,
+        surfaceNames
+    );
+
+    if (finalSurfaceName) {
+        const surfaceAttributes = surfaceDirectory.getAttributeNames(TimeType.None, finalSurfaceName);
+        finalSurfaceAttribute = fixupSyncedOrSelectedOrFirstValue(
+            syncedSurface.surfaceAttribute,
+            selectedSurface.surfaceAttribute,
+            surfaceAttributes
+        );
+    }
+    return { surfaceName: finalSurfaceName, surfaceAttribute: finalSurfaceAttribute };
+}
+function fixupTimeStampSurface(
+    surfaceDirectory: SurfaceDirectory,
+    selectedSurface: { surfaceName: string | null; surfaceAttribute: string | null; timeStamp: string | null },
+    syncedSurface: { surfaceName: string | null; surfaceAttribute: string | null; timeStamp: string | null }
+): { surfaceName: string | null; surfaceAttribute: string | null; timeStamp: string | null } {
+    const surfaceNames = surfaceDirectory.getStratigraphicNames(TimeType.Timestamp, null);
+    console.log(surfaceNames, "timestamp");
+    let finalSurfaceName = fixupSyncedOrSelectedOrFirstValue(
+        syncedSurface.surfaceName,
+        selectedSurface.surfaceName,
+        surfaceNames
+    );
+    let finalSurfaceAttribute: string | null = null;
+    let finalTimeOrInterval: string | null = null;
+    if (finalSurfaceName) {
+        const surfaceAttributes = surfaceDirectory.getAttributeNames(TimeType.Timestamp, finalSurfaceName);
+        finalSurfaceAttribute = fixupSyncedOrSelectedOrFirstValue(
+            syncedSurface.surfaceAttribute,
+            selectedSurface.surfaceAttribute,
+            surfaceAttributes
+        );
+    }
+    if (finalSurfaceName && finalSurfaceAttribute) {
+        const timeStamps = surfaceDirectory.getTimeStamps(finalSurfaceName, finalSurfaceAttribute);
+        finalTimeOrInterval = fixupSyncedOrSelectedOrFirstValue(
+            syncedSurface.timeStamp,
+            selectedSurface.timeStamp,
+            timeStamps
+        );
+    }
+    return { surfaceName: finalSurfaceName, surfaceAttribute: finalSurfaceAttribute, timeStamp: finalTimeOrInterval };
+}
+
+function fixupTimeIntervalSurface(
+    surfaceDirectory: SurfaceDirectory,
+    selectedSurface: {
+        surfaceName: string | null;
+        surfaceAttribute: string | null;
+        timeInterval: string | null;
+    },
+    syncedSurface: { surfaceName: string | null; surfaceAttribute: string | null; timeInterval: string | null }
+): { surfaceName: string | null; surfaceAttribute: string | null; timeInterval: string | null } {
+    const surfaceNames = surfaceDirectory.getStratigraphicNames(TimeType.Interval, null);
+    console.log(surfaceNames, "interval");
+    let finalSurfaceName = fixupSyncedOrSelectedOrFirstValue(
+        syncedSurface.surfaceName,
+        selectedSurface.surfaceName,
+        surfaceNames
+    );
+    let finalSurfaceAttribute: string | null = null;
+    let finalTimeOrInterval: string | null = null;
+    if (finalSurfaceName) {
+        const surfaceAttributes = surfaceDirectory.getAttributeNames(TimeType.Interval, finalSurfaceName);
+        finalSurfaceAttribute = fixupSyncedOrSelectedOrFirstValue(
+            syncedSurface.surfaceAttribute,
+            selectedSurface.surfaceAttribute,
+            surfaceAttributes
+        );
+    }
+    if (finalSurfaceName && finalSurfaceAttribute) {
+        const timeIntervals = surfaceDirectory.getTimeIntervals(finalSurfaceName, finalSurfaceAttribute);
+        finalTimeOrInterval = fixupSyncedOrSelectedOrFirstValue(
+            syncedSurface.timeInterval,
+            selectedSurface.timeInterval,
+            timeIntervals
+        );
+    }
+    console.log({
+        surfaceName: finalSurfaceName,
+        surfaceAttribute: finalSurfaceAttribute,
+        timeInterval: finalTimeOrInterval,
+    });
+    return {
+        surfaceName: finalSurfaceName,
+        surfaceAttribute: finalSurfaceAttribute,
+        timeInterval: finalTimeOrInterval,
+    };
+}
+
+function fixupSyncedOrSelectedOrFirstValue(
+    syncedValue: string | null,
+    selectedValue: string | null,
+    values: string[]
+): string | null {
+    if (syncedValue && values.includes(syncedValue)) {
+        return syncedValue;
+    }
+    if (selectedValue && values.includes(selectedValue)) {
+        return selectedValue;
+    }
+    if (values.length) {
+        return values[0];
+    }
+    return null;
+}
+export function IsoStringToDateLabel(input: string): string {
+    const date = input.split("T")[0];
+    return `${date}`;
+}
+
+export function IsoIntervalStringToDateLabel(input: string): string {
+    console.log(input);
+    const [start, end] = input.split("/");
+    const startDate = start.split("T")[0];
+    const endDate = end.split("T")[0];
+    return `${startDate}/${endDate}`;
 }
