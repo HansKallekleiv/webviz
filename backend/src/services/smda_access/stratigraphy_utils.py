@@ -47,7 +47,7 @@ def flatten_hierarchical_structure(units: List[HierarchicalStratigraphicUnit]) -
 
 
 def flatten_hierarchical_structure_to_surface_name(
-    units: List[HierarchicalStratigraphicUnit], idx=0
+    units: List[HierarchicalStratigraphicUnit], idx: int = 0
 ) -> List[StratigraphicSurface]:
     """Flattens the hierarchy of stratigraphic units to a list of stratigraphic surfaces preserving the order.
     On Drogon this will result in the following list:

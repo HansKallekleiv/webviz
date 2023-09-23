@@ -321,9 +321,9 @@ function fixupStaticSurface(
     syncedSurface: { surfaceName: string | null; surfaceAttribute: string | null }
 ): { surfaceName: string | null; surfaceAttribute: string | null } {
     const surfaceNames = surfaceDirectory.getStratigraphicNames(TimeType.None, null);
-    let finalSurfaceName: string | null = null;
+
     let finalSurfaceAttribute: string | null = null;
-    finalSurfaceName = fixupSyncedOrSelectedOrFirstValue(
+    const finalSurfaceName = fixupSyncedOrSelectedOrFirstValue(
         syncedSurface.surfaceName,
         selectedSurface.surfaceName,
         surfaceNames
@@ -345,8 +345,7 @@ function fixupTimeStampSurface(
     syncedSurface: { surfaceName: string | null; surfaceAttribute: string | null; timeStamp: string | null }
 ): { surfaceName: string | null; surfaceAttribute: string | null; timeStamp: string | null } {
     const surfaceNames = surfaceDirectory.getStratigraphicNames(TimeType.Timestamp, null);
-    console.log(surfaceNames, "timestamp");
-    let finalSurfaceName = fixupSyncedOrSelectedOrFirstValue(
+    const finalSurfaceName = fixupSyncedOrSelectedOrFirstValue(
         syncedSurface.surfaceName,
         selectedSurface.surfaceName,
         surfaceNames
@@ -382,8 +381,7 @@ function fixupTimeIntervalSurface(
     syncedSurface: { surfaceName: string | null; surfaceAttribute: string | null; timeInterval: string | null }
 ): { surfaceName: string | null; surfaceAttribute: string | null; timeInterval: string | null } {
     const surfaceNames = surfaceDirectory.getStratigraphicNames(TimeType.Interval, null);
-    console.log(surfaceNames, "interval");
-    let finalSurfaceName = fixupSyncedOrSelectedOrFirstValue(
+    const finalSurfaceName = fixupSyncedOrSelectedOrFirstValue(
         syncedSurface.surfaceName,
         selectedSurface.surfaceName,
         surfaceNames
@@ -406,11 +404,6 @@ function fixupTimeIntervalSurface(
             timeIntervals
         );
     }
-    console.log({
-        surfaceName: finalSurfaceName,
-        surfaceAttribute: finalSurfaceAttribute,
-        timeInterval: finalTimeOrInterval,
-    });
     return {
         surfaceName: finalSurfaceName,
         surfaceAttribute: finalSurfaceAttribute,
@@ -440,7 +433,6 @@ export function IsoStringToDateLabel(input: string): string {
 }
 
 export function IsoIntervalStringToDateLabel(input: string): string {
-    console.log(input);
     const [start, end] = input.split("/");
     const startDate = start.split("T")[0];
     const endDate = end.split("T")[0];
