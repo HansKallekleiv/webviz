@@ -1,5 +1,5 @@
 import logging
-from typing import List, Union
+from typing import List, Union, Optional
 import numpy as np
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 import json
@@ -58,13 +58,13 @@ def get_realization_surface_data(
     realization_num: int = Query(description="Realization number"),
     name: str = Query(description="Surface name"),
     attribute: str = Query(description="Surface attribute"),
-    iso_date_or_interval: str = Query(None, description="Timestamp or time interval string"),
+    time_or_interval: Optional[str] = Query(None, description="Time point or time interval string"),
 ) -> schemas.SurfaceData:
     timer = PerfTimer()
 
     access = SurfaceAccess(authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name)
     xtgeo_surf = access.get_realization_surface_data(
-        real_num=realization_num, name=name, attribute=attribute, time_or_interval_str=iso_date_or_interval
+        real_num=realization_num, name=name, attribute=attribute, time_or_interval_str=time_or_interval
     )
 
     if not xtgeo_surf:
@@ -85,7 +85,7 @@ def get_statistical_surface_data(
     statistic_function: schemas.SurfaceStatisticFunction = Query(description="Statistics to calculate"),
     name: str = Query(description="Surface name"),
     attribute: str = Query(description="Surface attribute"),
-    time_or_interval: str = Query(None, description="Timestamp or time interval string"),
+    time_or_interval: Optional[str] = Query(None, description="Time point or time interval string"),
 ) -> schemas.SurfaceData:
     timer = PerfTimer()
 

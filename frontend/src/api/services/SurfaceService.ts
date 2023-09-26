@@ -44,7 +44,7 @@ export class SurfaceService {
      * @param realizationNum Realization number
      * @param name Surface name
      * @param attribute Surface attribute
-     * @param isoDateOrInterval Timestamp or time interval string
+     * @param timeOrInterval Time point or time interval string
      * @returns SurfaceData Successful Response
      * @throws ApiError
      */
@@ -54,7 +54,7 @@ export class SurfaceService {
         realizationNum: number,
         name: string,
         attribute: string,
-        isoDateOrInterval?: string,
+        timeOrInterval?: (string | null),
     ): CancelablePromise<SurfaceData> {
         return this.httpRequest.request({
             method: 'GET',
@@ -65,7 +65,7 @@ export class SurfaceService {
                 'realization_num': realizationNum,
                 'name': name,
                 'attribute': attribute,
-                'iso_date_or_interval': isoDateOrInterval,
+                'time_or_interval': timeOrInterval,
             },
             errors: {
                 422: `Validation Error`,
@@ -80,7 +80,7 @@ export class SurfaceService {
      * @param statisticFunction Statistics to calculate
      * @param name Surface name
      * @param attribute Surface attribute
-     * @param timeOrInterval Timestamp or time interval string
+     * @param timeOrInterval Time point or time interval string
      * @returns SurfaceData Successful Response
      * @throws ApiError
      */
@@ -90,7 +90,7 @@ export class SurfaceService {
         statisticFunction: SurfaceStatisticFunction,
         name: string,
         attribute: string,
-        timeOrInterval?: string,
+        timeOrInterval?: (string | null),
     ): CancelablePromise<SurfaceData> {
         return this.httpRequest.request({
             method: 'GET',
