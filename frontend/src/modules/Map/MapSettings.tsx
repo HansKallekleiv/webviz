@@ -19,7 +19,7 @@ import {
     SurfaceDirectory,
     TimeType,
     useSurfaceDirectoryQuery,
-} from "@modules/_shared/SurfaceDirectory";
+} from "@modules/_shared/Surface";
 
 import { MapState } from "./MapState";
 import { AggregationDropdown } from "./UiComponents";
@@ -65,58 +65,27 @@ export function MapSettings(props: ModuleFCProps<MapState>) {
     let computedSurfaceName: string | null = null;
     let computedSurfaceAttribute: string | null = null;
     let computedTimeOrInterval: string | null = null;
-    const surfaceDirectory = new SurfaceDirectory({ surfaceDirectoryQueryData: surfaceDirectoryQuery.data });
+    const surfaceDirectory = new SurfaceDirectory(
+        surfaceDirectoryQuery.data ? { surfaceMetas: surfaceDirectoryQuery.data, timeType: timeType } : null
+    );
 
     if (surfaceDirectory) {
-        if (timeType == TimeType.None) {
-            const computedStaticSurface = fixupStaticSurface(
-                surfaceDirectory,
-                { surfaceName: selectedSurfaceName, surfaceAttribute: selectedSurfaceAttribute },
-                {
-                    surfaceName: syncedValueSurface?.name || null,
-                    surfaceAttribute: syncedValueSurface?.attribute || null,
-                }
-            );
-            computedSurfaceName = computedStaticSurface.surfaceName;
-            computedSurfaceAttribute = computedStaticSurface.surfaceAttribute;
-        }
-
-        if (timeType == TimeType.Timestamp) {
-            const computedTimeStampSurface = fixupTimeStampSurface(
-                surfaceDirectory,
-                {
-                    surfaceName: selectedSurfaceName,
-                    surfaceAttribute: selectedSurfaceAttribute,
-                    timeStamp: selectedTimeOrInterval,
-                },
-                {
-                    surfaceName: syncedValueSurface?.name || null,
-                    surfaceAttribute: syncedValueSurface?.attribute || null,
-                    timeStamp: syncedValueDate?.timeOrInterval || null,
-                }
-            );
-            computedSurfaceName = computedTimeStampSurface.surfaceName;
-            computedSurfaceAttribute = computedTimeStampSurface.surfaceAttribute;
-            computedTimeOrInterval = computedTimeStampSurface.timeStamp;
-        }
-        if (timeType == TimeType.Interval) {
-            const computedTimeIntervalSurface = fixupTimeIntervalSurface(
-                surfaceDirectory,
-                {
-                    surfaceName: selectedSurfaceName,
-                    surfaceAttribute: selectedSurfaceAttribute,
-                    timeInterval: selectedTimeOrInterval,
-                },
-                {
-                    surfaceName: syncedValueSurface?.name || null,
-                    surfaceAttribute: syncedValueSurface?.attribute || null,
-                    timeInterval: syncedValueDate?.timeOrInterval || null,
-                }
-            );
-            computedSurfaceName = computedTimeIntervalSurface.surfaceName;
-            computedSurfaceAttribute = computedTimeIntervalSurface.surfaceAttribute;
-            computedTimeOrInterval = computedTimeIntervalSurface.timeInterval;
-        }
+        const computedSurface = fixupSurface(
+            surfaceDirectory,
+            {
+                surfaceName: selectedSurfaceName,
+                surfaceAttribute: selectedSurfaceAttribute,
+                timeOrInterval: selectedTimeOrInterval,
+            },
+            {
+                surfaceName: syncedValueSurface?.name || null,
+                surfaceAttribute: syncedValueSurface?.attribute || null,
+                timeOrInterval: syncedValueDate?.timeOrInterval || null,
+            }
+        );
+        computedSurfaceName = computedSurface.surfaceName;
+        computedSurfaceAttribute = computedSurface.surfaceAttribute;
+        computedTimeOrInterval = computedSurface.timeOrInterval;
     }
 
     if (computedEnsembleIdent && !computedEnsembleIdent.equals(selectedEnsembleIdent)) {
@@ -216,23 +185,25 @@ export function MapSettings(props: ModuleFCProps<MapState>) {
     let timeOrIntervalOptions: SelectOption[] = [];
 
     if (surfaceDirectory) {
-        surfNameOptions = surfaceDirectory.getStratigraphicNames(timeType, null).map((name) => ({
+        surfNameOptions = surfaceDirectory.getStratigraphicNames(null).map((name) => ({
             value: name,
             label: name,
         }));
-        surfAttributeOptions = surfaceDirectory.getAttributeNames(timeType, computedSurfaceName).map((attr) => ({
+        surfAttributeOptions = surfaceDirectory.getAttributeNames(computedSurfaceName).map((attr) => ({
             value: attr,
             label: attr,
         }));
-        if (timeType === TimeType.Timestamp) {
+
+        if (timeType === TimeType.Interval || timeType === TimeType.Timestamp) {
             timeOrIntervalOptions = surfaceDirectory
-                .getTimeStamps(computedSurfaceName, computedSurfaceAttribute)
-                .map((time) => ({ value: time, label: IsoStringToDateLabel(time) }));
-        }
-        if (timeType === TimeType.Interval) {
-            timeOrIntervalOptions = surfaceDirectory
-                .getTimeIntervals(computedSurfaceName, computedSurfaceAttribute)
-                .map((interval) => ({ value: interval, label: IsoIntervalStringToDateLabel(interval) }));
+                .getTimeStampsOrIntervals(computedSurfaceName, computedSurfaceAttribute)
+                .map((interval) => ({
+                    value: interval,
+                    label:
+                        timeType === TimeType.Timestamp
+                            ? IsoStringToDateLabel(interval)
+                            : IsoIntervalStringToDateLabel(interval),
+                }));
         }
     }
 
@@ -315,36 +286,12 @@ export function MapSettings(props: ModuleFCProps<MapState>) {
 // Helpers
 // -------------------------------------------------------------------------------------
 
-function fixupStaticSurface(
+function fixupSurface(
     surfaceDirectory: SurfaceDirectory,
-    selectedSurface: { surfaceName: string | null; surfaceAttribute: string | null },
-    syncedSurface: { surfaceName: string | null; surfaceAttribute: string | null }
-): { surfaceName: string | null; surfaceAttribute: string | null } {
-    const surfaceNames = surfaceDirectory.getStratigraphicNames(TimeType.None, null);
-
-    let finalSurfaceAttribute: string | null = null;
-    const finalSurfaceName = fixupSyncedOrSelectedOrFirstValue(
-        syncedSurface.surfaceName,
-        selectedSurface.surfaceName,
-        surfaceNames
-    );
-
-    if (finalSurfaceName) {
-        const surfaceAttributes = surfaceDirectory.getAttributeNames(TimeType.None, finalSurfaceName);
-        finalSurfaceAttribute = fixupSyncedOrSelectedOrFirstValue(
-            syncedSurface.surfaceAttribute,
-            selectedSurface.surfaceAttribute,
-            surfaceAttributes
-        );
-    }
-    return { surfaceName: finalSurfaceName, surfaceAttribute: finalSurfaceAttribute };
-}
-function fixupTimeStampSurface(
-    surfaceDirectory: SurfaceDirectory,
-    selectedSurface: { surfaceName: string | null; surfaceAttribute: string | null; timeStamp: string | null },
-    syncedSurface: { surfaceName: string | null; surfaceAttribute: string | null; timeStamp: string | null }
-): { surfaceName: string | null; surfaceAttribute: string | null; timeStamp: string | null } {
-    const surfaceNames = surfaceDirectory.getStratigraphicNames(TimeType.Timestamp, null);
+    selectedSurface: { surfaceName: string | null; surfaceAttribute: string | null; timeOrInterval: string | null },
+    syncedSurface: { surfaceName: string | null; surfaceAttribute: string | null; timeOrInterval: string | null }
+): { surfaceName: string | null; surfaceAttribute: string | null; timeOrInterval: string | null } {
+    const surfaceNames = surfaceDirectory.getStratigraphicNames(null);
     const finalSurfaceName = fixupSyncedOrSelectedOrFirstValue(
         syncedSurface.surfaceName,
         selectedSurface.surfaceName,
@@ -353,7 +300,7 @@ function fixupTimeStampSurface(
     let finalSurfaceAttribute: string | null = null;
     let finalTimeOrInterval: string | null = null;
     if (finalSurfaceName) {
-        const surfaceAttributes = surfaceDirectory.getAttributeNames(TimeType.Timestamp, finalSurfaceName);
+        const surfaceAttributes = surfaceDirectory.getAttributeNames(finalSurfaceName);
         finalSurfaceAttribute = fixupSyncedOrSelectedOrFirstValue(
             syncedSurface.surfaceAttribute,
             selectedSurface.surfaceAttribute,
@@ -361,53 +308,20 @@ function fixupTimeStampSurface(
         );
     }
     if (finalSurfaceName && finalSurfaceAttribute) {
-        const timeStamps = surfaceDirectory.getTimeStamps(finalSurfaceName, finalSurfaceAttribute);
-        finalTimeOrInterval = fixupSyncedOrSelectedOrFirstValue(
-            syncedSurface.timeStamp,
-            selectedSurface.timeStamp,
-            timeStamps
+        const selectedTimeOrIntervals = surfaceDirectory.getTimeStampsOrIntervals(
+            finalSurfaceName,
+            finalSurfaceAttribute
         );
-    }
-    return { surfaceName: finalSurfaceName, surfaceAttribute: finalSurfaceAttribute, timeStamp: finalTimeOrInterval };
-}
-
-function fixupTimeIntervalSurface(
-    surfaceDirectory: SurfaceDirectory,
-    selectedSurface: {
-        surfaceName: string | null;
-        surfaceAttribute: string | null;
-        timeInterval: string | null;
-    },
-    syncedSurface: { surfaceName: string | null; surfaceAttribute: string | null; timeInterval: string | null }
-): { surfaceName: string | null; surfaceAttribute: string | null; timeInterval: string | null } {
-    const surfaceNames = surfaceDirectory.getStratigraphicNames(TimeType.Interval, null);
-    const finalSurfaceName = fixupSyncedOrSelectedOrFirstValue(
-        syncedSurface.surfaceName,
-        selectedSurface.surfaceName,
-        surfaceNames
-    );
-    let finalSurfaceAttribute: string | null = null;
-    let finalTimeOrInterval: string | null = null;
-    if (finalSurfaceName) {
-        const surfaceAttributes = surfaceDirectory.getAttributeNames(TimeType.Interval, finalSurfaceName);
-        finalSurfaceAttribute = fixupSyncedOrSelectedOrFirstValue(
-            syncedSurface.surfaceAttribute,
-            selectedSurface.surfaceAttribute,
-            surfaceAttributes
-        );
-    }
-    if (finalSurfaceName && finalSurfaceAttribute) {
-        const timeIntervals = surfaceDirectory.getTimeIntervals(finalSurfaceName, finalSurfaceAttribute);
         finalTimeOrInterval = fixupSyncedOrSelectedOrFirstValue(
-            syncedSurface.timeInterval,
-            selectedSurface.timeInterval,
-            timeIntervals
+            syncedSurface.timeOrInterval,
+            selectedSurface.timeOrInterval,
+            selectedTimeOrIntervals
         );
     }
     return {
         surfaceName: finalSurfaceName,
         surfaceAttribute: finalSurfaceAttribute,
-        timeInterval: finalTimeOrInterval,
+        timeOrInterval: finalTimeOrInterval,
     };
 }
 

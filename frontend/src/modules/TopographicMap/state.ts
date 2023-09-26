@@ -1,4 +1,4 @@
-import { SurfaceAddress } from "@modules/_shared/SurfaceDirectory";
+import { SurfaceAddress } from "@modules/_shared/Surface";
 
 import { SurfacePolygonsAddress } from "./SurfacePolygonsAddress";
 import { SurfaceMeshLayerSettings, ViewSettings } from "./_utils/";

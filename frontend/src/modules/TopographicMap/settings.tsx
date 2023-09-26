@@ -21,7 +21,7 @@ import {
     SurfaceDirectory,
     TimeType,
     useSurfaceDirectoryQuery,
-} from "@modules/_shared/SurfaceDirectory";
+} from "@modules/_shared/Surface";
 
 import { SurfacePolygonsAddress } from "./SurfacePolygonsAddress";
 import { AggregationSelector } from "./components/AggregationSelector";
@@ -89,20 +89,30 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
         computedEnsembleIdent?.getCaseUuid(),
         computedEnsembleIdent?.getEnsembleName()
     );
-    const meshSurfaceDirectory = new SurfaceDirectory({
-        surfaceDirectoryQueryData: meshSurfDirQuery.data,
-        includeAttributeTypes: [SurfaceAttributeType_api.DEPTH],
-    });
+    const meshSurfaceDirectory = new SurfaceDirectory(
+        meshSurfDirQuery.data
+            ? {
+                  surfaceMetas: meshSurfDirQuery.data,
+                  timeType: TimeType.None,
+                  includeAttributeTypes: [SurfaceAttributeType_api.DEPTH],
+              }
+            : null
+    );
 
     let computedMeshSurfaceName: string | null = null;
     let computedMeshSurfaceAttribute: string | null = null;
     if (meshSurfaceDirectory) {
-        const computedStaticSurface = fixupStaticSurface(
+        const computedStaticSurface = fixupSurface(
             meshSurfaceDirectory,
-            { surfaceName: selectedMeshSurfaceName, surfaceAttribute: selectedMeshSurfaceAttribute },
+            {
+                surfaceName: selectedMeshSurfaceName,
+                surfaceAttribute: selectedMeshSurfaceAttribute,
+                timeOrInterval: null,
+            },
             {
                 surfaceName: syncedValueSurface?.name || null,
                 surfaceAttribute: syncedValueSurface?.attribute || null,
+                timeOrInterval: null,
             }
         );
         computedMeshSurfaceName = computedStaticSurface.surfaceName;
@@ -119,10 +129,10 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
     let meshSurfNameOptions: SelectOption[] = [];
     let meshSurfAttributeOptions: SelectOption[] = [];
     meshSurfNameOptions = meshSurfaceDirectory
-        .getStratigraphicNames(TimeType.None, null)
+        .getStratigraphicNames(null)
         .map((name) => ({ value: name, label: name }));
     meshSurfAttributeOptions = meshSurfaceDirectory
-        .getAttributeNames(TimeType.None, computedMeshSurfaceName)
+        .getAttributeNames(computedMeshSurfaceName)
         .map((attr) => ({ value: attr, label: attr }));
 
     // Property surface
@@ -131,20 +141,31 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
         computedEnsembleIdent?.getCaseUuid(),
         computedEnsembleIdent?.getEnsembleName()
     );
-    const propertySurfaceDirectory = new SurfaceDirectory({
-        surfaceDirectoryQueryData: propertySurfDirQuery.data,
-        excludeAttributeTypes: [SurfaceAttributeType_api.DEPTH],
-    });
+
+    const propertySurfaceDirectory = new SurfaceDirectory(
+        propertySurfDirQuery.data
+            ? {
+                  surfaceMetas: propertySurfDirQuery.data,
+                  timeType: TimeType.None,
+                  excludeAttributeTypes: [SurfaceAttributeType_api.DEPTH],
+              }
+            : null
+    );
     let computedPropertySurfaceName: string | null = null;
     let computedPropertySurfaceAttribute: string | null = null;
 
     if (propertySurfaceDirectory) {
-        const computedStaticSurface = fixupStaticSurface(
+        const computedStaticSurface = fixupSurface(
             propertySurfaceDirectory,
-            { surfaceName: selectedPropertySurfaceName, surfaceAttribute: selectedPropertySurfaceAttribute },
+            {
+                surfaceName: selectedPropertySurfaceName,
+                surfaceAttribute: selectedPropertySurfaceAttribute,
+                timeOrInterval: null,
+            },
             {
                 surfaceName: null,
                 surfaceAttribute: null,
+                timeOrInterval: null,
             }
         );
         computedPropertySurfaceName = computedStaticSurface.surfaceName;
@@ -161,10 +182,10 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
     let propertySurfAttributeOptions: SelectOption[] = [];
 
     propertySurfNameOptions = propertySurfaceDirectory
-        .getStratigraphicNames(TimeType.None, null)
+        .getStratigraphicNames(null)
         .map((name) => ({ value: name, label: name }));
     propertySurfAttributeOptions = propertySurfaceDirectory
-        .getAttributeNames(TimeType.None, computedPropertySurfaceName)
+        .getAttributeNames(computedPropertySurfaceName)
         .map((attr) => ({ value: attr, label: attr }));
 
     // Polygon
@@ -646,28 +667,43 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
     );
 }
 
-function fixupStaticSurface(
+function fixupSurface(
     surfaceDirectory: SurfaceDirectory,
-    selectedSurface: { surfaceName: string | null; surfaceAttribute: string | null },
-    syncedSurface: { surfaceName: string | null; surfaceAttribute: string | null }
-): { surfaceName: string | null; surfaceAttribute: string | null } {
-    const surfaceNames = surfaceDirectory.getStratigraphicNames(TimeType.None, null);
-
+    selectedSurface: { surfaceName: string | null; surfaceAttribute: string | null; timeOrInterval: string | null },
+    syncedSurface: { surfaceName: string | null; surfaceAttribute: string | null; timeOrInterval: string | null }
+): { surfaceName: string | null; surfaceAttribute: string | null; timeOrInterval: string | null } {
+    const surfaceNames = surfaceDirectory.getStratigraphicNames(null);
     const finalSurfaceName = fixupSyncedOrSelectedOrFirstValue(
         syncedSurface.surfaceName,
         selectedSurface.surfaceName,
         surfaceNames
     );
     let finalSurfaceAttribute: string | null = null;
+    let finalTimeOrInterval: string | null = null;
     if (finalSurfaceName) {
-        const surfaceAttributes = surfaceDirectory.getAttributeNames(TimeType.None, finalSurfaceName);
+        const surfaceAttributes = surfaceDirectory.getAttributeNames(finalSurfaceName);
         finalSurfaceAttribute = fixupSyncedOrSelectedOrFirstValue(
             syncedSurface.surfaceAttribute,
             selectedSurface.surfaceAttribute,
             surfaceAttributes
         );
     }
-    return { surfaceName: finalSurfaceName, surfaceAttribute: finalSurfaceAttribute };
+    if (finalSurfaceName && finalSurfaceAttribute) {
+        const selectedTimeOrIntervals = surfaceDirectory.getTimeStampsOrIntervals(
+            finalSurfaceName,
+            finalSurfaceAttribute
+        );
+        finalTimeOrInterval = fixupSyncedOrSelectedOrFirstValue(
+            syncedSurface.timeOrInterval,
+            selectedSurface.timeOrInterval,
+            selectedTimeOrIntervals
+        );
+    }
+    return {
+        surfaceName: finalSurfaceName,
+        surfaceAttribute: finalSurfaceAttribute,
+        timeOrInterval: finalTimeOrInterval,
+    };
 }
 
 function fixupSyncedOrSelectedOrFirstValue(
@@ -685,15 +721,4 @@ function fixupSyncedOrSelectedOrFirstValue(
         return values[0];
     }
     return null;
-}
-export function IsoStringToDateLabel(input: string): string {
-    const date = input.split("T")[0];
-    return `${date}`;
-}
-
-export function IsoIntervalStringToDateLabel(input: string): string {
-    const [start, end] = input.split("/");
-    const startDate = start.split("T")[0];
-    const endDate = end.split("T")[0];
-    return `${startDate}/${endDate}`;
 }

@@ -12,6 +12,13 @@ export function hasTimezone(isoDateTimeString: string): boolean {
     return regex.test(isoDateTimeString);
 }
 
+export function IsisoStringInterval(input: string): boolean {
+    // Checks if the input string is a valid ISO 8601 interval string
+    //"2018-01-01T00:00:00/2018-07-01T00:00:00"
+    const regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/;
+    return regex.test(input);
+}
+
 // Convert ISO 8601 string to timestamp in milliseconds UTC
 // Note that for date-time strings that do not contain timezone information, this function assumes that the date-time string is in UTC
 export function isoStringToTimestampUtcMs(isoDateTimeString: string): number {
@@ -59,10 +66,4 @@ export function timestampUtcMsToCompactIsoString(timestampUtcMs: number): string
 // Returns same as timestampUtcMsToIsoString() but with timezone (Z) stripped away
 export function timestampUtcMsToIsoStringStripTz(timestampUtcMs: number): string {
     return timestampUtcMsToIsoString(timestampUtcMs).replace("Z", "");
-}
-
-export function isoStringIsInterval(input: string): boolean {
-    //"2018-01-01T00:00:00/2018-07-01T00:00:00"
-    const regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/;
-    return regex.test(input);
 }

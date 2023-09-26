@@ -1,7 +1,7 @@
 import React from "react";
 
 import { ModuleFCProps } from "@framework/Module";
-import { useSurfaceDataQueryByAddress } from "@modules/_shared/SurfaceDirectory";
+import { useSurfaceDataQueryByAddress } from "@modules/_shared/Surface";
 import SubsurfaceViewer from "@webviz/subsurface-viewer";
 
 import { MapState } from "./MapState";

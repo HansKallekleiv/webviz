@@ -7,7 +7,7 @@ import { SyncSettingKey, SyncSettingsHelper } from "@framework/SyncSettings";
 import { Wellbore } from "@framework/Wellbore";
 import { Button } from "@lib/components/Button";
 import { CircularProgress } from "@lib/components/CircularProgress";
-import { useSurfaceDataQueryByAddress } from "@modules/_shared/SurfaceDirectory";
+import { useSurfaceDataQueryByAddress } from "@modules/_shared/Surface";
 import { ViewAnnotation } from "@webviz/subsurface-viewer/dist/components/ViewAnnotation";
 
 import {
