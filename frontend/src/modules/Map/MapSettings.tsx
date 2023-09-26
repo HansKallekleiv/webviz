@@ -63,33 +63,28 @@ export function MapSettings(props: ModuleFCProps<MapState>) {
         computedEnsembleIdent?.getEnsembleName()
     );
 
-    let computedSurfaceName: string | null = null;
-    let computedSurfaceAttribute: string | null = null;
-    let computedTimeOrInterval: string | null = null;
     const surfaceDirectory = new SurfaceDirectory(
         surfaceDirectoryQuery.data
             ? { surfaceMetas: surfaceDirectoryQuery.data, timeType: timeType, useObservedSurfaces: useObserved }
             : null
     );
 
-    if (surfaceDirectory) {
-        const computedSurface = fixupSurface(
-            surfaceDirectory,
-            {
-                surfaceName: selectedSurfaceName,
-                surfaceAttribute: selectedSurfaceAttribute,
-                timeOrInterval: selectedTimeOrInterval,
-            },
-            {
-                surfaceName: syncedValueSurface?.name || null,
-                surfaceAttribute: syncedValueSurface?.attribute || null,
-                timeOrInterval: syncedValueDate?.timeOrInterval || null,
-            }
-        );
-        computedSurfaceName = computedSurface.surfaceName;
-        computedSurfaceAttribute = computedSurface.surfaceAttribute;
-        computedTimeOrInterval = computedSurface.timeOrInterval;
-    }
+    const fixedSurfSpec = fixupSurface(
+        surfaceDirectory,
+        {
+            surfaceName: selectedSurfaceName,
+            surfaceAttribute: selectedSurfaceAttribute,
+            timeOrInterval: selectedTimeOrInterval,
+        },
+        {
+            surfaceName: syncedValueSurface?.name || null,
+            surfaceAttribute: syncedValueSurface?.attribute || null,
+            timeOrInterval: syncedValueDate?.timeOrInterval || null,
+        }
+    );
+    const computedSurfaceName = fixedSurfSpec.surfaceName;
+    const computedSurfaceAttribute = fixedSurfSpec.surfaceAttribute;
+    const computedTimeOrInterval = fixedSurfSpec.timeOrInterval;
 
     if (computedEnsembleIdent && !computedEnsembleIdent.equals(selectedEnsembleIdent)) {
         setSelectedEnsembleIdent(computedEnsembleIdent);
@@ -180,34 +175,34 @@ export function MapSettings(props: ModuleFCProps<MapState>) {
             setRealizationNum(realNum);
         }
     }
+
     function handleTimeModeChange(event: React.ChangeEvent<HTMLInputElement>) {
         setTimeType(event.target.value as TimeType);
     }
+
     let surfNameOptions: SelectOption[] = [];
     let surfAttributeOptions: SelectOption[] = [];
     let timeOrIntervalOptions: SelectOption[] = [];
 
-    if (surfaceDirectory) {
-        surfNameOptions = surfaceDirectory.getSurfaceNames(null).map((name) => ({
-            value: name,
-            label: name,
-        }));
-        surfAttributeOptions = surfaceDirectory.getAttributeNames(computedSurfaceName).map((attr) => ({
-            value: attr,
-            label: attr,
-        }));
+    surfNameOptions = surfaceDirectory.getSurfaceNames(null).map((name) => ({
+        value: name,
+        label: name,
+    }));
+    surfAttributeOptions = surfaceDirectory.getAttributeNames(computedSurfaceName).map((attr) => ({
+        value: attr,
+        label: attr,
+    }));
 
-        if (timeType === TimeType.Interval || timeType === TimeType.TimePoint) {
-            timeOrIntervalOptions = surfaceDirectory
-                .getTimeOrIntervalStrings(computedSurfaceName, computedSurfaceAttribute)
-                .map((interval) => ({
-                    value: interval,
-                    label:
-                        timeType === TimeType.TimePoint
-                            ? IsoStringToDateLabel(interval)
-                            : IsoIntervalStringToDateLabel(interval),
-                }));
-        }
+    if (timeType === TimeType.Interval || timeType === TimeType.TimePoint) {
+        timeOrIntervalOptions = surfaceDirectory
+            .getTimeOrIntervalStrings(computedSurfaceName, computedSurfaceAttribute)
+            .map((interval) => ({
+                value: interval,
+                label:
+                    timeType === TimeType.TimePoint
+                        ? isoStringToDateLabel(interval)
+                        : isoIntervalStringToDateLabel(interval),
+            }));
     }
 
     let chooseRealizationElement: JSX.Element | null = null;
@@ -299,11 +294,17 @@ export function MapSettings(props: ModuleFCProps<MapState>) {
 // Helpers
 // -------------------------------------------------------------------------------------
 
+type PartialSurfSpec = {
+    surfaceName: string | null;
+    surfaceAttribute: string | null;
+    timeOrInterval: string | null;
+};
+
 function fixupSurface(
     surfaceDirectory: SurfaceDirectory,
-    selectedSurface: { surfaceName: string | null; surfaceAttribute: string | null; timeOrInterval: string | null },
-    syncedSurface: { surfaceName: string | null; surfaceAttribute: string | null; timeOrInterval: string | null }
-): { surfaceName: string | null; surfaceAttribute: string | null; timeOrInterval: string | null } {
+    selectedSurface: PartialSurfSpec,
+    syncedSurface: PartialSurfSpec
+): PartialSurfSpec {
     const surfaceNames = surfaceDirectory.getSurfaceNames(null);
     const finalSurfaceName = fixupSyncedOrSelectedOrFirstValue(
         syncedSurface.surfaceName,
@@ -354,12 +355,13 @@ function fixupSyncedOrSelectedOrFirstValue(
     }
     return null;
 }
-export function IsoStringToDateLabel(input: string): string {
+
+function isoStringToDateLabel(input: string): string {
     const date = input.split("T")[0];
     return `${date}`;
 }
 
-export function IsoIntervalStringToDateLabel(input: string): string {
+function isoIntervalStringToDateLabel(input: string): string {
     const [start, end] = input.split("/");
     const startDate = start.split("T")[0];
     const endDate = end.split("T")[0];
