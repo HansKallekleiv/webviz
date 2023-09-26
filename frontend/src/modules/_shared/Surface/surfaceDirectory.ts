@@ -1,5 +1,5 @@
 import { SurfaceAttributeType_api, SurfaceMeta_api } from "@api";
-import { IsisoStringInterval } from "@framework/utils/timestampUtils";
+import { isIsoStringInterval } from "@framework/utils/timestampUtils";
 
 export enum TimeType {
     None = "None",
@@ -99,11 +99,11 @@ function filterOnTimeType(surfaceList: SurfaceMeta_api[], timeType: TimeType | n
             return surfaceList.filter((surface) => !surface.iso_date_or_interval);
         case TimeType.Timestamp:
             return surfaceList.filter(
-                (surface) => surface.iso_date_or_interval && !IsisoStringInterval(surface.iso_date_or_interval)
+                (surface) => surface.iso_date_or_interval && !isIsoStringInterval(surface.iso_date_or_interval)
             );
         case TimeType.Interval:
             return surfaceList.filter(
-                (surface) => surface.iso_date_or_interval && IsisoStringInterval(surface.iso_date_or_interval)
+                (surface) => surface.iso_date_or_interval && isIsoStringInterval(surface.iso_date_or_interval)
             );
         default:
             return surfaceList;
