@@ -3,16 +3,18 @@ import { isIsoStringInterval } from "@framework/utils/timestampUtils";
 
 export enum TimeType {
     None = "None",
-    Timestamp = "Timestamp",
+    TimePoint = "TimePoint",
     Interval = "Interval",
 }
+
 export type SurfaceDirectoryOptions = {
     surfaceMetas: SurfaceMeta_api[];
     timeType: TimeType;
-    includeAttributeTypes?: SurfaceAttributeType_api[] | null;
-    excludeAttributeTypes?: SurfaceAttributeType_api[] | null;
-    useObservedSurfaces?: boolean | null;
+    includeAttributeTypes?: SurfaceAttributeType_api[];
+    excludeAttributeTypes?: SurfaceAttributeType_api[];
+    useObservedSurfaces?: boolean;
 };
+
 // Class responsible for managing a directory of surfaces.
 export class SurfaceDirectory {
     private _surfaceList: SurfaceMeta_api[] = [];
@@ -21,59 +23,73 @@ export class SurfaceDirectory {
     constructor(options: SurfaceDirectoryOptions | null) {
         if (!options) return;
 
-        const { surfaceMetas, timeType, includeAttributeTypes, excludeAttributeTypes, useObservedSurfaces } = options;
+        let filteredList = filterOnTimeType(options.surfaceMetas, options.timeType);
 
-        let filteredList = filterOnTimeType(surfaceMetas, timeType);
+        if (options.includeAttributeTypes && options.includeAttributeTypes.length > 0) {
+            const includeAttributeTypes = options.includeAttributeTypes;
+            filteredList = filteredList.filter((surface) => includeAttributeTypes.includes(surface.attribute_type));
+        }
+        if (options.excludeAttributeTypes && options.excludeAttributeTypes.length) {
+            const excludeAttributeTypes = options.excludeAttributeTypes;
+            filteredList = filteredList.filter((surface) => !excludeAttributeTypes.includes(surface.attribute_type));
+        }
 
-        if (includeAttributeTypes && includeAttributeTypes.length) {
-            filteredList = filteredList.filter((surface) =>
-                includeAttributeTypes.includes(surface.attribute_type as SurfaceAttributeType_api)
-            );
+        if (options.useObservedSurfaces) {
+            filteredList = filteredList.filter((surface) => surface.is_observation);
+        } else {
+            filteredList = filteredList.filter((surface) => !surface.is_observation);
         }
-        if (excludeAttributeTypes && excludeAttributeTypes.length) {
-            filteredList = filteredList.filter(
-                (surface) => !excludeAttributeTypes.includes(surface.attribute_type as SurfaceAttributeType_api)
-            );
-        }
-        useObservedSurfaces
-            ? (filteredList = filteredList.filter((surface) => surface.is_observation))
-            : (filteredList = filteredList.filter((surface) => !surface.is_observation));
 
         this._surfaceList = filteredList;
     }
 
-    // Retrieves unique attributes for a given time type and optional surface name.
-    public getAttributeNames(stratigraphicName: string | null): string[] {
-        const filteredList = filterOnName(this._surfaceList, stratigraphicName);
+    // Retrieves unique attribute names with optional filtering on surface name.
+    public getAttributeNames(requireSurfaceName: string | null): string[] {
+        let filteredList = this._surfaceList;
+        if (requireSurfaceName) {
+            filteredList = filterOnName(filteredList, requireSurfaceName);
+        }
         return [...new Set(filteredList.map((surface) => surface.attribute_name))].sort();
     }
 
-    // Retrieves unique names for a given time type and optional surface attribute.
-    public getSurfaceNames(attributeName: string | null): string[] {
-        const filteredList = filterOnAttribute(this._surfaceList, attributeName);
+    // Retrieves unique surface names with optional filtering on surface attribute.
+    public getSurfaceNames(requireAttributeName: string | null): string[] {
+        let filteredList = this._surfaceList;
+        if (requireAttributeName) {
+            filteredList = filterOnAttribute(filteredList, requireAttributeName);
+        }
         return [...new Set(filteredList.map((surface) => surface.name))];
     }
 
-    // Retrieves unique timestamps for a given surface name and attribute.
-    public getTimeStampsOrIntervals(stratigraphicName: string | null, surfaceAttribute: string | null): string[] {
-        if (!surfaceAttribute || !stratigraphicName) return [];
+    // Retrieves unique time points or intervals with optional filtering on surface name and/or attribute.
+    public getTimeOrIntervalStrings(requireSurfaceName: string | null, requireAttributeName: string | null): string[] {
+        let filteredList = this._surfaceList;
 
-        const filteredList = this._surfaceList.filter(
-            (surface) => surface.attribute_name === surfaceAttribute && surface.name === stratigraphicName
-        );
-        if (filteredList.length === 0) return [];
-        const timeStamps: string[] = [];
+        if (requireSurfaceName || requireAttributeName) {
+            filteredList = filteredList.filter((surface) => {
+                const matchedOnSurfName = !requireSurfaceName || surface.name === requireSurfaceName;
+                const matchedOnAttrName = !requireAttributeName || surface.attribute_name === requireAttributeName;
+                return matchedOnSurfName && matchedOnAttrName;
+            });
+        }
+        if (filteredList.length === 0){
+            return [];
+        }
+
+        const timeOrIntervalsSet: Set<string> = new Set();
         filteredList.forEach((surface) => {
-            if (surface.iso_date_or_interval) timeStamps.push(surface.iso_date_or_interval);
+            if (surface.iso_date_or_interval) {
+                timeOrIntervalsSet.add(surface.iso_date_or_interval);
+            }
         });
-        return [...new Set(timeStamps)].sort();
+        return [...timeOrIntervalsSet].sort();
     }
 
     // Checks if a given name and attribute pair exists.
-    public NameAttributePairExists(stratigraphicName: string | null, surfaceAttribute: string | null): boolean {
-        if (!surfaceAttribute || !stratigraphicName) return false;
+    public nameAttributePairExists(surfaceName: string | null, attributeName: string | null): boolean {
+        if (!attributeName || !surfaceName) return false;
         return this._surfaceList.some(
-            (surface) => surface.name === stratigraphicName && surface.attribute_name === surfaceAttribute
+            (surface) => surface.name === surfaceName && surface.attribute_name === attributeName
         );
     }
 
@@ -93,11 +109,11 @@ export class SurfaceDirectory {
 }
 
 // Filters directory based on time type.
-function filterOnTimeType(surfaceList: SurfaceMeta_api[], timeType: TimeType | null): SurfaceMeta_api[] {
+function filterOnTimeType(surfaceList: SurfaceMeta_api[], timeType: TimeType): SurfaceMeta_api[] {
     switch (timeType) {
         case TimeType.None:
             return surfaceList.filter((surface) => !surface.iso_date_or_interval);
-        case TimeType.Timestamp:
+        case TimeType.TimePoint:
             return surfaceList.filter(
                 (surface) => surface.iso_date_or_interval && !isIsoStringInterval(surface.iso_date_or_interval)
             );
@@ -106,18 +122,16 @@ function filterOnTimeType(surfaceList: SurfaceMeta_api[], timeType: TimeType | n
                 (surface) => surface.iso_date_or_interval && isIsoStringInterval(surface.iso_date_or_interval)
             );
         default:
-            return surfaceList;
+            throw new Error("Invalid TimeType");
     }
 }
 
 // Filters directory based on a specific surface attribute.
-function filterOnAttribute(surfaceList: SurfaceMeta_api[], surfaceAttribute: string | null): SurfaceMeta_api[] {
-    return surfaceAttribute
-        ? surfaceList.filter((surface) => surface.attribute_name === surfaceAttribute)
-        : surfaceList;
+function filterOnAttribute(surfaceList: SurfaceMeta_api[], surfaceAttribute: string): SurfaceMeta_api[] {
+    return surfaceList.filter((surface) => surface.attribute_name === surfaceAttribute);
 }
 
 // Filters directory based on a specific surface name.
-function filterOnName(surfaceList: SurfaceMeta_api[], stratigraphicName: string | null): SurfaceMeta_api[] {
-    return stratigraphicName ? surfaceList.filter((surface) => surface.name === stratigraphicName) : surfaceList;
+function filterOnName(surfaceList: SurfaceMeta_api[], surfaceName: string): SurfaceMeta_api[] {
+    return surfaceList.filter((surface) => surface.name === surfaceName);
 }

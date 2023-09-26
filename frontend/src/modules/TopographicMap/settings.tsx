@@ -687,7 +687,7 @@ function fixupSurface(
         );
     }
     if (finalSurfaceName && finalSurfaceAttribute) {
-        const selectedTimeOrIntervals = surfaceDirectory.getTimeStampsOrIntervals(
+        const selectedTimeOrIntervals = surfaceDirectory.getTimeOrIntervalStrings(
             finalSurfaceName,
             finalSurfaceAttribute
         );

@@ -27,7 +27,7 @@ import { AggregationDropdown } from "./UiComponents";
 
 const TimeTypeEnumToStringMapping = {
     [TimeType.None]: "Static",
-    [TimeType.Timestamp]: "Time stamp",
+    [TimeType.TimePoint]: "Time point",
     [TimeType.Interval]: "Time interval",
 };
 //-----------------------------------------------------------------------------------------------------------
@@ -197,13 +197,13 @@ export function MapSettings(props: ModuleFCProps<MapState>) {
             label: attr,
         }));
 
-        if (timeType === TimeType.Interval || timeType === TimeType.Timestamp) {
+        if (timeType === TimeType.Interval || timeType === TimeType.TimePoint) {
             timeOrIntervalOptions = surfaceDirectory
-                .getTimeStampsOrIntervals(computedSurfaceName, computedSurfaceAttribute)
+                .getTimeOrIntervalStrings(computedSurfaceName, computedSurfaceAttribute)
                 .map((interval) => ({
                     value: interval,
                     label:
-                        timeType === TimeType.Timestamp
+                        timeType === TimeType.TimePoint
                             ? IsoStringToDateLabel(interval)
                             : IsoIntervalStringToDateLabel(interval),
                 }));
@@ -276,7 +276,7 @@ export function MapSettings(props: ModuleFCProps<MapState>) {
                     />
                 </Label>
                 {timeType !== TimeType.None && (
-                    <Label text={timeType === TimeType.Timestamp ? "Time Stamp" : "Time Interval"}>
+                    <Label text={timeType === TimeType.TimePoint ? "Time Point" : "Time Interval"}>
                         <Select
                             options={timeOrIntervalOptions}
                             value={computedTimeOrInterval ? [computedTimeOrInterval] : []}
@@ -321,7 +321,7 @@ function fixupSurface(
         );
     }
     if (finalSurfaceName && finalSurfaceAttribute) {
-        const selectedTimeOrIntervals = surfaceDirectory.getTimeStampsOrIntervals(
+        const selectedTimeOrIntervals = surfaceDirectory.getTimeOrIntervalStrings(
             finalSurfaceName,
             finalSurfaceAttribute
         );
