@@ -128,9 +128,7 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
 
     let meshSurfNameOptions: SelectOption[] = [];
     let meshSurfAttributeOptions: SelectOption[] = [];
-    meshSurfNameOptions = meshSurfaceDirectory
-        .getStratigraphicNames(null)
-        .map((name) => ({ value: name, label: name }));
+    meshSurfNameOptions = meshSurfaceDirectory.getSurfaceNames(null).map((name) => ({ value: name, label: name }));
     meshSurfAttributeOptions = meshSurfaceDirectory
         .getAttributeNames(computedMeshSurfaceName)
         .map((attr) => ({ value: attr, label: attr }));
@@ -182,7 +180,7 @@ export function settings({ moduleContext, workbenchSession, workbenchServices }:
     let propertySurfAttributeOptions: SelectOption[] = [];
 
     propertySurfNameOptions = propertySurfaceDirectory
-        .getStratigraphicNames(null)
+        .getSurfaceNames(null)
         .map((name) => ({ value: name, label: name }));
     propertySurfAttributeOptions = propertySurfaceDirectory
         .getAttributeNames(computedPropertySurfaceName)
@@ -672,7 +670,7 @@ function fixupSurface(
     selectedSurface: { surfaceName: string | null; surfaceAttribute: string | null; timeOrInterval: string | null },
     syncedSurface: { surfaceName: string | null; surfaceAttribute: string | null; timeOrInterval: string | null }
 ): { surfaceName: string | null; surfaceAttribute: string | null; timeOrInterval: string | null } {
-    const surfaceNames = surfaceDirectory.getStratigraphicNames(null);
+    const surfaceNames = surfaceDirectory.getSurfaceNames(null);
     const finalSurfaceName = fixupSyncedOrSelectedOrFirstValue(
         syncedSurface.surfaceName,
         selectedSurface.surfaceName,

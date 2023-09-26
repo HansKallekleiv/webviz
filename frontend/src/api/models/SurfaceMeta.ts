@@ -6,11 +6,11 @@ import type { StratigraphicFeature } from './StratigraphicFeature';
 import type { SurfaceAttributeType } from './SurfaceAttributeType';
 
 export type SurfaceMeta = {
-    stratigraphic_name: string;
+    name: string;
+    name_is_stratigraphic_offical: boolean;
     stratigraphic_identifier: (string | null);
-    stratigraphic_name_is_official: boolean;
-    relative_stratigraphic_level: number;
-    stratigraphic_unit_parent: (string | null);
+    relative_stratigraphic_level: (number | null);
+    parent_stratigraphic_identifier: (string | null);
     stratigraphic_feature: (StratigraphicFeature | null);
     attribute_name: string;
     attribute_type: SurfaceAttributeType;

@@ -49,9 +49,9 @@ export class SurfaceDirectory {
     }
 
     // Retrieves unique names for a given time type and optional surface attribute.
-    public getStratigraphicNames(attributeName: string | null): string[] {
+    public getSurfaceNames(attributeName: string | null): string[] {
         const filteredList = filterOnAttribute(this._surfaceList, attributeName);
-        return [...new Set(filteredList.map((surface) => surface.stratigraphic_name))];
+        return [...new Set(filteredList.map((surface) => surface.name))];
     }
 
     // Retrieves unique timestamps for a given surface name and attribute.
@@ -59,7 +59,7 @@ export class SurfaceDirectory {
         if (!surfaceAttribute || !stratigraphicName) return [];
 
         const filteredList = this._surfaceList.filter(
-            (surface) => surface.attribute_name === surfaceAttribute && surface.stratigraphic_name === stratigraphicName
+            (surface) => surface.attribute_name === surfaceAttribute && surface.name === stratigraphicName
         );
         if (filteredList.length === 0) return [];
         const timeStamps: string[] = [];
@@ -73,7 +73,7 @@ export class SurfaceDirectory {
     public NameAttributePairExists(stratigraphicName: string | null, surfaceAttribute: string | null): boolean {
         if (!surfaceAttribute || !stratigraphicName) return false;
         return this._surfaceList.some(
-            (surface) => surface.stratigraphic_name === stratigraphicName && surface.attribute_name === surfaceAttribute
+            (surface) => surface.name === stratigraphicName && surface.attribute_name === surfaceAttribute
         );
     }
 
@@ -119,7 +119,5 @@ function filterOnAttribute(surfaceList: SurfaceMeta_api[], surfaceAttribute: str
 
 // Filters directory based on a specific surface name.
 function filterOnName(surfaceList: SurfaceMeta_api[], stratigraphicName: string | null): SurfaceMeta_api[] {
-    return stratigraphicName
-        ? surfaceList.filter((surface) => surface.stratigraphic_name === stratigraphicName)
-        : surfaceList;
+    return stratigraphicName ? surfaceList.filter((surface) => surface.name === stratigraphicName) : surfaceList;
 }

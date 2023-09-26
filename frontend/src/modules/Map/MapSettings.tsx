@@ -8,6 +8,7 @@ import { useEnsembleSet } from "@framework/WorkbenchSession";
 import { SingleEnsembleSelect } from "@framework/components/SingleEnsembleSelect";
 import { fixupEnsembleIdent, maybeAssignFirstSyncedEnsemble } from "@framework/utils/ensembleUiHelpers";
 import { ApiStateWrapper } from "@lib/components/ApiStateWrapper";
+import { Checkbox } from "@lib/components/Checkbox";
 import { CircularProgress } from "@lib/components/CircularProgress";
 import { Input } from "@lib/components/Input";
 import { Label } from "@lib/components/Label";
@@ -43,7 +44,7 @@ export function MapSettings(props: ModuleFCProps<MapState>) {
     const [realizationNum, setRealizationNum] = React.useState<number>(0);
     const [selectedTimeOrInterval, setSelectedTimeOrInterval] = React.useState<string | null>(null);
     const [aggregation, setAggregation] = React.useState<SurfaceStatisticFunction_api | null>(null);
-
+    const [useObserved, toggleUseObserved] = React.useState(false);
     const syncedSettingKeys = props.moduleContext.useSyncedSettingKeys();
     const syncHelper = new SyncSettingsHelper(syncedSettingKeys, props.workbenchServices);
     const syncedValueEnsembles = syncHelper.useValue(SyncSettingKey.ENSEMBLE, "global.syncValue.ensembles");
@@ -66,7 +67,9 @@ export function MapSettings(props: ModuleFCProps<MapState>) {
     let computedSurfaceAttribute: string | null = null;
     let computedTimeOrInterval: string | null = null;
     const surfaceDirectory = new SurfaceDirectory(
-        surfaceDirectoryQuery.data ? { surfaceMetas: surfaceDirectoryQuery.data, timeType: timeType } : null
+        surfaceDirectoryQuery.data
+            ? { surfaceMetas: surfaceDirectoryQuery.data, timeType: timeType, useObservedSurfaces: useObserved }
+            : null
     );
 
     if (surfaceDirectory) {
@@ -185,7 +188,7 @@ export function MapSettings(props: ModuleFCProps<MapState>) {
     let timeOrIntervalOptions: SelectOption[] = [];
 
     if (surfaceDirectory) {
-        surfNameOptions = surfaceDirectory.getStratigraphicNames(null).map((name) => ({
+        surfNameOptions = surfaceDirectory.getSurfaceNames(null).map((name) => ({
             value: name,
             label: name,
         }));
@@ -235,6 +238,16 @@ export function MapSettings(props: ModuleFCProps<MapState>) {
                 })}
                 onChange={handleTimeModeChange}
             />
+            <Label
+                wrapperClassName="mt-4 mb-4 flex items-center"
+                labelClassName="text-l"
+                text={"Use observed surfaces"}
+            >
+                <div className={"ml-2"}>
+                    <Checkbox onChange={(e: any) => toggleUseObserved(e.target.checked)} checked={useObserved} />
+                </div>
+            </Label>
+
             <ApiStateWrapper
                 apiResult={surfaceDirectoryQuery}
                 errorComponent={"Error loading surface directory"}
@@ -291,7 +304,7 @@ function fixupSurface(
     selectedSurface: { surfaceName: string | null; surfaceAttribute: string | null; timeOrInterval: string | null },
     syncedSurface: { surfaceName: string | null; surfaceAttribute: string | null; timeOrInterval: string | null }
 ): { surfaceName: string | null; surfaceAttribute: string | null; timeOrInterval: string | null } {
-    const surfaceNames = surfaceDirectory.getStratigraphicNames(null);
+    const surfaceNames = surfaceDirectory.getSurfaceNames(null);
     const finalSurfaceName = fixupSyncedOrSelectedOrFirstValue(
         syncedSurface.surfaceName,
         selectedSurface.surfaceName,

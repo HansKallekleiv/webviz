@@ -41,7 +41,7 @@ def to_api_surface_data(xtgeo_surf: xtgeo.RegularSurface) -> schemas.SurfaceData
         val_min=xtgeo_surf.values.min(),
         val_max=xtgeo_surf.values.max(),
         rot_deg=xtgeo_surf.rotation,
-        mesh_data=orjson.dumps(float32values).decode(),
+        mesh_data=orjson.dumps(float32values).decode(),  # pylint: disable=no-member
     )
 
 
@@ -69,15 +69,15 @@ def _sort_by_stratigraphical_order(
         for sumo_surface_meta in sumo_surface_metas:
             if sumo_surface_meta.name == strat_surface.name:
                 surface_meta = schemas.SurfaceMeta(
-                    stratigraphic_name=sumo_surface_meta.name,
+                    name=sumo_surface_meta.name,
                     is_observation=sumo_surface_meta.is_observation,
                     iso_date_or_interval=sumo_surface_meta.iso_date_or_interval,
                     value_min=sumo_surface_meta.zmin,
                     value_max=sumo_surface_meta.zmax,
-                    stratigraphic_name_is_official=True,
+                    name_is_stratigraphic_offical=True,
                     stratigraphic_feature=strat_surface.feature,
                     relative_stratigraphic_level=strat_surface.relative_strat_unit_level,
-                    stratigraphic_unit_parent=strat_surface.strat_unit_parent,
+                    parent_stratigraphic_identifier=strat_surface.strat_unit_parent,
                     stratigraphic_identifier=strat_surface.strat_unit_identifier,
                     attribute_name=sumo_surface_meta.tagname,
                     attribute_type=schemas.SurfaceAttributeType(sumo_surface_meta.content.value),
@@ -86,17 +86,17 @@ def _sort_by_stratigraphical_order(
 
     # Append non-official strat names
     for sumo_surface_meta in sumo_surface_metas:
-        if sumo_surface_meta.name not in [s.stratigraphic_name for s in surface_metas_with_official_strat_name]:
+        if sumo_surface_meta.name not in [s.name for s in surface_metas_with_official_strat_name]:
             surface_meta = schemas.SurfaceMeta(
-                stratigraphic_name=sumo_surface_meta.name,
+                name=sumo_surface_meta.name,
                 is_observation=sumo_surface_meta.is_observation,
                 iso_date_or_interval=sumo_surface_meta.iso_date_or_interval,
                 value_min=sumo_surface_meta.zmin,
                 value_max=sumo_surface_meta.zmax,
-                stratigraphic_name_is_official=False,
+                name_is_stratigraphic_offical=False,
                 stratigraphic_feature=None,
-                relative_stratigraphic_level=0,
-                stratigraphic_unit_parent=None,
+                relative_stratigraphic_level=None,
+                parent_stratigraphic_identifier=None,
                 stratigraphic_identifier=None,
                 attribute_name=sumo_surface_meta.tagname,
                 attribute_type=schemas.SurfaceAttributeType(sumo_surface_meta.content.value),
