@@ -2,7 +2,7 @@ from typing import List
 from pydantic import BaseModel
 
 from fmu.sumo.explorer.explorer import CaseCollection, Case, SumoClient
-
+from .queries.case import get_case_infos
 from ._helpers import create_sumo_client_instance
 
 
@@ -55,7 +55,8 @@ class SumoExplore:
 
         # Sort on case name before returning
         case_info_arr.sort(key=lambda case_info: case_info.name)
-
+        info = await get_case_infos(self._sumo_client, "DROGON")
+        print(info)
         return case_info_arr
 
     async def get_iterations(self, case_uuid: str) -> List[IterationInfo]:

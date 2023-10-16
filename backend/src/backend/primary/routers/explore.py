@@ -8,6 +8,7 @@ from src.services.sumo_access.sumo_explore import SumoExplore
 from src.services.utils.authenticated_user import AuthenticatedUser
 from src.services.sumo_access._helpers import SumoEnsemble
 
+
 router = APIRouter()
 
 
@@ -49,7 +50,7 @@ async def get_fields(
 
 
 @router.get("/cases")
-async def get_cases(
+async def get_cases_ep(
     authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user),
     field_identifier: str = Query(description="Field identifier"),
 ) -> List[CaseInfo]:
@@ -76,9 +77,14 @@ async def get_cases(
                     ),
                 )
             else:
+<<<<<<< HEAD
                 ret_arr.append(
                     CaseInfo(uuid=case_info.uuid, name=case_info.name, status=case_info.status, user=case_info.user)
                 )
+=======
+                ret_arr.append(CaseInfo(uuid=case_info.uuid, name=case_info.name))
+            # print(dir(case_info))
+>>>>>>> 21ac21e (get case metadata)
     else:
         ret_arr = [CaseInfo(uuid=ci.uuid, name=ci.name, status=ci.status, user=ci.user) for ci in case_info_arr]
 
