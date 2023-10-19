@@ -3,9 +3,9 @@
 /* eslint-disable */
 import type { Body_get_surface_intersections } from '../models/Body_get_surface_intersections';
 import type { SurfaceData } from '../models/SurfaceData';
-import type { SurfaceIntersectionData } from '../models/SurfaceIntersectionData';
 import type { SurfaceMeta } from '../models/SurfaceMeta';
 import type { SurfaceStatisticFunction } from '../models/SurfaceStatisticFunction';
+import type { WellSurfaceIntersectionData } from '../models/WellSurfaceIntersectionData';
 
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
@@ -205,7 +205,7 @@ export class SurfaceService {
      * @param name Surface names
      * @param attribute Surface attribute
      * @param requestBody
-     * @returns SurfaceIntersectionData Successful Response
+     * @returns WellSurfaceIntersectionData Successful Response
      * @throws ApiError
      */
     public getSurfaceIntersections(
@@ -214,7 +214,7 @@ export class SurfaceService {
         name: string,
         attribute: string,
         requestBody: Body_get_surface_intersections,
-    ): CancelablePromise<Array<SurfaceIntersectionData>> {
+    ): CancelablePromise<Array<WellSurfaceIntersectionData>> {
         return this.httpRequest.request({
             method: 'POST',
             url: '/surface/surface_intersections/',

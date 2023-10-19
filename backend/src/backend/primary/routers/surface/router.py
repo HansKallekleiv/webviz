@@ -219,31 +219,41 @@ async def get_surface_intersections(
     ensemble_name: str = Query(description="Ensemble name"),
     name: str = Query(description="Surface names"),
     attribute: str = Query(description="Surface attribute"),
-    cutting_plane: schemas.CuttingPlane = Body(embed=True),
-) -> List[schemas.SurfaceIntersectionData]:
+    well_cutting_planes: List[schemas.WellCuttingPlane] = Body(embed=True),
+) -> List[schemas.WellSurfaceIntersectionData]:
     perf_metrics = PerfMetrics(response)
     access = await SurfaceAccess.from_case_uuid(authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name)
     perf_metrics.record_lap("access")
-
-    fence_arr = np.array(
-        [cutting_plane.x_arr, cutting_plane.y_arr, np.zeros(len(cutting_plane.y_arr)), cutting_plane.length_arr]
-    ).T
+    well_fences = []
+    for well_cutting_plane in well_cutting_planes:
+        fence_arr = np.array(
+            [
+                well_cutting_plane.cutting_plane.x_arr,
+                well_cutting_plane.cutting_plane.y_arr,
+                np.zeros(len(well_cutting_plane.cutting_plane.y_arr)),
+                well_cutting_plane.cutting_plane.length_arr,
+            ]
+        ).T
+        well_fences.append({"fence_arr": fence_arr, "uwi": well_cutting_plane.uwi})
+    # fence_arr = np.array(
+    #     [cutting_plane.x_arr, cutting_plane.y_arr, np.zeros(len(cutting_plane.y_arr)), cutting_plane.length_arr]
+    # ).T
 
     # iteration_inspector = IterationInspector.from_case_uuid(
     #     authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name
     # )
     # reals = iteration_inspector.get_realizations()
 
-    reals = range(0, 20)
+    reals = range(0, 50)
 
     queue = asyncio.Queue()
     intersections = []
-
+    intersections2 = []
     producer_task = asyncio.create_task(item_producer(queue, reals, name, attribute))
 
     worker_tasks = []
     for i in range(5):
-        task = asyncio.create_task(worker(f"worker-{i}", queue, access, fence_arr, intersections))
+        task = asyncio.create_task(worker(f"worker-{i}", queue, access, well_fences, intersections))
         worker_tasks.append(task)
 
     perf_metrics.record_lap("setup")
@@ -251,10 +261,15 @@ async def get_surface_intersections(
     await asyncio.gather(producer_task, *worker_tasks)
 
     LOGGER.debug(f"Intersected {len(intersections)} surfaces in: {perf_metrics.to_string()}")
-
-    return intersections
-
-
+    data = {}
+    for wellisects in intersections:
+        for wellisect in wellisects:
+            if not data.get(wellisect["uwi"]):
+                data[wellisect["uwi"]] = []
+            data[wellisect["uwi"]].append(wellisect["line"])
+    for uwi, vals in data.items():
+        intersections2.append(schemas.WellSurfaceIntersectionData(uwi=uwi, surface_intersections=vals))
+    return intersections2
 
     """
     coro_arr = []
@@ -275,7 +290,6 @@ async def get_surface_intersections(
 
     return intersections
     """
-
 
     """
     coro_arr = []
@@ -307,12 +321,15 @@ async def get_surface_intersections(
     return intersections
     """
 
+
 async def item_producer(queue, reals, name: str, attribute: str):
     for real in reals:
         await queue.put({"real_num": real, "name": name, "attribute": attribute})
 
 
-async def worker(name, queue, access: SurfaceAccess, fence_arr: np.ndarray, intersections: List[schemas.SurfaceIntersectionData]):
+async def worker(
+    name, queue, access: SurfaceAccess, fence_arr: np.ndarray, intersections: List[schemas.SurfaceIntersectionData]
+):
     while not queue.empty():
         item = await queue.get()
 
@@ -324,15 +341,28 @@ async def worker(name, queue, access: SurfaceAccess, fence_arr: np.ndarray, inte
         queue.task_done()
 
 
-async def _process_one_surface(access: SurfaceAccess, real_num: int, name: str, attribute: str, fence_arr: np.ndarray) -> schemas.SurfaceIntersectionData | None:
+async def _process_one_surface(
+    access: SurfaceAccess, real_num: int, name: str, attribute: str, well_fences: np.ndarray
+):
 
     print(f"Downloading surface {name} with attribute {attribute}-{real_num}")
     xtgeo_surf = await access.get_realization_surface_data(real_num=real_num, name=name, attribute=attribute)
     if xtgeo_surf is None:
         print(f"Skipping surface {name} with attribute {attribute}-{real_num}")
         return None
-    
+
     print(f"Cutting surface {name} with attribute {attribute}-{real_num}")
-    line = xtgeo_surf.get_randomline(fence_arr)
-    
-    return schemas.SurfaceIntersectionData(name=f"{name}", hlen_arr=line[:, 0].tolist(), z_arr=line[:, 1].tolist())
+    lines = []
+    for well in well_fences:
+        line = xtgeo_surf.get_randomline(well["fence_arr"])
+        # print(well)
+        lines.append(
+            {
+                "uwi": well["uwi"],
+                "line": schemas.SurfaceIntersectionData(
+                    name=f"{name}", hlen_arr=line[:, 0].tolist(), z_arr=line[:, 1].tolist()
+                ),
+            }
+        )
+
+    return lines

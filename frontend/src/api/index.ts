@@ -57,6 +57,8 @@ export type { WellCompletionsUnitInfo as WellCompletionsUnitInfo_api } from './m
 export type { WellCompletionsUnits as WellCompletionsUnits_api } from './models/WellCompletionsUnits';
 export type { WellCompletionsWell as WellCompletionsWell_api } from './models/WellCompletionsWell';
 export type { WellCompletionsZone as WellCompletionsZone_api } from './models/WellCompletionsZone';
+export type { WellCuttingPlane as WellCuttingPlane_api } from './models/WellCuttingPlane';
+export type { WellSurfaceIntersectionData as WellSurfaceIntersectionData_api } from './models/WellSurfaceIntersectionData';
 
 export { DefaultService } from './services/DefaultService';
 export { ExploreService } from './services/ExploreService';

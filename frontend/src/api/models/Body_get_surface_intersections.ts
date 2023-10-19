@@ -2,9 +2,9 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { CuttingPlane } from './CuttingPlane';
+import type { WellCuttingPlane } from './WellCuttingPlane';
 
 export type Body_get_surface_intersections = {
-    cutting_plane: CuttingPlane;
+    well_cutting_planes: Array<WellCuttingPlane>;
 };
 

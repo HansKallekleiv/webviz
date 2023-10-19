@@ -1,6 +1,6 @@
 import React from "react";
 
-import { CuttingPlane_api } from "@api";
+import { WellCuttingPlane_api } from "@api";
 // import { CuttingPlane_api } from "@api";
 import {
     Controller,
@@ -22,8 +22,10 @@ import { ControlPointDuplicateRounded } from "@mui/icons-material";
 import { makeExtendedTrajectory } from "./IntersectionController";
 import { ControllerHandler, addMDOverlay } from "./IntersectionController";
 import {
+    // useGetWellborePicksForWellbore,
+    useGetFieldWellsTrajectories,
     useGetWellTrajectories,
-    useSurfaceIntersectionsQuery, // useGetWellborePicksForWellbore,
+    useSurfaceIntersectionsQuery,
 } from "./queryHooks";
 import { state } from "./state";
 
@@ -71,8 +73,32 @@ export function view({ moduleContext, workbenchSession, workbenchSettings, workb
         };
     }, []);
     const getWellTrajectoriesQuery = useGetWellTrajectories(wellBoreAddress ? [wellBoreAddress.uuid] : undefined);
+    const fieldWellTrajectoriesQuery = useGetFieldWellsTrajectories(surfaceAddress?.caseUuid);
+    const cuttingPlanes: WellCuttingPlane_api[] = [];
+    if (fieldWellTrajectoriesQuery.data) {
+        fieldWellTrajectoriesQuery.data.map((wellTrajectory) => {
+            const extendedTrajectory = makeExtendedTrajectory(wellTrajectory, viewSettings.extension);
+            const curtain: number[][] | null = extendedTrajectory
+                ? IntersectionReferenceSystem.toDisplacement(extendedTrajectory.points, extendedTrajectory.offset)
+                : null;
 
-    const extendedTrajectory = makeExtendedTrajectory(getWellTrajectoriesQuery, viewSettings.extension);
+            const xArr = extendedTrajectory ? extendedTrajectory.points.map((coord) => coord[0]) : undefined;
+            const yArr = extendedTrajectory ? extendedTrajectory.points.map((coord) => coord[1]) : undefined;
+
+            const wellCuttingPlane = {
+                cutting_plane: {
+                    x_arr: xArr ?? [],
+                    y_arr: yArr ?? [],
+                    length_arr: curtain ? curtain.map((c: number[]) => c[0] - viewSettings.extension) : [],
+                },
+                uwi: wellTrajectory.unique_wellbore_identifier,
+            };
+            cuttingPlanes.push(wellCuttingPlane);
+        });
+    }
+
+    const wellTrajectory = getWellTrajectoriesQuery.data ? getWellTrajectoriesQuery.data[0] : null;
+    const extendedTrajectory = makeExtendedTrajectory(wellTrajectory, viewSettings.extension);
     const curtain: number[][] | null = extendedTrajectory
         ? IntersectionReferenceSystem.toDisplacement(extendedTrajectory.points, extendedTrajectory.offset)
         : null;
@@ -80,15 +106,10 @@ export function view({ moduleContext, workbenchSession, workbenchSettings, workb
     const xArr = extendedTrajectory ? extendedTrajectory.points.map((coord) => coord[0]) : undefined;
     const yArr = extendedTrajectory ? extendedTrajectory.points.map((coord) => coord[1]) : undefined;
 
-    const cuttingPlane: CuttingPlane_api = {
-        x_arr: xArr ?? [],
-        y_arr: yArr ?? [],
-        length_arr: curtain ? curtain.map((c: number[]) => c[0] - viewSettings.extension) : [],
-    };
     const surfaceIntersectionsQuery = useSurfaceIntersectionsQuery(
         surfaceAddress,
-        cuttingPlane,
-        surfaceAddress && cuttingPlane && viewSettings.showSurfaces ? true : false
+        cuttingPlanes,
+        surfaceAddress && cuttingPlanes.length && viewSettings.showSurfaces ? true : false
     );
 
     // const getWellborePicksForWellboreQuery = useGetWellborePicksForWellbore(
@@ -108,7 +129,12 @@ export function view({ moduleContext, workbenchSession, workbenchSettings, workb
         // }
 
         if (surfaceIntersectionsQuery.data && viewSettings.showSurfaces && pixiContext) {
-            controllerHandler.addSurfaceLayers(surfaceIntersectionsQuery.data, pixiContext);
+            const surfaceIntersections = surfaceIntersectionsQuery.data.find(
+                (sInt) => sInt.uwi === wellTrajectory.unique_wellbore_identifier
+            );
+            if (surfaceIntersections) {
+                controllerHandler.addSurfaceLayers(surfaceIntersections.surface_intersections, pixiContext);
+            }
         }
         controllerHandler.update(
             wrapperDivSize.width,

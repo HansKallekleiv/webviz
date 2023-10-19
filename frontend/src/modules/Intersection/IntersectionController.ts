@@ -194,47 +194,43 @@ function addSeismicOverlay(instance: Controller, seismicData: number[][]) {
 }
 
 export function makeExtendedTrajectory(
-    getWellTrajectoriesQuery: UseQueryResult<WellBoreTrajectory_api[]>,
+    wellTrajectory: WellBoreTrajectory_api | null,
     extension: number
 ): Trajectory | null {
-    if (getWellTrajectoriesQuery.data && getWellTrajectoriesQuery.data.length > 0) {
-        const wellTrajectory = getWellTrajectoriesQuery.data[0];
-        const eastingArr = wellTrajectory.easting_arr;
-        const northingArr = wellTrajectory.northing_arr;
-        const tvdArr = wellTrajectory.tvd_msl_arr;
-        const trajectory = eastingArr.map((easting: number, idx: number) => [
-            parseFloat(easting.toFixed(3)),
-            parseFloat(northingArr[idx].toFixed(3)),
-            parseFloat(tvdArr[idx].toFixed(3)),
-        ]);
-        if (
-            eastingArr[0] == eastingArr[eastingArr.length - 1] &&
-            northingArr[0] == northingArr[northingArr.length - 1]
-        ) {
-            const addcoordatstart = eastingArr[0] - 100;
-            const addcoordatend = eastingArr[eastingArr.length - 1] + 100;
-            const addcoordatstart2 = northingArr[0] - 100;
-            const addcoordatend2 = northingArr[northingArr.length - 1] + 100;
-            const firstzcoord = tvdArr[0];
-            const lastzcoord = tvdArr[tvdArr.length - 1];
-
-            trajectory.unshift([addcoordatstart, addcoordatstart2, firstzcoord]);
-            trajectory.push([addcoordatend, addcoordatend2, lastzcoord]);
-        }
-
-        const referenceSystem = new IntersectionReferenceSystem(trajectory);
-        referenceSystem.offset = trajectory[0][2]; // Offset should be md at start of path
-
-        const displacement = referenceSystem.displacement || 1;
-        // Number of samples. Needs some thought.
-        const samplingIncrement = 5; //meters
-        const steps = Math.min(1000, Math.floor((displacement + extension * 2) / samplingIncrement));
-        console.debug("Number of samples for intersection ", steps);
-        const traj = referenceSystem.getExtendedTrajectory(steps, extension, extension);
-        traj.points = traj.points.map((point) => [parseFloat(point[0].toFixed(3)), parseFloat(point[1].toFixed(3))]);
-        return traj;
+    if (!wellTrajectory) {
+        return null;
     }
-    return null;
+    const eastingArr = wellTrajectory.easting_arr;
+    const northingArr = wellTrajectory.northing_arr;
+    const tvdArr = wellTrajectory.tvd_msl_arr;
+    const trajectory = eastingArr.map((easting: number, idx: number) => [
+        parseFloat(easting.toFixed(3)),
+        parseFloat(northingArr[idx].toFixed(3)),
+        parseFloat(tvdArr[idx].toFixed(3)),
+    ]);
+    if (eastingArr[0] == eastingArr[eastingArr.length - 1] && northingArr[0] == northingArr[northingArr.length - 1]) {
+        const addcoordatstart = eastingArr[0] - 100;
+        const addcoordatend = eastingArr[eastingArr.length - 1] + 100;
+        const addcoordatstart2 = northingArr[0] - 100;
+        const addcoordatend2 = northingArr[northingArr.length - 1] + 100;
+        const firstzcoord = tvdArr[0];
+        const lastzcoord = tvdArr[tvdArr.length - 1];
+
+        trajectory.unshift([addcoordatstart, addcoordatstart2, firstzcoord]);
+        trajectory.push([addcoordatend, addcoordatend2, lastzcoord]);
+    }
+
+    const referenceSystem = new IntersectionReferenceSystem(trajectory);
+    referenceSystem.offset = trajectory[0][2]; // Offset should be md at start of path
+
+    const displacement = referenceSystem.displacement || 1;
+    // Number of samples. Needs some thought.
+    const samplingIncrement = 5; //meters
+    const steps = Math.min(1000, Math.floor((displacement + extension * 2) / samplingIncrement));
+    console.debug("Number of samples for intersection ", steps);
+    const traj = referenceSystem.getExtendedTrajectory(steps, extension, extension);
+    traj.points = traj.points.map((point) => [parseFloat(point[0].toFixed(3)), parseFloat(point[1].toFixed(3))]);
+    return traj;
 }
 export function useSeismicImageQuery(
     dataValues: number[][] | null,

@@ -1,9 +1,10 @@
 import {
     Body_get_surface_intersections_api,
-    CuttingPlane_api,
     SurfaceIntersectionData_api,
     WellBoreHeader_api,
     WellBoreTrajectory_api,
+    WellCuttingPlane_api,
+    WellSurfaceIntersectionData_api,
 } from "@api";
 import { apiService } from "@framework/ApiService";
 import { SurfaceAddress } from "@modules/_shared/Surface";
@@ -32,18 +33,27 @@ export function useGetWellTrajectories(wellUuids: string[] | undefined): UseQuer
     });
 }
 
+export function useGetFieldWellsTrajectories(caseUuid: string | undefined): UseQueryResult<WellBoreTrajectory_api[]> {
+    return useQuery({
+        queryKey: ["getFieldWellsTrajectories", caseUuid],
+        queryFn: () => apiService.well.getFieldWellTrajectories(caseUuid ?? ""),
+        staleTime: STALE_TIME,
+        cacheTime: CACHE_TIME,
+        enabled: caseUuid ? true : false,
+    });
+}
 export function useSurfaceIntersectionsQuery(
     surfaceAddress: SurfaceAddress | null,
-    cuttingPlane: CuttingPlane_api | null,
+    wellCuttingPlanes: WellCuttingPlane_api[] | null,
     enabled: boolean
-): UseQueryResult<SurfaceIntersectionData_api[]> {
+): UseQueryResult<WellSurfaceIntersectionData_api[]> {
     function dummyApiCall(): Promise<SurfaceIntersectionData_api[]> {
         return new Promise((_resolve, reject) => {
             reject(null);
         });
     }
 
-    if (!surfaceAddress || !cuttingPlane) {
+    if (!surfaceAddress || !wellCuttingPlanes || wellCuttingPlanes.length === 0) {
         return useQuery({
             queryKey: ["surfaceIntersectionsQuery_DUMMY_ALWAYS_DISABLED"],
             queryFn: () => dummyApiCall,
@@ -51,14 +61,11 @@ export function useSurfaceIntersectionsQuery(
         });
     }
     console.log(surfaceAddress);
-    console.log(cuttingPlane);
-    let queryFn: QueryFunction<SurfaceIntersectionData_api[]> | null = null;
+    console.log(wellCuttingPlanes);
+    let queryFn: QueryFunction<WellSurfaceIntersectionData_api[]> | null = null;
     let queryKey: QueryKey | null = null;
 
-    let bodyCuttingPlane: Body_get_surface_intersections_api = cuttingPlane
-        ? { cutting_plane: cuttingPlane }
-        : { cutting_plane: { x_arr: [], y_arr: [], length_arr: [] } };
-
+    let bodyCuttingPlane: Body_get_surface_intersections_api = { well_cutting_planes: wellCuttingPlanes };
     // Static, per realization surface
     if (surfaceAddress.addressType === "realization") {
         queryKey = [

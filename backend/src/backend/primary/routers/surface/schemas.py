@@ -80,7 +80,17 @@ class SurfaceIntersectionData(BaseModel):
     stratigraphicalInterval: bool = True
 
 
+class WellSurfaceIntersectionData(BaseModel):
+    uwi: str
+    surface_intersections: List[SurfaceIntersectionData]
+
+
 class CuttingPlane(BaseModel):
     x_arr: List[float]
     y_arr: List[float]
     length_arr: List[float]
+
+
+class WellCuttingPlane(BaseModel):
+    uwi: str
+    cutting_plane: CuttingPlane
