@@ -72,7 +72,7 @@ export class SurfaceDirectory {
                 return matchedOnSurfName && matchedOnAttrName;
             });
         }
-        if (filteredList.length === 0){
+        if (filteredList.length === 0) {
             return [];
         }
 
@@ -93,6 +93,9 @@ export class SurfaceDirectory {
         );
     }
 
+    public getSurfaceMetas(): SurfaceMeta_api[] {
+        return this._surfaceList;
+    }
     // // Get min/max value for a given surface name and attribute.
     // public getMinMax(
     //     stratigraphicName: string | null,
