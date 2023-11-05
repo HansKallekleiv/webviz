@@ -47,6 +47,7 @@ export type { SummaryVectorDateObservation as SummaryVectorDateObservation_api }
 export type { SummaryVectorObservations as SummaryVectorObservations_api } from './models/SummaryVectorObservations';
 export { SurfaceAttributeType as SurfaceAttributeType_api } from './models/SurfaceAttributeType';
 export type { SurfaceData as SurfaceData_api } from './models/SurfaceData';
+export type { SurfaceDataPng as SurfaceDataPng_api } from './models/SurfaceDataPng';
 export type { SurfaceMeta as SurfaceMeta_api } from './models/SurfaceMeta';
 export { SurfaceStatisticFunction as SurfaceStatisticFunction_api } from './models/SurfaceStatisticFunction';
 export type { UserInfo as UserInfo_api } from './models/UserInfo';

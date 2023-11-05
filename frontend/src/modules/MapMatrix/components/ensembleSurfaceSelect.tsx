@@ -103,9 +103,9 @@ export const EnsembleSurfaceSelect: React.FC<EnsembleSurfaceSelectProps> = (prop
                 const factory = new SurfaceAddressFactory(
                     selectedEnsembleIdent.getCaseUuid(),
                     selectedEnsembleIdent.getEnsembleName(),
-                    surfaceAttribute,
                     surfaceName,
-                    surfaceTimeOrInterval
+                    surfaceAttribute,
+                    surfaceTimeOrInterval.length ? surfaceTimeOrInterval : null
                 );
                 if (stage === Stage.Realization) {
                     props.onChange(factory.createRealizationAddress(realizationNum));
