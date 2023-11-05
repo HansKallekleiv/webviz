@@ -13,7 +13,7 @@ export type EnsembleSetSurfaceMetas = {
     }>;
     isFetching: boolean;
 };
-export function useEnsembleSetSurfaceMetas(ensembleIdents: EnsembleIdent[]): EnsembleSetSurfaceMetas {
+export function useEnsembleSetSurfaceMetaQuery(ensembleIdents: EnsembleIdent[]): EnsembleSetSurfaceMetas {
     return useQueries({
         queries: ensembleIdents.map((ensembleIdent) => ({
             queryKey: ["getSurfaceDirectory", ensembleIdent?.toString()],
