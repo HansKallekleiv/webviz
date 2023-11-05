@@ -9,7 +9,8 @@ export type SingleSelectProps = {
     options: string[];
     initialSelection?: string[];
     size: number;
-    onChange?: (values: string[]) => void;
+    labelFunction?: (value: string) => string;
+    onChange?: (values: string) => void;
 };
 export const SingleSelect: React.FC<SingleSelectProps> = (props) => {
     const [value, setValue] = useValidState<string>(
@@ -17,12 +18,15 @@ export const SingleSelect: React.FC<SingleSelectProps> = (props) => {
         props.options
     );
 
-    const selectOptions = props.options.map((option) => ({ value: `${option}`, label: `${option}` }));
+    const selectOptions = props.options.map((option) => ({
+        value: `${option}`,
+        label: props.labelFunction?.(`${option}`) ?? `${option}`,
+    }));
 
     function handleSelectionChange(values: string[]) {
         setValue(values[0]);
         if (props.onChange) {
-            props.onChange([values[0]]);
+            props.onChange(values[0]);
         }
     }
 
