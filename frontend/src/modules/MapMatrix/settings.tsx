@@ -23,7 +23,9 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
     const addSurfaceSelect = () => {
         setSurfaceAddresses([...surfaceAddresses, null]); // Add a new null entry to the array
     };
-
+    const removeSurfaceSelect = (index: number) => {
+        setSurfaceAddresses(surfaceAddresses.filter((_, i) => i !== index));
+    };
     // Function to handle the onChange event for each EnsembleSurfaceSelect
     const handleSurfaceSelectChange = (index: number, data: SurfaceAddress) => {
         const newData = [...surfaceAddresses];
@@ -44,14 +46,29 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
         <div>
             <button onClick={addSurfaceSelect}>Add Surface Select</button>
             {surfaceAddresses.map((data, index) => (
-                <CollapsibleGroup key={index} expanded={false} title={`Surface ${index + 1}`}>
-                    <EnsembleSurfaceSelect
-                        key={index}
-                        ensembleSetSurfaceMetas={ensembleSetSurfaceMetas}
-                        workbenchSession={workbenchSession}
-                        onChange={(data: SurfaceAddress) => handleSurfaceSelectChange(index, data)}
-                    />
-                </CollapsibleGroup>
+                <div key={`surface-select-${index}`} style={{ position: "relative" }}>
+                    {/* Absolutely positioned remove button */}
+                    <button
+                        onClick={() => removeSurfaceSelect(index)}
+                        style={{
+                            position: "absolute",
+                            top: 0,
+                            right: 0,
+                            zIndex: 2,
+                        }}
+                    >
+                        &#10006;
+                    </button>
+                    <div style={{ width: "90%" }}>
+                        <CollapsibleGroup expanded={false} title={`Surface ${index + 1}`}>
+                            <EnsembleSurfaceSelect
+                                ensembleSetSurfaceMetas={ensembleSetSurfaceMetas}
+                                workbenchSession={workbenchSession}
+                                onChange={(data: SurfaceAddress) => handleSurfaceSelectChange(index, data)}
+                            />
+                        </CollapsibleGroup>
+                    </div>
+                </div>
             ))}
         </div>
     );

@@ -1,11 +1,14 @@
 import React from "react";
 
+import { SurfaceDataPng_api } from "@api";
 import { ModuleFCProps } from "@framework/Module";
 import { useElementSize } from "@lib/hooks/useElementSize";
 import { SyncedSubsurfaceViewer } from "@modules/SubsurfaceMap/components/SyncedSubsurfaceViewer";
 import { ViewsType } from "@webviz/subsurface-viewer";
 
-import { useSurfaceDataSetQueryByAddress } from "./hooks/useSurfaceDataAsPngQuery";
+import { isEqual } from "lodash";
+
+import { IndexedSurfaceDatas, useSurfaceDataSetQueryByAddress } from "./hooks/useSurfaceDataAsPngQuery";
 import { State } from "./state";
 
 // viewports.append(
@@ -24,14 +27,44 @@ import { State } from "./state";
 //     }
 // )
 export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>) {
+    const [prevSurfaceDataSetQueryByAddress, setPrevSurfaceDataSetQueryByAddress] =
+        React.useState<IndexedSurfaceDatas | null>(null);
+
     const wrapperDivRef = React.useRef<HTMLDivElement>(null);
     const wrapperDivSize = useElementSize(wrapperDivRef);
     const surfaceAddresses = moduleContext.useStoreValue("surfaceAddresses");
     const surfaceDataSetQueryByAddress = useSurfaceDataSetQueryByAddress(surfaceAddresses);
-
+    let surfaceDataSet: Array<{
+        index: number;
+        surfaceData: SurfaceDataPng_api | null;
+    }> = [];
+    if (
+        !surfaceDataSetQueryByAddress.isFetching &&
+        !isEqual(prevSurfaceDataSetQueryByAddress, surfaceDataSetQueryByAddress)
+    ) {
+        setPrevSurfaceDataSetQueryByAddress(surfaceDataSetQueryByAddress);
+        surfaceDataSet = surfaceDataSetQueryByAddress.data;
+    } else if (prevSurfaceDataSetQueryByAddress) {
+        surfaceDataSet = prevSurfaceDataSetQueryByAddress.data;
+    }
     const layers: Record<string, unknown>[] = [];
-    const views: ViewsType = { layout: [10, 10], showLabel: false, viewports: [] };
-    surfaceDataSetQueryByAddress.data?.forEach((surface, index) => {
+    const numSubplots = surfaceDataSet.length ?? 1;
+
+    const numColumns = Math.ceil(Math.sqrt(numSubplots));
+    const numRows = Math.ceil(numSubplots / numColumns);
+    const viewPorts: Record<string, unknown>[] = [];
+    for (let i = 0; i < numSubplots; i++) {
+        viewPorts.push({
+            id: `${i}`,
+            show3D: false,
+            isSync: true,
+            layerIds: ["dummy"],
+            name: `Surface ${i}`,
+        });
+    }
+
+    const views: ViewsType = { layout: [numRows, numColumns], showLabel: true, viewports: [] };
+    surfaceDataSet.forEach((surface, index) => {
         if (surface.surfaceData) {
             const surfData = surface.surfaceData;
             layers.push({
@@ -42,13 +75,13 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
                 rotDeg: surfData.rot_deg,
                 valueRange: [surfData.val_min, surfData.val_max],
             });
-            views.viewports.push({
-                id: `surface-${index}`,
+            views.viewports[index] = {
+                id: `${index}`,
                 show3D: false,
                 isSync: true,
                 layerIds: [`surface-${index}`],
                 name: `Surface ${index}`,
-            });
+            };
         }
     });
     return (
