@@ -1,10 +1,13 @@
 import React from "react";
 
 import { SurfaceDataPng_api } from "@api";
+import { ContinuousLegend } from "@emerson-eps/color-tables";
 import { ModuleFCProps } from "@framework/Module";
 import { useElementSize } from "@lib/hooks/useElementSize";
 import { SyncedSubsurfaceViewer } from "@modules/SubsurfaceMap/components/SyncedSubsurfaceViewer";
 import { ViewsType } from "@webviz/subsurface-viewer";
+import { ViewAnnotation } from "@webviz/subsurface-viewer/dist/components/ViewAnnotation";
+import { ViewFooter } from "@webviz/subsurface-viewer/dist/components/ViewFooter";
 
 import { isEqual } from "lodash";
 
@@ -30,9 +33,8 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
     const [prevSurfaceDataSetQueryByAddress, setPrevSurfaceDataSetQueryByAddress] =
         React.useState<IndexedSurfaceDatas | null>(null);
 
-    const wrapperDivRef = React.useRef<HTMLDivElement>(null);
-    const wrapperDivSize = useElementSize(wrapperDivRef);
     const surfaceAddresses = moduleContext.useStoreValue("surfaceAddresses");
+    console.log("surfaceAddresses", surfaceAddresses);
     const surfaceDataSetQueryByAddress = useSurfaceDataSetQueryByAddress(surfaceAddresses);
     let surfaceDataSet: Array<{
         index: number;
@@ -47,52 +49,94 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
     } else if (prevSurfaceDataSetQueryByAddress) {
         surfaceDataSet = prevSurfaceDataSetQueryByAddress.data;
     }
-    const layers: Record<string, unknown>[] = [];
+
     const numSubplots = surfaceDataSet.length ?? 1;
 
     const numColumns = Math.ceil(Math.sqrt(numSubplots));
     const numRows = Math.ceil(numSubplots / numColumns);
     const viewPorts: Record<string, unknown>[] = [];
-    for (let i = 0; i < numSubplots; i++) {
+    for (let index = 0; index < numSubplots; index++) {
         viewPorts.push({
-            id: `${i}`,
+            id: `v${index}view`,
             show3D: false,
             isSync: true,
-            layerIds: ["dummy"],
-            name: `Surface ${i}`,
+            layerIds: [`surface-${index}`],
+            name: `Surface ${index}`,
         });
     }
 
     const views: ViewsType = { layout: [numRows, numColumns], showLabel: true, viewports: [] };
+
+    const layers: Record<string, unknown>[] = [];
+    const viewAnnotations: JSX.Element[] = [];
     surfaceDataSet.forEach((surface, index) => {
         if (surface.surfaceData) {
-            const surfData = surface.surfaceData;
-            layers.push({
-                "@@type": "ColormapLayer",
-                id: `surface-${index}`,
-                image: `data:image/png;base64,${surfData.base64_encoded_image}`,
-                bounds: [surfData.x_min, surfData.y_min, surfData.x_max, surfData.y_max],
-                rotDeg: surfData.rot_deg,
-                valueRange: [surfData.val_min, surfData.val_max],
-            });
+            layers.push(makeSurfaceImageLayer(`surface-${index}`, surface.surfaceData));
             views.viewports[index] = {
-                id: `${index}`,
+                id: `v${index}view`,
                 show3D: false,
                 isSync: true,
                 layerIds: [`surface-${index}`],
                 name: `Surface ${index}`,
             };
+            viewAnnotations.push(
+                makeViewAnnotation(
+                    `v${index}view`,
+                    `Surface ${index}`,
+                    surface.surfaceData.val_min,
+                    surface.surfaceData.val_max,
+                    "Physics"
+                )
+            );
         }
     });
+    console.log(views);
+    console.log(layers);
+    console.log(viewAnnotations);
     return (
-        <div className="w-full h-full" ref={wrapperDivRef}>
-            <SyncedSubsurfaceViewer
-                id={"test"}
-                layers={layers}
-                views={views}
-                workbenchServices={workbenchServices}
-                moduleContext={moduleContext}
-            />
+        <div className="relative w-full h-full flex flex-col">
+            <div className="z-1">
+                <SyncedSubsurfaceViewer
+                    id={"test"}
+                    layers={layers}
+                    views={views}
+                    workbenchServices={workbenchServices}
+                    moduleContext={moduleContext}
+                >
+                    {viewAnnotations.map((viewAnnotation) => viewAnnotation)}
+                </SyncedSubsurfaceViewer>
+            </div>
         </div>
+    );
+}
+function makeSurfaceImageLayer(id: string, surfaceData: SurfaceDataPng_api): Record<string, unknown> {
+    return {
+        "@@type": "ColormapLayer",
+        id: id,
+        image: `data:image/png;base64,${surfaceData.base64_encoded_image}`,
+        bounds: [surfaceData.x_min, surfaceData.y_min, surfaceData.x_max, surfaceData.y_max],
+        rotDeg: surfaceData.rot_deg,
+        valueRange: [surfaceData.val_min, surfaceData.val_max],
+    };
+}
+function makeViewAnnotation(
+    id: string,
+    label: string,
+    colorMin: number,
+    colorMax: number,
+    colorName: string
+): JSX.Element {
+    return (
+        <ViewAnnotation key={id} id={id}>
+            <ContinuousLegend
+                min={colorMin}
+                max={colorMax}
+                colorName={colorName}
+                // cssLegendStyles={{ top: "0", right: "0" }}
+                legendScaleSize={0.1}
+                legendFontSize={30}
+            />
+            <ViewFooter>{label}</ViewFooter>
+        </ViewAnnotation>
     );
 }
