@@ -1,17 +1,15 @@
 import React from "react";
 
 import { Ensemble } from "@framework/Ensemble";
-import { EnsembleIdent } from "@framework/EnsembleIdent";
 
-import { SingleSelect } from "./singleSelect";
+import { SingleSelectWithButtons } from "./singleSelectWithButtons";
 
-export type SingleRealizationSelectProps = {
+export type SingleRealizationSelectWithButtonsProps = {
     ensemble: Ensemble | null;
     onChange?: (realizationNum: number) => void;
-    size: number;
 };
 
-export const SingleRealizationSelect: React.FC<SingleRealizationSelectProps> = (props) => {
+export const SingleRealizationSelectWithButtons: React.FC<SingleRealizationSelectWithButtonsProps> = (props) => {
     const realizations: number[] = props.ensemble ? props.ensemble.getRealizations().map((real: number) => real) : [];
 
     function handleRealizationsChange(val: string) {
@@ -20,10 +18,9 @@ export const SingleRealizationSelect: React.FC<SingleRealizationSelectProps> = (
         }
     }
     return (
-        <SingleSelect
+        <SingleSelectWithButtons
             name="Realization"
             options={realizations.map((real: number) => real.toString())}
-            size={props.size}
             onChange={handleRealizationsChange}
         />
     );

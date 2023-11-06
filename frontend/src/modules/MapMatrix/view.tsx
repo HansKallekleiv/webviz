@@ -1,11 +1,11 @@
 import React from "react";
 
 import { SurfaceDataPng_api } from "@api";
+import { View } from "@deck.gl/core/typed";
 import { ContinuousLegend } from "@emerson-eps/color-tables";
 import { ModuleFCProps } from "@framework/Module";
-import { useElementSize } from "@lib/hooks/useElementSize";
 import { SyncedSubsurfaceViewer } from "@modules/SubsurfaceMap/components/SyncedSubsurfaceViewer";
-import { ViewsType } from "@webviz/subsurface-viewer";
+import { ViewportType, ViewsType } from "@webviz/subsurface-viewer";
 import { ViewAnnotation } from "@webviz/subsurface-viewer/dist/components/ViewAnnotation";
 import { ViewFooter } from "@webviz/subsurface-viewer/dist/components/ViewFooter";
 
@@ -54,10 +54,10 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
 
     const numColumns = Math.ceil(Math.sqrt(numSubplots));
     const numRows = Math.ceil(numSubplots / numColumns);
-    const viewPorts: Record<string, unknown>[] = [];
+    const viewPorts: ViewportType[] = [];
     for (let index = 0; index < numSubplots; index++) {
         viewPorts.push({
-            id: `v${index}view`,
+            id: `${index}view`,
             show3D: false,
             isSync: true,
             layerIds: [`surface-${index}`],
@@ -65,7 +65,7 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
         });
     }
 
-    const views: ViewsType = { layout: [numRows, numColumns], showLabel: true, viewports: [] };
+    const views: ViewsType = { layout: [numRows, numColumns], showLabel: true, viewports: viewPorts };
 
     const layers: Record<string, unknown>[] = [];
     const viewAnnotations: JSX.Element[] = [];
@@ -73,15 +73,16 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
         if (surface.surfaceData) {
             layers.push(makeSurfaceImageLayer(`surface-${index}`, surface.surfaceData));
             views.viewports[index] = {
-                id: `v${index}view`,
+                id: `${index}view`,
                 show3D: false,
                 isSync: true,
                 layerIds: [`surface-${index}`],
                 name: `Surface ${index}`,
             };
+
             viewAnnotations.push(
                 makeViewAnnotation(
-                    `v${index}view`,
+                    `${index}view`,
                     `Surface ${index}`,
                     surface.surfaceData.val_min,
                     surface.surfaceData.val_max,
@@ -109,6 +110,32 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
         </div>
     );
 }
+function makeViewAnnotation(
+    id: string,
+    label: string,
+    colorMin: number,
+    colorMax: number,
+    colorName: string
+): JSX.Element {
+    return (
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        /* @ts-expect-error */
+        <View key={id} id={id}>
+            <>
+                <ContinuousLegend
+                    min={colorMin}
+                    max={colorMax}
+                    colorName={colorName}
+                    // cssLegendStyles={{ top: "0", right: "0" }}
+                    legendScaleSize={0.1}
+                    legendFontSize={30}
+                />
+                <ViewFooter>{label}</ViewFooter>
+            </>
+        </View>
+    );
+}
+
 function makeSurfaceImageLayer(id: string, surfaceData: SurfaceDataPng_api): Record<string, unknown> {
     return {
         "@@type": "ColormapLayer",
@@ -118,25 +145,4 @@ function makeSurfaceImageLayer(id: string, surfaceData: SurfaceDataPng_api): Rec
         rotDeg: surfaceData.rot_deg,
         valueRange: [surfaceData.val_min, surfaceData.val_max],
     };
-}
-function makeViewAnnotation(
-    id: string,
-    label: string,
-    colorMin: number,
-    colorMax: number,
-    colorName: string
-): JSX.Element {
-    return (
-        <ViewAnnotation key={id} id={id}>
-            <ContinuousLegend
-                min={colorMin}
-                max={colorMax}
-                colorName={colorName}
-                // cssLegendStyles={{ top: "0", right: "0" }}
-                legendScaleSize={0.1}
-                legendFontSize={30}
-            />
-            <ViewFooter>{label}</ViewFooter>
-        </ViewAnnotation>
-    );
 }
