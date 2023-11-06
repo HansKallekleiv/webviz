@@ -45,13 +45,13 @@ export function useEnsembleSurfaceDirectory(options: EnsembleSurfaceDirectoryOpt
     const getTimeOrIntervalStrings = (requireSurfaceName: string | null, requireAttributeName: string | null) => {
         let filteredList = surfaceMetas;
 
-        if (requireSurfaceName || requireAttributeName) {
-            filteredList = filteredList.filter((surface) => {
-                const matchedOnSurfName = !requireSurfaceName || surface.name === requireSurfaceName;
-                const matchedOnAttrName = !requireAttributeName || surface.attribute_name === requireAttributeName;
-                return matchedOnSurfName && matchedOnAttrName;
-            });
+        if (requireSurfaceName) {
+            filteredList = filterOnName(filteredList, requireSurfaceName);
         }
+        if (requireAttributeName) {
+            filteredList = filterOnAttribute(filteredList, requireAttributeName);
+        }
+
         if (filteredList.length === 0) {
             return [];
         }
