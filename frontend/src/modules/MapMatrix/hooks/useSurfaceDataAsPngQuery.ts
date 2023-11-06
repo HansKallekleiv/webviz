@@ -22,7 +22,7 @@ export function useSurfaceDataSetQueryByAddress(surfaceAddresses: SurfaceAddress
 
             if (surfAddr.addressType === "realization") {
                 queryKey = [
-                    "getRealizationSurfaceData",
+                    "getRealizationSurfaceDataAsPng",
                     surfAddr.caseUuid,
                     surfAddr.ensemble,
                     surfAddr.realizationNum,
@@ -41,7 +41,7 @@ export function useSurfaceDataSetQueryByAddress(surfaceAddresses: SurfaceAddress
                     );
             } else {
                 queryKey = [
-                    "getStatisticalSurfaceData",
+                    "getStatisticalSurfaceDataAsPng",
                     surfAddr.caseUuid,
                     surfAddr.ensemble,
                     surfAddr.statisticFunction,
