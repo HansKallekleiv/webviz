@@ -108,7 +108,9 @@ export const EnsembleSurfaceSelect: React.FC<EnsembleSurfaceSelectProps> = (prop
                     surfaceTimeOrInterval.length ? finalSurfaceTimeOrInterval : null
                 );
                 if (stage === Stage.Realization) {
-                    props.onAddressChange(factory.createRealizationAddress(realizationNum));
+                    props.onAddressChange(
+                        factory.createRealizationAddress(props.controlledRealizationNum || realizationNum)
+                    );
                 } else if (stage === Stage.Ensemble) {
                     props.onAddressChange(factory.createStatisticalAddress(SurfaceStatisticFunction_api.MEAN));
                 }
@@ -119,6 +121,7 @@ export const EnsembleSurfaceSelect: React.FC<EnsembleSurfaceSelectProps> = (prop
             props.controlledSurfaceName,
             props.controlledSurfaceAttribute,
             props.controlledSurfaceTimeOrInterval,
+            props.controlledRealizationNum,
             surfaceAttribute,
             surfaceName,
             surfaceTimeOrInterval,
@@ -166,11 +169,13 @@ export const EnsembleSurfaceSelect: React.FC<EnsembleSurfaceSelectProps> = (prop
                 />
             )}
             <SingleSelectWithButtons name={GroupBy.Stage} options={Object.values(Stage)} onChange={handleStageChange} />
-            <SingleRealizationSelectWithButtons
-                ensemble={selectedEnsembleIdent ? ensembleSet.findEnsemble(selectedEnsembleIdent) : null}
-                onChange={setRealizationNum}
-                // controlledValue={props.controlledRealizationNum}
-            />
+            {props.controlledRealizationNum === undefined && stage === Stage.Realization && (
+                <SingleRealizationSelectWithButtons
+                    ensemble={selectedEnsembleIdent ? ensembleSet.findEnsemble(selectedEnsembleIdent) : null}
+                    onChange={setRealizationNum}
+                    controlledValue={props.controlledRealizationNum}
+                />
+            )}
         </div>
     );
 };

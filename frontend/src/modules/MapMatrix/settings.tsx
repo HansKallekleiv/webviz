@@ -107,6 +107,11 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
                     checked={isControlledSurfaceTimeOrInterval}
                     onToggle={setIsControlledSurfaceTimeOrInterval}
                 />
+                <LabelledSwitch
+                    label={"Sync realization number"}
+                    checked={isControlledRealizationNum}
+                    onToggle={setIsControlledRealizationNum}
+                />
             </div>
             <div className="m-2">
                 <Button variant={"contained"} onClick={addSurfaceSelect}>
@@ -144,6 +149,13 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
                                 controlledSurfaceTimeOrInterval={
                                     index > 0 && isControlledSurfaceTimeOrInterval
                                         ? surfaceAddresses[0]?.isoDateOrInterval
+                                        : undefined
+                                }
+                                controlledRealizationNum={
+                                    index > 0 && isControlledRealizationNum
+                                        ? surfaceAddresses[0]?.addressType === "realization"
+                                            ? surfaceAddresses[0]?.realizationNum
+                                            : undefined
                                         : undefined
                                 }
                                 onAddressChange={(data: SurfaceAddress) => handleSurfaceSelectChange(index, data)}

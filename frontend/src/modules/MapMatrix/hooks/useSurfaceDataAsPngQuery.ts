@@ -37,7 +37,7 @@ export function useSurfaceDataSetQueryByAddress(surfaceAddresses: SurfaceAddress
                         surfAddr.realizationNum,
                         surfAddr.name,
                         surfAddr.attribute,
-                        surfAddr.isoDateOrInterval ?? undefined
+                        surfAddr.isoDateOrInterval
                     );
             } else {
                 queryKey = [
@@ -56,15 +56,15 @@ export function useSurfaceDataSetQueryByAddress(surfaceAddresses: SurfaceAddress
                         surfAddr.statisticFunction,
                         surfAddr.name,
                         surfAddr.attribute,
-                        surfAddr.isoDateOrInterval ?? undefined
+                        surfAddr.isoDateOrInterval
                     );
             }
-
+            console.log(queryKey);
             return {
                 queryKey,
                 queryFn,
                 staleTime: STALE_TIME,
-                cacheTime: CACHE_TIME,
+                gcTime: CACHE_TIME,
             };
         }),
     });

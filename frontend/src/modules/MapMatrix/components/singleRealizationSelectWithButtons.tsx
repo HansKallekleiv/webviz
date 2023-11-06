@@ -7,6 +7,7 @@ import { SingleSelectWithButtons } from "./singleSelectWithButtons";
 export type SingleRealizationSelectWithButtonsProps = {
     ensemble: Ensemble | null;
     onChange?: (realizationNum: number) => void;
+    controlledValue?: number;
 };
 
 export const SingleRealizationSelectWithButtons: React.FC<SingleRealizationSelectWithButtonsProps> = (props) => {
@@ -22,6 +23,7 @@ export const SingleRealizationSelectWithButtons: React.FC<SingleRealizationSelec
             name="Realization"
             options={realizations.map((real: number) => real.toString())}
             onChange={handleRealizationsChange}
+            controlledValue={props.controlledValue?.toString()}
         />
     );
 };

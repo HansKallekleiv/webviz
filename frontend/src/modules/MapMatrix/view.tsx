@@ -34,7 +34,7 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
         React.useState<IndexedSurfaceDatas | null>(null);
 
     const surfaceAddresses = moduleContext.useStoreValue("surfaceAddresses");
-    console.log("surfaceAddresses", surfaceAddresses);
+
     const surfaceDataSetQueryByAddress = useSurfaceDataSetQueryByAddress(surfaceAddresses);
     let surfaceDataSet: Array<{
         index: number;
@@ -91,9 +91,7 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
             );
         }
     });
-    console.log(views);
-    console.log(layers);
-    console.log(viewAnnotations);
+
     return (
         <div className="relative w-full h-full flex flex-col">
             <div className="z-1">
