@@ -60,9 +60,9 @@ export const EnsembleSurfaceSelect: React.FC<EnsembleSurfaceSelectProps> = (prop
 
     const [stage, setStage] = React.useState<Stage>(Stage.Realization);
 
-    const [surfaceAttributeTypes, setSurfaceAttributeTypes] = React.useState<SurfaceAttributeType_api[]>([
-        SurfaceAttributeType_api.DEPTH,
-    ]);
+    const [surfaceAttributeTypes, setSurfaceAttributeTypes] = React.useState<SurfaceAttributeType_api[]>(
+        Object.values(SurfaceAttributeType_api)
+    );
     const ensembleSetSurfaceMetaData = useEnsembleSetSurfaceMetaData(props.ensembleSetSurfaceMetas);
 
     const ensembleSurfaceDirectory = useEnsembleSurfaceDirectory({
@@ -142,18 +142,24 @@ export const EnsembleSurfaceSelect: React.FC<EnsembleSurfaceSelectProps> = (prop
                 value={selectedEnsembleIdent}
                 onChange={handleEnsembleSelectionChange}
             />
-            <SingleSelect
-                name={GroupBy.Name}
-                options={ensembleSurfaceDirectory.getSurfaceNames(null)}
-                onChange={setSurfaceName}
-                size={5}
-            />
-            <SingleSelect
-                name={GroupBy.Attribute}
-                options={ensembleSurfaceDirectory.getAttributeNames(null)}
-                onChange={setSurfaceAttribute}
-                size={5}
-            />
+            <div className="flex flex-wrap -mx-2">
+                <div className="px-2 w-full md:w-1/2">
+                    <SingleSelect
+                        name={GroupBy.Name}
+                        options={ensembleSurfaceDirectory.getSurfaceNames(null)}
+                        onChange={setSurfaceName}
+                        size={5}
+                    />
+                </div>
+                <div className="px-2 w-full md:w-1/2">
+                    <SingleSelect
+                        name={GroupBy.Attribute}
+                        options={ensembleSurfaceDirectory.getAttributeNames(null)}
+                        onChange={setSurfaceAttribute}
+                        size={5}
+                    />
+                </div>
+            </div>
             {timeType != TimeType.None && (
                 <SingleSelect
                     name={GroupBy.Time}
@@ -163,12 +169,23 @@ export const EnsembleSurfaceSelect: React.FC<EnsembleSurfaceSelectProps> = (prop
                     size={5}
                 />
             )}
-            <SingleSelect name={GroupBy.Stage} options={Object.values(Stage)} onChange={handleStageChange} size={5} />
-            <SingleRealizationSelect
-                ensemble={selectedEnsembleIdent ? ensembleSet.findEnsemble(selectedEnsembleIdent) : null}
-                onChange={setRealizationNum}
-                size={5}
-            />
+            <div className="flex flex-wrap -mx-2">
+                <div className="px-2 w-full md:w-1/2">
+                    <SingleSelect
+                        name={GroupBy.Stage}
+                        options={Object.values(Stage)}
+                        onChange={handleStageChange}
+                        size={5}
+                    />
+                </div>
+                <div className="px-2 w-full md:w-1/2">
+                    <SingleRealizationSelect
+                        ensemble={selectedEnsembleIdent ? ensembleSet.findEnsemble(selectedEnsembleIdent) : null}
+                        onChange={setRealizationNum}
+                        size={5}
+                    />
+                </div>
+            </div>
         </div>
     );
 };
