@@ -3,6 +3,10 @@
 /* eslint-disable */
 
 export type SurfaceDataPng = {
+    x_min_surf_orient: number;
+    x_max_surf_orient: number;
+    y_min_surf_orient: number;
+    y_max_surf_orient: number;
     x_min: number;
     x_max: number;
     y_min: number;
