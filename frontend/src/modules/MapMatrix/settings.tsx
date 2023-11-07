@@ -6,11 +6,13 @@ import { useEnsembleSet } from "@framework/WorkbenchSession";
 import { Button } from "@lib/components/Button";
 import { Checkbox } from "@lib/components/Checkbox";
 import { CollapsibleGroup } from "@lib/components/CollapsibleGroup";
+import { IconButton } from "@lib/components/IconButton";
 import { RadioGroup } from "@lib/components/RadioGroup";
 import { Switch } from "@lib/components/Switch";
 import { ToggleButton } from "@lib/components/ToggleButton";
 import { SurfaceAddress } from "@modules/_shared/Surface";
 import { TimeType } from "@modules/_shared/Surface";
+import { Remove } from "@mui/icons-material";
 
 import { EnsembleSurfaceSelect } from "./components/ensembleSurfaceSelect";
 import { LabelledSwitch } from "./components/labelledSwitch";
@@ -70,7 +72,7 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
                 );
         },
         [surfaceAddresses, moduleContext]
-    ); // Moved the dependency array here
+    );
 
     return (
         <div>
@@ -119,20 +121,18 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
                 </Button>
             </div>
             {surfaceAddresses.map((data, index) => (
-                <div key={`surface-select-${index}`} style={{ position: "relative" }}>
-                    <button
+                <div key={`surface-select-${index}`} className="relative">
+                    <IconButton
+                        className="absolute top-0 right-0 z-2"
                         onClick={() => removeSurfaceSelect(index)}
-                        style={{
-                            position: "absolute",
-                            top: 0,
-                            right: 0,
-                            zIndex: 2,
-                        }}
+                        color="danger"
+                        title="Remove surface"
                     >
-                        &#10006;
-                    </button>
+                        <Remove fontSize="small" />
+                    </IconButton>
+
                     <div style={{ width: "90%" }} className="mb-2">
-                        <CollapsibleGroup expanded={false} title={`Surface ${index + 1}`}>
+                        <CollapsibleGroup expanded={true} title={`Surface ${index + 1}`}>
                             <EnsembleSurfaceSelect
                                 ensembleSetSurfaceMetas={ensembleSetSurfaceMetas}
                                 surfaceAttributeTypes={surfaceAttributeTypes}
