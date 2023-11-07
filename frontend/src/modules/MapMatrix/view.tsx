@@ -7,7 +7,6 @@ import { ModuleFCProps } from "@framework/Module";
 import { SyncedSubsurfaceViewer } from "@modules/SubsurfaceMap/components/SyncedSubsurfaceViewer";
 import { SurfaceAddress } from "@modules/_shared/Surface";
 import { ViewportType, ViewsType } from "@webviz/subsurface-viewer";
-import { ViewAnnotation } from "@webviz/subsurface-viewer/dist/components/ViewAnnotation";
 import { ViewFooter } from "@webviz/subsurface-viewer/dist/components/ViewFooter";
 
 import { isEqual } from "lodash";
@@ -16,21 +15,6 @@ import { isoStringToDateOrIntervalLabel } from "./_utils/isoString";
 import { IndexedSurfaceDatas, useSurfaceDataSetQueryByAddress } from "./hooks/useSurfaceDataAsPngQuery";
 import { State } from "./state";
 
-// viewports.append(
-//     {
-//         "id": f"{idx}_view",
-//         "show3D": False,
-//         "isSync": True,
-//         "layerIds": [
-//             f"{LayoutElements.MAP3D_LAYER}-{idx}"
-//             if isinstance(surface_server, SurfaceArrayServer)
-//             else f"{LayoutElements.COLORMAP_LAYER}-{idx}",
-//             f"{LayoutElements.FAULTPOLYGONS_LAYER}-{idx}",
-//             f"{LayoutElements.WELLS_LAYER}-{idx}",
-//         ],
-//         "name": make_viewport_label(surface_elements[idx], tab_name, multi),
-//     }
-// )
 export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>) {
     const [prevSurfaceDataSetQueryByAddress, setPrevSurfaceDataSetQueryByAddress] =
         React.useState<IndexedSurfaceDatas | null>(null);
@@ -68,10 +52,10 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
     }
 
     const views: ViewsType = { layout: [numRows, numColumns], showLabel: true, viewports: viewPorts };
-
     const layers: Record<string, unknown>[] = [];
     const viewAnnotations: JSX.Element[] = [];
     let bounds: [number, number, number, number] | null = null;
+
     surfaceDataSet.forEach((surface, index) => {
         if (surface.surfaceData) {
             if (!bounds) {
@@ -90,17 +74,16 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
                 layerIds: [`surface-${index}`],
                 name: `Surface ${index}`,
             };
-
-            viewAnnotations.push(
-                makeViewAnnotation(
-                    `${index}view`,
-                    surfaceAddresses[index],
-                    surface.surfaceData.val_min,
-                    surface.surfaceData.val_max,
-                    "Physics"
-                )
-            );
         }
+        viewAnnotations.push(
+            makeViewAnnotation(
+                `${index}view`,
+                surface?.surfaceData ? surfaceAddresses[index] : null,
+                surface?.surfaceData?.val_min || 0,
+                surface?.surfaceData?.val_max || 0,
+                "Physics"
+            )
+        );
     });
 
     return (
@@ -114,7 +97,7 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
                     workbenchServices={workbenchServices}
                     moduleContext={moduleContext}
                 >
-                    {viewAnnotations.map((viewAnnotation) => viewAnnotation)}
+                    {viewAnnotations}
                 </SyncedSubsurfaceViewer>
             </div>
         </div>
@@ -136,24 +119,35 @@ function makeViewAnnotation(
                     min={colorMin}
                     max={colorMax}
                     colorName={colorName}
-                    // cssLegendStyles={{ top: "0", right: "0" }}
+                    cssLegendStyles={{ top: "0", right: "0" }}
                     legendScaleSize={0.1}
                     legendFontSize={30}
                 />
                 <ViewFooter>
-                    {surfaceAddress && (
+                    {surfaceAddress ? (
                         <div className="flex">
-                            <div className=" m-0 bg-white bg-opacity-50 border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
+                            <div className=" m-0 bg-transparent  border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
                                 {surfaceAddress.name}
                             </div>
-                            <div className=" m-0 bg-white bg-opacity-50 border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
+                            <div className=" m-0 bg-transparent  border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
                                 {surfaceAddress.attribute}
                             </div>
                             {surfaceAddress.isoDateOrInterval && (
-                                <div className=" m-0 bg-white bg-opacity-50 border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
+                                <div className=" m-0 bg-transparent  border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
                                     {isoStringToDateOrIntervalLabel(surfaceAddress.isoDateOrInterval)}
                                 </div>
                             )}
+                            {surfaceAddress.addressType === "realization" && (
+                                <div className=" m-0 bg-transparent  border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
+                                    {`Real: ${surfaceAddress.realizationNum}`}
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="flex">
+                            <div className=" m-0 bg-transparent  border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
+                                No surface found
+                            </div>
                         </div>
                     )}
                 </ViewFooter>
