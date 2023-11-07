@@ -65,10 +65,14 @@ def to_api_surface_data_as_png(xtgeo_surf: xtgeo.RegularSurface) -> schemas.Surf
     surf_orient = calc_surface_orientation_for_colormap_layer(xtgeo_surf)
 
     return schemas.SurfaceDataPng(
-        x_min=surf_orient.x_min,
-        x_max=surf_orient.x_max,
-        y_min=surf_orient.y_min,
-        y_max=surf_orient.y_max,
+        x_min_surf_orient=surf_orient.x_min,
+        x_max_surf_orient=surf_orient.x_max,
+        y_min_surf_orient=surf_orient.y_min,
+        y_max_surf_orient=surf_orient.y_max,
+        x_min=xtgeo_surf.xmin,
+        x_max=xtgeo_surf.xmax,
+        y_min=xtgeo_surf.ymin,
+        y_max=xtgeo_surf.ymax,
         val_min=xtgeo_surf.values.min(),
         val_max=xtgeo_surf.values.max(),
         rot_deg=surf_orient.rot_around_xmin_ymax_deg,

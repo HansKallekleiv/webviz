@@ -71,6 +71,10 @@ class SurfaceData(BaseModel):
 
 
 class SurfaceDataPng(BaseModel):
+    x_min_surf_orient: float
+    x_max_surf_orient: float
+    y_min_surf_orient: float
+    y_max_surf_orient: float
     x_min: float
     x_max: float
     y_min: float

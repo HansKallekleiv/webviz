@@ -14,6 +14,7 @@ import { SurfaceAddress, SurfaceAddressFactory } from "@modules/_shared/Surface"
 import { SingleRealizationSelectWithButtons } from "./singleRealizationSelectWithButtons";
 import { SingleSelectWithButtons } from "./singleSelectWithButtons";
 
+import { isoIntervalStringToDateLabel, isoStringToDateLabel } from "../_utils/isoString";
 import { useEnsembleSetSurfaceMetaData } from "../hooks/useEnsembleSetSurfaceMetaData";
 import { EnsembleSetSurfaceMetas } from "../hooks/useEnsembleSetSurfaceMetaQuery";
 import { useEnsembleSurfaceDirectory } from "../hooks/useEnsembleSurfaceDirectory";
@@ -179,15 +180,3 @@ export const EnsembleSurfaceSelect: React.FC<EnsembleSurfaceSelectProps> = (prop
         </div>
     );
 };
-
-function isoStringToDateLabel(input: string): string {
-    const date = input.split("T")[0];
-    return `${date}`;
-}
-
-function isoIntervalStringToDateLabel(input: string): string {
-    const [start, end] = input.split("/");
-    const startDate = start.split("T")[0];
-    const endDate = end.split("T")[0];
-    return `${startDate}/${endDate}`;
-}

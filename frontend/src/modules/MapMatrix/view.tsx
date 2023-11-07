@@ -5,12 +5,14 @@ import { View } from "@deck.gl/core/typed";
 import { ContinuousLegend } from "@emerson-eps/color-tables";
 import { ModuleFCProps } from "@framework/Module";
 import { SyncedSubsurfaceViewer } from "@modules/SubsurfaceMap/components/SyncedSubsurfaceViewer";
+import { SurfaceAddress } from "@modules/_shared/Surface";
 import { ViewportType, ViewsType } from "@webviz/subsurface-viewer";
 import { ViewAnnotation } from "@webviz/subsurface-viewer/dist/components/ViewAnnotation";
 import { ViewFooter } from "@webviz/subsurface-viewer/dist/components/ViewFooter";
 
 import { isEqual } from "lodash";
 
+import { isoStringToDateOrIntervalLabel } from "./_utils/isoString";
 import { IndexedSurfaceDatas, useSurfaceDataSetQueryByAddress } from "./hooks/useSurfaceDataAsPngQuery";
 import { State } from "./state";
 
@@ -69,8 +71,17 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
 
     const layers: Record<string, unknown>[] = [];
     const viewAnnotations: JSX.Element[] = [];
+    let bounds: [number, number, number, number] | null = null;
     surfaceDataSet.forEach((surface, index) => {
         if (surface.surfaceData) {
+            if (!bounds) {
+                bounds = [
+                    surface.surfaceData.x_min,
+                    surface.surfaceData.y_min,
+                    surface.surfaceData.x_max,
+                    surface.surfaceData.y_max,
+                ];
+            }
             layers.push(makeSurfaceImageLayer(`surface-${index}`, surface.surfaceData));
             views.viewports[index] = {
                 id: `${index}view`,
@@ -83,7 +94,7 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
             viewAnnotations.push(
                 makeViewAnnotation(
                     `${index}view`,
-                    `Surface ${index}`,
+                    surfaceAddresses[index],
                     surface.surfaceData.val_min,
                     surface.surfaceData.val_max,
                     "Physics"
@@ -99,6 +110,7 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
                     id={"test"}
                     layers={layers}
                     views={views}
+                    bounds={bounds || undefined}
                     workbenchServices={workbenchServices}
                     moduleContext={moduleContext}
                 >
@@ -110,7 +122,7 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
 }
 function makeViewAnnotation(
     id: string,
-    label: string,
+    surfaceAddress: SurfaceAddress | null,
     colorMin: number,
     colorMax: number,
     colorName: string
@@ -128,7 +140,23 @@ function makeViewAnnotation(
                     legendScaleSize={0.1}
                     legendFontSize={30}
                 />
-                <ViewFooter>{label}</ViewFooter>
+                <ViewFooter>
+                    {surfaceAddress && (
+                        <div className="flex">
+                            <div className=" m-0 bg-white bg-opacity-50 border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
+                                {surfaceAddress.name}
+                            </div>
+                            <div className=" m-0 bg-white bg-opacity-50 border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
+                                {surfaceAddress.attribute}
+                            </div>
+                            {surfaceAddress.isoDateOrInterval && (
+                                <div className=" m-0 bg-white bg-opacity-50 border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
+                                    {isoStringToDateOrIntervalLabel(surfaceAddress.isoDateOrInterval)}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </ViewFooter>
             </>
         </View>
     );
@@ -139,7 +167,12 @@ function makeSurfaceImageLayer(id: string, surfaceData: SurfaceDataPng_api): Rec
         "@@type": "ColormapLayer",
         id: id,
         image: `data:image/png;base64,${surfaceData.base64_encoded_image}`,
-        bounds: [surfaceData.x_min, surfaceData.y_min, surfaceData.x_max, surfaceData.y_max],
+        bounds: [
+            surfaceData.x_min_surf_orient,
+            surfaceData.y_min_surf_orient,
+            surfaceData.x_max_surf_orient,
+            surfaceData.y_max_surf_orient,
+        ],
         rotDeg: surfaceData.rot_deg,
         valueRange: [surfaceData.val_min, surfaceData.val_max],
     };
