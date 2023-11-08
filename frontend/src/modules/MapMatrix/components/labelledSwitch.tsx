@@ -1,5 +1,6 @@
 import React from "react";
 
+import { Label } from "@lib/components/Label";
 import { Switch } from "@lib/components/Switch";
 import { useValidState } from "@lib/hooks/useValidState";
 
@@ -16,9 +17,10 @@ export const LabelledSwitch: React.FC<LabelledSwitchProps> = (props) => {
         }
     };
     return (
-        <div className="flex items-center space-x-2">
-            <Switch checked={props.checked} onChange={onChange} />
-            {props.label}
+        <div className="flex items-center ">
+            <Label text={props.label} position="right">
+                <Switch checked={props.checked} onChange={onChange} />
+            </Label>
         </div>
     );
 };

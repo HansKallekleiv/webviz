@@ -23,7 +23,7 @@ export const SingleRealizationSelectWithButtons: React.FC<SingleRealizationSelec
             name="Realization"
             options={realizations.map((real: number) => real.toString())}
             onChange={handleRealizationsChange}
-            controlledValue={props.controlledValue?.toString()}
+            controlledValue={props.controlledValue?.toString() ?? "0"}
         />
     );
 };

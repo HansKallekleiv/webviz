@@ -7,10 +7,13 @@ import { useFirstEnsembleInEnsembleSet } from "@framework/WorkbenchSession";
 import { WorkbenchSession } from "@framework/WorkbenchSession";
 import { useEnsembleSet } from "@framework/WorkbenchSession";
 import { SingleEnsembleSelect } from "@framework/components/SingleEnsembleSelect";
+import { IconButton } from "@lib/components/IconButton";
 import { useValidState } from "@lib/hooks/useValidState";
 import { TimeType } from "@modules/_shared/Surface";
 import { SurfaceAddress, SurfaceAddressFactory } from "@modules/_shared/Surface";
+import { EmergencyShare, Remove } from "@mui/icons-material";
 
+import { EnsembleSelectWithButtons } from "./ensembleSelectWithButtons";
 import { SingleRealizationSelectWithButtons } from "./singleRealizationSelectWithButtons";
 import { SingleSelectWithButtons } from "./singleSelectWithButtons";
 
@@ -30,6 +33,9 @@ export type EnsembleSurfaceSelectProps = {
     timeType: TimeType;
     workbenchSession: WorkbenchSession;
     onAddressChange?: (surfaceAddress: SurfaceAddress) => void;
+    id: string;
+    index: number;
+    onRemove: (id: string) => void;
 };
 const TimeTypeEnumToStringMapping = {
     [TimeType.None]: "Static",
@@ -37,11 +43,11 @@ const TimeTypeEnumToStringMapping = {
     [TimeType.Interval]: "Time interval",
 };
 enum GroupBy {
-    Realization = "Realization",
+    Realization = "Real",
     Ensemble = "Ensemble",
-    Name = "Horizon / Zone",
+    Name = "Name",
     Attribute = "Attribute",
-    Time = "Time point / interval",
+    Time = "Time",
     Stage = "Stage",
 }
 
@@ -62,12 +68,13 @@ export const EnsembleSurfaceSelect: React.FC<EnsembleSurfaceSelectProps> = (prop
     const [stage, setStage] = React.useState<Stage>(Stage.Realization);
 
     const ensembleSetSurfaceMetaData = useEnsembleSetSurfaceMetaData(props.ensembleSetSurfaceMetas);
-
+    console.log(ensembleSetSurfaceMetaData);
     const ensembleSurfaceDirectory = useEnsembleSurfaceDirectory({
         surfaceMetas: ensembleSetSurfaceMetaData.getEnsembleSurfaceMeta(selectedEnsembleIdent),
         timeType: props.timeType,
         includeAttributeTypes: props.surfaceAttributeTypes,
     });
+    console.log("ensembleSurfaceDirectory", ensembleSurfaceDirectory.getSurfaceNames(null));
     const [surfaceName, setSurfaceName] = useValidState<string>("", ensembleSurfaceDirectory.getSurfaceNames(null));
 
     const [surfaceAttribute, setSurfaceAttribute] = useValidState<string>(
@@ -91,6 +98,27 @@ export const EnsembleSurfaceSelect: React.FC<EnsembleSurfaceSelectProps> = (prop
     function handleStageChange(val: string) {
         setStage(val as Stage);
     }
+    const computedSurfaceName = fixupPossibleControlledValue(
+        surfaceName,
+        props.controlledSurfaceName,
+        ensembleSurfaceDirectory.getSurfaceNames(null)
+    );
+    if (computedSurfaceName !== surfaceName) {
+        setSurfaceName(computedSurfaceName);
+    }
+    const computedSurfaceAttribute = fixupPossibleControlledValue(
+        surfaceAttribute,
+        props.controlledSurfaceAttribute,
+        ensembleSurfaceDirectory.getAttributeNames(computedSurfaceName)
+    );
+    if (computedSurfaceAttribute !== surfaceAttribute) {
+        setSurfaceAttribute(computedSurfaceAttribute);
+    }
+    const computedSurfaceTimeOrInterval = fixupPossibleControlledValue(
+        surfaceTimeOrInterval,
+        props.controlledSurfaceTimeOrInterval,
+        ensembleSurfaceDirectory.getTimeOrIntervalStrings(computedSurfaceName, computedSurfaceAttribute)
+    );
     console.log("updated");
     React.useEffect(
         function onChange() {
@@ -132,11 +160,27 @@ export const EnsembleSurfaceSelect: React.FC<EnsembleSurfaceSelectProps> = (prop
     );
 
     return (
-        <div>
-            Ensemble
-            <SingleEnsembleSelect
+        <>
+            <tr className="bg-slate-100">
+                <td className="px-6 py-0 whitespace-nowrap">{`Surface ${props.index + 1}`}</td>
+                <td></td>
+
+                <td>
+                    <IconButton
+                        className="float-right"
+                        onClick={() => props.onRemove(props.id)}
+                        color="danger"
+                        title="Remove surface"
+                    >
+                        <Remove fontSize="large" />
+                    </IconButton>
+                </td>
+            </tr>
+
+            <EnsembleSelectWithButtons
+                name={GroupBy.Ensemble}
                 ensembleSet={ensembleSet}
-                value={selectedEnsembleIdent}
+                controlledValue={selectedEnsembleIdent}
                 onChange={handleEnsembleSelectionChange}
             />
             {!props.controlledSurfaceName && (
@@ -144,7 +188,7 @@ export const EnsembleSurfaceSelect: React.FC<EnsembleSurfaceSelectProps> = (prop
                     name={GroupBy.Name}
                     options={ensembleSurfaceDirectory.getSurfaceNames(null)}
                     onChange={setSurfaceName}
-                    controlledValue={props.controlledSurfaceName}
+                    controlledValue={surfaceName}
                 />
             )}
             {!props.controlledSurfaceAttribute && (
@@ -152,7 +196,7 @@ export const EnsembleSurfaceSelect: React.FC<EnsembleSurfaceSelectProps> = (prop
                     name={GroupBy.Attribute}
                     options={ensembleSurfaceDirectory.getAttributeNames(props.controlledSurfaceName || surfaceName)}
                     onChange={setSurfaceAttribute}
-                    controlledValue={props.controlledSurfaceAttribute}
+                    controlledValue={surfaceAttribute}
                 />
             )}
             {props.controlledSurfaceTimeOrInterval === undefined && props.timeType != TimeType.None && (
@@ -166,17 +210,36 @@ export const EnsembleSurfaceSelect: React.FC<EnsembleSurfaceSelectProps> = (prop
                         props.timeType == TimeType.TimePoint ? isoStringToDateLabel : isoIntervalStringToDateLabel
                     }
                     onChange={setSurfaceTimeOrInterval}
-                    controlledValue={props.controlledSurfaceTimeOrInterval || ""}
+                    controlledValue={surfaceTimeOrInterval || ""}
                 />
             )}
-            <SingleSelectWithButtons name={GroupBy.Stage} options={Object.values(Stage)} onChange={handleStageChange} />
+
+            {/* <SingleSelectWithButtons name={GroupBy.Stage} options={Object.values(Stage)} onChange={handleStageChange} /> */}
             {props.controlledRealizationNum === undefined && stage === Stage.Realization && (
                 <SingleRealizationSelectWithButtons
                     ensemble={selectedEnsembleIdent ? ensembleSet.findEnsemble(selectedEnsembleIdent) : null}
                     onChange={setRealizationNum}
-                    controlledValue={props.controlledRealizationNum}
+                    controlledValue={realizationNum}
                 />
             )}
-        </div>
+        </>
     );
 };
+
+function fixupPossibleControlledValue(
+    value: string | null,
+    possibleControlledValue: string | null | undefined,
+    possibleValues: string[]
+): string {
+    if (
+        possibleControlledValue !== undefined &&
+        possibleControlledValue !== null &&
+        possibleValues.includes(possibleControlledValue)
+    ) {
+        return possibleControlledValue;
+    }
+    if (value === null && possibleValues.length > 0) {
+        return possibleValues[0];
+    }
+    return value ?? "";
+}
