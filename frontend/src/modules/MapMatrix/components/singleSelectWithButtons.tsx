@@ -11,8 +11,7 @@ import ArrowCircleRightIcon from "@mui/icons-material/ArrowCircleRight";
 export type SingleSelectWithButtonsProps = {
     name: string;
     options: string[];
-    controlledValue: string;
-
+    value: string;
     labelFunction?: (value: string) => string;
     onChange?: (values: string) => void;
 };
@@ -27,7 +26,7 @@ export const SingleSelectWithButtons: React.FC<SingleSelectWithButtonsProps> = (
     };
 
     const changeSelection = (direction: "prev" | "next") => {
-        const currentIndex = props.options.indexOf(props.controlledValue);
+        const currentIndex = props.options.indexOf(props.value);
         let nextIndex = direction === "next" ? currentIndex + 1 : currentIndex - 1;
 
         if (nextIndex >= props.options.length) {
@@ -45,7 +44,7 @@ export const SingleSelectWithButtons: React.FC<SingleSelectWithButtonsProps> = (
             <td className="px-6 py-0 whitespace-nowrap">{props.name}</td>
             <td className="px-6 py-0 w-full whitespace-nowrap">
                 {/* Dropdown */}
-                <Dropdown options={selectOptions} value={props.controlledValue} onChange={handleSelectionChange} />
+                <Dropdown options={selectOptions} value={props.value} onChange={handleSelectionChange} />
             </td>
             <td className="px-0 py-0 whitespace-nowrap text-right">
                 {/* Action Buttons */}

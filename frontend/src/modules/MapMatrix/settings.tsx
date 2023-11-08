@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 
 import { SurfaceAttributeType_api } from "@api";
+import { EnsembleIdent } from "@framework/EnsembleIdent";
 import { ModuleFCProps } from "@framework/Module";
 import { useEnsembleSet } from "@framework/WorkbenchSession";
 import { Button } from "@lib/components/Button";
@@ -41,6 +42,7 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
     const [surfaceAttributeTypes, setSurfaceAttributeTypes] = React.useState<SurfaceAttributeType_api[]>(
         Object.values(SurfaceAttributeType_api)
     );
+    const [isControlledEnsemble, setIsControlledEnsemble] = React.useState<boolean>(false);
     const [isControlledSurfaceName, setIsControlledSurfaceName] = React.useState<boolean>(false);
     const [isControlledSurfaceAttribute, setIsControlledSurfaceAttribute] = React.useState<boolean>(false);
     const [isControlledSurfaceTimeOrInterval, setIsControlledSurfaceTimeOrInterval] = React.useState<boolean>(false);
@@ -59,7 +61,6 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
         setSurfaceAddresses(surfaceAddresses.filter((surface) => surface.id !== uniqueId));
     };
     const handleSurfaceSelectChange = (uniqueId: string, newData: SurfaceAddress) => {
-        console.log(uniqueId, newData);
         setSurfaceAddresses((prevAddresses) =>
             prevAddresses.map((surface) => (surface.id === uniqueId ? { ...surface, data: newData } : surface))
         );
@@ -78,7 +79,7 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
             const surfaceAddressesData = surfaceAddresses
                 .map((uniqueSurface) => uniqueSurface.data)
                 .filter((address): address is SurfaceAddress => address !== null);
-
+            console.log("surfaceAddressesData", surfaceAddressesData);
             moduleContext.getStateStore().setValue("surfaceAddresses", surfaceAddressesData);
         }
 
@@ -105,32 +106,53 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
                 />
             </CollapsibleGroup>
             <CollapsibleGroup expanded={true} title="Synchronization">
-                <div className="flex-col flex items-left">
-                    <Label text="Name" position="left">
-                        <Switch
-                            checked={isControlledSurfaceName}
-                            onChange={(e) => setIsControlledSurfaceName(e.target.checked)}
-                        />
-                    </Label>
-                    <Label text="Attribute" position="left">
-                        <Switch
-                            checked={isControlledSurfaceAttribute}
-                            onChange={(e) => setIsControlledSurfaceAttribute(e.target.checked)}
-                        />
-                    </Label>
-                    <Label text="Time/interval" position="left">
-                        <Switch
-                            checked={isControlledSurfaceTimeOrInterval}
-                            onChange={(e) => setIsControlledSurfaceTimeOrInterval(e.target.checked)}
-                        />
-                    </Label>
-                    <Label text="Real" position="left">
-                        <Switch
-                            checked={isControlledRealizationNum}
-                            onChange={(e) => setIsControlledRealizationNum(e.target.checked)}
-                        />
-                    </Label>
-                </div>
+                <table className="table-auto w-full divide-y divide-gray-200">
+                    <tr className="bg-slate-100">
+                        <td className="px-6 py-0 whitespace-nowrap">{`Ensemble`}</td>
+                        <td className="px-6 py-0 w-full whitespace-nowrap">
+                            <Switch
+                                checked={isControlledEnsemble}
+                                onChange={(e) => setIsControlledEnsemble(e.target.checked)}
+                            />
+                        </td>
+                    </tr>
+                    <tr className="bg-slate-100">
+                        <td className="px-6 py-0 whitespace-nowrap">{`Name`}</td>
+                        <td className="px-6 py-0 w-full whitespace-nowrap">
+                            <Switch
+                                checked={isControlledSurfaceName}
+                                onChange={(e) => setIsControlledSurfaceName(e.target.checked)}
+                            />
+                        </td>
+                    </tr>
+                    <tr className="bg-slate-100">
+                        <td className="px-6 py-0 whitespace-nowrap">{`Attribute`}</td>
+                        <td className="px-6 py-0 w-full whitespace-nowrap">
+                            <Switch
+                                checked={isControlledSurfaceAttribute}
+                                onChange={(e) => setIsControlledSurfaceAttribute(e.target.checked)}
+                            />
+                        </td>
+                    </tr>
+                    <tr className="bg-slate-100">
+                        <td className="px-6 py-0 whitespace-nowrap">{`Time/interval`}</td>
+                        <td className="px-6 py-0 w-full whitespace-nowrap">
+                            <Switch
+                                checked={isControlledSurfaceTimeOrInterval}
+                                onChange={(e) => setIsControlledSurfaceTimeOrInterval(e.target.checked)}
+                            />
+                        </td>
+                    </tr>
+                    <tr className="bg-slate-100">
+                        <td className="px-6 py-0 whitespace-nowrap">{`Real`}</td>
+                        <td className="px-6 py-0 w-full whitespace-nowrap">
+                            <Switch
+                                checked={isControlledRealizationNum}
+                                onChange={(e) => setIsControlledRealizationNum(e.target.checked)}
+                            />
+                        </td>
+                    </tr>
+                </table>
             </CollapsibleGroup>
             <div className="m-2">
                 <Button variant={"contained"} onClick={addSurfaceSelect}>
@@ -149,6 +171,14 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
                             timeType={timeType}
                             workbenchSession={workbenchSession}
                             onRemove={removeSurfaceSelect}
+                            controlledEnsembleIdent={
+                                index > 0 && isControlledEnsemble
+                                    ? EnsembleIdent.fromCaseUuidAndEnsembleName(
+                                          surfaceAddresses[0]?.data?.caseUuid || "",
+                                          surfaceAddresses[0]?.data?.ensemble || ""
+                                      )
+                                    : undefined
+                            }
                             controlledSurfaceName={
                                 index > 0 && isControlledSurfaceName ? surfaceAddresses[0]?.data?.name : undefined
                             }
