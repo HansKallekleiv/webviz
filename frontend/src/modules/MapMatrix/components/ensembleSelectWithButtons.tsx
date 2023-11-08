@@ -1,5 +1,7 @@
 import React from "react";
 
+import { EnsembleIdent } from "@framework/EnsembleIdent";
+import { EnsembleSet } from "@framework/EnsembleSet";
 import { Button } from "@lib/components/Button";
 import { Dropdown } from "@lib/components/Dropdown";
 import { IconButton } from "@lib/components/IconButton";
@@ -8,35 +10,44 @@ import { useValidState } from "@lib/hooks/useValidState";
 import ArrowCircleLeftIcon from "@mui/icons-material/ArrowCircleLeft";
 import ArrowCircleRightIcon from "@mui/icons-material/ArrowCircleRight";
 
-export type SingleSelectWithButtonsProps = {
+export type EnsembleSelectWithButtonsProps = {
     name: string;
-    options: string[];
-    controlledValue: string;
+    ensembleSet: EnsembleSet;
+    controlledValue: EnsembleIdent | null;
 
-    labelFunction?: (value: string) => string;
-    onChange?: (values: string) => void;
+    onChange?: (values: EnsembleIdent | null) => void;
 };
-export const SingleSelectWithButtons: React.FC<SingleSelectWithButtonsProps> = (props) => {
-    const selectOptions = props.options.map((option) => ({
-        value: option,
-        label: props.labelFunction?.(option) ?? option,
+export const EnsembleSelectWithButtons: React.FC<EnsembleSelectWithButtonsProps> = (props) => {
+    const availableEnsembles = props.ensembleSet.getEnsembleArr();
+    const availableEnsembleOptions = availableEnsembles.map((ensemble) => ({
+        value: ensemble.getIdent().toString(),
+        label: ensemble.getDisplayName(),
     }));
+    const availableEnsembleIdentStrings = availableEnsembles.map((ensemble) => ensemble.getIdent().toString());
+
+    const [localValue, setLocalValue] = useValidState(availableEnsembleIdentStrings[0], availableEnsembleIdentStrings);
+
+    const displayValue = props.controlledValue ? props.controlledValue.toString() : localValue;
 
     const handleSelectionChange = (selectedValue: string) => {
-        props.onChange?.(selectedValue);
+        const foundEnsemble = props.ensembleSet.findEnsembleByIdentString(selectedValue);
+        if (!props.controlledValue) {
+            setLocalValue(selectedValue);
+        }
+        props.onChange?.(foundEnsemble ? foundEnsemble.getIdent() : null);
     };
 
     const changeSelection = (direction: "prev" | "next") => {
-        const currentIndex = props.options.indexOf(props.controlledValue);
+        const currentIndex = availableEnsembleIdentStrings.indexOf(displayValue);
         let nextIndex = direction === "next" ? currentIndex + 1 : currentIndex - 1;
 
-        if (nextIndex >= props.options.length) {
+        if (nextIndex >= availableEnsembleIdentStrings.length) {
             nextIndex = 0;
         } else if (nextIndex < 0) {
-            nextIndex = props.options.length - 1;
+            nextIndex = availableEnsembleIdentStrings.length - 1;
         }
 
-        const nextValue = props.options[nextIndex];
+        const nextValue = availableEnsembleIdentStrings[nextIndex];
         handleSelectionChange(nextValue);
     };
 
@@ -45,7 +56,7 @@ export const SingleSelectWithButtons: React.FC<SingleSelectWithButtonsProps> = (
             <td className="px-6 py-0 whitespace-nowrap">{props.name}</td>
             <td className="px-6 py-0 w-full whitespace-nowrap">
                 {/* Dropdown */}
-                <Dropdown options={selectOptions} value={props.controlledValue} onChange={handleSelectionChange} />
+                <Dropdown options={availableEnsembleOptions} value={displayValue} onChange={handleSelectionChange} />
             </td>
             <td className="px-0 py-0 whitespace-nowrap text-right">
                 {/* Action Buttons */}
