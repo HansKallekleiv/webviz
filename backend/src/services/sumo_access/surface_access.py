@@ -68,7 +68,7 @@ class SurfaceAccess(SumoEnsemble):
 
         return surfs
 
-    def get_realization_surface_data(
+    async def get_realization_surface_data(
         self, real_num: int, name: str, attribute: str, time_or_interval_str: Optional[str] = None
     ) -> Optional[xtgeo.RegularSurface]:
         """
@@ -110,7 +110,7 @@ class SurfaceAccess(SumoEnsemble):
             time=time_filter,
         )
 
-        surf_count = len(surface_collection)
+        surf_count = await surface_collection.length_async()
         if surf_count == 0:
             LOGGER.warning(f"No realization surface found in Sumo for {addr_str}")
             return None
@@ -118,7 +118,7 @@ class SurfaceAccess(SumoEnsemble):
             LOGGER.warning(f"Multiple ({surf_count}) surfaces found in Sumo for: {addr_str}. Returning first surface.")
 
         sumo_surf = surface_collection[0]
-        byte_stream: BytesIO = sumo_surf.blob
+        byte_stream: BytesIO = await sumo_surf.blob_async
         xtgeo_surf = xtgeo.surface_from_file(byte_stream)
 
         LOGGER.debug(f"Got realization surface from Sumo in: {timer.elapsed_ms()}ms ({addr_str})")
