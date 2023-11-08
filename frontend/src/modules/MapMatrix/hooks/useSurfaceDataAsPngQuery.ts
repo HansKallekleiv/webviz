@@ -59,7 +59,6 @@ export function useSurfaceDataSetQueryByAddress(surfaceAddresses: SurfaceAddress
                         surfAddr.isoDateOrInterval
                     );
             }
-            console.log(queryKey);
             return {
                 queryKey,
                 queryFn,

@@ -72,7 +72,7 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
                 id: `${index}view`,
                 show3D: false,
                 isSync: true,
-                layerIds: [`surface-${index}`],
+                layerIds: ["axes-layer2D", `surface-${index}`],
                 name: `Surface ${index}`,
             };
         }
@@ -86,10 +86,21 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
             )
         );
     });
+    layers.push({
+        "@@type": "Axes2DLayer",
+        id: "axes-layer2D",
+        marginH: 80,
+        marginV: 30,
+        isLeftRuler: true,
+        isRightRuler: false,
+        isBottomRuler: false,
+        isTopRuler: true,
+        backgroundColor: [155, 155, 155, 255],
+    });
 
     return (
         <div className="relative w-full h-full flex flex-col">
-            <div className="z-1 animate__animated animate__flash">
+            <div className="z-1">
                 <SyncedSubsurfaceViewer
                     id={"test"}
                     layers={layers}
@@ -120,14 +131,15 @@ function makeViewAnnotation(
                     min={colorMin}
                     max={colorMax}
                     colorName={colorName}
-                    cssLegendStyles={{ top: "0", right: "0" }}
+                    //transparent background
+                    cssLegendStyles={{ top: "20", right: "0", backgroundColor: "transparent" }}
                     legendScaleSize={0.1}
                     legendFontSize={30}
                 />
                 <ViewFooter>
                     {surfaceAddress ? (
-                        <div className="flex">
-                            <div className=" m-0 bg-transparent animate__animated animate__flash  border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
+                        <div className="flex" style={{ bottom: 10 }}>
+                            <div className=" m-0 bg-transparent  border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
                                 {surfaceAddress.name}
                             </div>
                             <div className=" m-0 bg-transparent  border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
