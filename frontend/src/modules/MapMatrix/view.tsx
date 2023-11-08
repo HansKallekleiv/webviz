@@ -9,7 +9,8 @@ import { SurfaceAddress } from "@modules/_shared/Surface";
 import { ViewportType, ViewsType } from "@webviz/subsurface-viewer";
 import { ViewFooter } from "@webviz/subsurface-viewer/dist/components/ViewFooter";
 
-import { isEqual } from "lodash";
+import "animate.css";
+import { includes, isEqual } from "lodash";
 
 import { isoStringToDateOrIntervalLabel } from "./_utils/isoString";
 import { IndexedSurfaceDatas, useSurfaceDataSetQueryByAddress } from "./hooks/useSurfaceDataAsPngQuery";
@@ -88,7 +89,7 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
 
     return (
         <div className="relative w-full h-full flex flex-col">
-            <div className="z-1">
+            <div className="z-1 animate__animated animate__flash">
                 <SyncedSubsurfaceViewer
                     id={"test"}
                     layers={layers}
@@ -126,7 +127,7 @@ function makeViewAnnotation(
                 <ViewFooter>
                     {surfaceAddress ? (
                         <div className="flex">
-                            <div className=" m-0 bg-transparent  border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
+                            <div className=" m-0 bg-transparent animate__animated animate__flash  border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
                                 {surfaceAddress.name}
                             </div>
                             <div className=" m-0 bg-transparent  border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
