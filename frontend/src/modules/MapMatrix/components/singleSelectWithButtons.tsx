@@ -42,18 +42,14 @@ export const SingleSelectWithButtons: React.FC<SingleSelectWithButtonsProps> = (
         <tr>
             <td className="px-6 py-0 whitespace-nowrap">{props.name}</td>
             <td className="px-6 py-0 w-full whitespace-nowrap">
-                {/* Dropdown */}
                 <Dropdown options={selectOptions} value={props.value} onChange={handleSelectionChange} />
             </td>
             <td className="px-0 py-0 whitespace-nowrap text-right">
-                {/* Action Buttons */}
                 <div className="flex justify-end">
                     <IconButton onClick={() => changeSelection("prev")}>
-                        {/* Replace with actual icon */}
                         <ArrowCircleLeftIcon />
                     </IconButton>
                     <IconButton onClick={() => changeSelection("next")}>
-                        {/* Replace with actual icon */}
                         <ArrowCircleRightIcon />
                     </IconButton>
                 </div>
