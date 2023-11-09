@@ -14,6 +14,7 @@ import { Switch } from "@lib/components/Switch";
 import { SurfaceAddress } from "@modules/_shared/Surface";
 import { TimeType } from "@modules/_shared/Surface";
 import { Select } from "@mui/base";
+import { d } from "@tanstack/react-query-devtools/build/legacy/devtools-c71c5f06";
 
 import { v4 as uuidv4 } from "uuid";
 
@@ -78,7 +79,8 @@ enum ActionType {
 type Payload = {
     [ActionType.AddSurface]: SurfaceSelection;
     [ActionType.RemoveSurface]: { id: string };
-    [ActionType.SetSurfaceSelection]: { uuid: string; surfaceSelection: SurfaceSelection };
+    [ActionType.SetSurfaceSelection]: { surfaceSelections: SurfaceSelection[] };
+
     [ActionType.SetSyncedSettings]: { syncedSettings: SyncedSettings };
     [ActionType.SetTimeMode]: { timeMode: TimeType };
     [ActionType.SetAttributeType]: { attributeType: SurfaceAttributeType_api };
@@ -102,13 +104,11 @@ function surfaceReducer(state: ReducerState, action: Actions) {
             surfaceSelections: state.surfaceSelections.filter((surface) => surface.uuid !== action.payload.id),
         };
     }
+
     if (action.type === ActionType.SetSurfaceSelection) {
-        const updatedSurfaceSelections = state.surfaceSelections.map((surface) =>
-            surface.uuid === action.payload.uuid ? action.payload.surfaceSelection : surface
-        );
         return {
             ...state,
-            surfaceSelections: updatedSurfaceSelections,
+            surfaceSelections: action.payload.surfaceSelections,
         };
     }
     if (action.type === ActionType.SetSyncedSettings) {
@@ -197,52 +197,112 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
 
     //     propagateSurfaceAddressesToView();
     // }, [surfaceAddresses]);
-    function handleSyncedSettingsChange(syncedSettings: SyncedSettings) {
+    function handleSyncedSettingChange(syncedSettingKey: string) {
+        // Toggle the synced setting
+        const newSyncedSettings = {
+            ...state.syncedSettings,
+            [syncedSettingKey]: !state.syncedSettings[syncedSettingKey as keyof SyncedSettings],
+        };
+
+        // If the setting is now active, propagate the first surface's setting to the others
+        let updatedSurfaceSelections = [...state.surfaceSelections];
+        if (newSyncedSettings[syncedSettingKey as keyof SyncedSettings]) {
+            const firstSurfaceSelection = state.surfaceSelections[0];
+            updatedSurfaceSelections = state.surfaceSelections.map((surface, index) => {
+                if (index !== 0) {
+                    // Skip the first, as it is the source of truth
+                    if (newSyncedSettings.ensemble) {
+                        surface.ensembleIdent = firstSurfaceSelection.ensembleIdent;
+                    }
+                    if (newSyncedSettings.name) {
+                        surface.surfaceName = firstSurfaceSelection.surfaceName;
+                    }
+                    if (newSyncedSettings.attribute) {
+                        surface.surfaceAttribute = firstSurfaceSelection.surfaceAttribute;
+                    }
+                    if (newSyncedSettings.timeOrInterval) {
+                        surface.surfaceTimeOrInterval = firstSurfaceSelection.surfaceTimeOrInterval;
+                    }
+                    if (newSyncedSettings.realizationNum) {
+                        surface.realizationNum = firstSurfaceSelection.realizationNum;
+                    }
+                }
+                return surface;
+            });
+        }
+
         dispatch({
             type: ActionType.SetSyncedSettings,
             payload: {
-                syncedSettings: syncedSettings,
+                syncedSettings: newSyncedSettings,
+            },
+        });
+
+        dispatch({
+            type: ActionType.SetSurfaceSelection,
+            payload: {
+                surfaceSelections: updatedSurfaceSelections,
             },
         });
     }
+
     function handleAddSurface() {
-        let newSurface: SurfaceSelection = {
-            ensembleIdent: ensembleSet.getEnsembleArr()[0]?.getIdent() ?? null,
+        const baseSurfaceSelection = state.surfaceSelections[0] || {
+            ensembleIdent: null,
             surfaceName: null,
             surfaceAttribute: null,
             surfaceTimeOrInterval: null,
             realizationNum: null,
-            uuid: uuidv4(),
         };
 
-        if (!newSurface) {
-            if (state.surfaceSelections.length) {
-                newSurface = { ...state.surfaceSelections[state.surfaceSelections.length - 1], uuid: uuidv4() };
-            } else {
-                newSurface = {
-                    ensembleIdent: null,
-                    surfaceName: null,
-                    surfaceAttribute: null,
-                    surfaceTimeOrInterval: null,
-                    realizationNum: null,
-                    uuid: uuidv4(),
-                };
-            }
-        }
+        let newSurface = { ...baseSurfaceSelection, uuid: uuidv4() };
+
         dispatch({
             type: ActionType.AddSurface,
             payload: newSurface,
         });
     }
+
     function handleSurfaceSelectChange(surfaceSelection: SurfaceSelection) {
+        if (state.surfaceSelections.length === 0) {
+            return;
+        }
+
+        const updatedSurfaceSelections = state.surfaceSelections.map((surface) =>
+            surface.uuid === surfaceSelection.uuid ? surfaceSelection : surface
+        );
+
+        if (Object.values(state.syncedSettings).some((isActive) => isActive)) {
+            const firstSurfaceSelection = updatedSurfaceSelections[0];
+            updatedSurfaceSelections.forEach((surface, index) => {
+                if (index !== 0) {
+                    if (state.syncedSettings.ensemble) {
+                        surface.ensembleIdent = firstSurfaceSelection.ensembleIdent;
+                    }
+                    if (state.syncedSettings.name) {
+                        surface.surfaceName = firstSurfaceSelection.surfaceName;
+                    }
+                    if (state.syncedSettings.attribute) {
+                        surface.surfaceAttribute = firstSurfaceSelection.surfaceAttribute;
+                    }
+                    if (state.syncedSettings.timeOrInterval) {
+                        surface.surfaceTimeOrInterval = firstSurfaceSelection.surfaceTimeOrInterval;
+                    }
+                    if (state.syncedSettings.realizationNum) {
+                        surface.realizationNum = firstSurfaceSelection.realizationNum;
+                    }
+                }
+            });
+        }
+
         dispatch({
             type: ActionType.SetSurfaceSelection,
             payload: {
-                uuid: surfaceSelection.uuid,
-                surfaceSelection: surfaceSelection,
+                surfaceSelections: updatedSurfaceSelections,
             },
         });
     }
+
     return (
         <>
             <Label text="Time mode">
@@ -265,7 +325,7 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
             </CollapsibleGroup>
 
             <CollapsibleGroup expanded={true} title="Synchronization">
-                <SyncSettings syncedSettings={state.syncedSettings} onChange={handleSyncedSettingsChange} />
+                <SyncSettings syncedSettings={state.syncedSettings} onChange={handleSyncedSettingChange} />
             </CollapsibleGroup>
             <div className="m-2">
                 <Button

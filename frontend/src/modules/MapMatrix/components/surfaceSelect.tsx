@@ -69,12 +69,14 @@ export const SurfaceSelect: React.FC<SurfaceSelectProps> = (props) => {
                     onChange={handleEnsembleSelectionChange}
                 />
             )}
-            <SingleSelectWithButtons
-                name="Surface name"
-                options={ensembleSurfaceDirectory.getSurfaceNames(null)}
-                value={computedSurfaceName}
-                onChange={handleSurfaceNameChange}
-            />
+            {!props.syncedSettings.name && (
+                <SingleSelectWithButtons
+                    name="Name"
+                    options={ensembleSurfaceDirectory.getSurfaceNames(null)}
+                    value={computedSurfaceName}
+                    onChange={handleSurfaceNameChange}
+                />
+            )}
         </>
     );
 };
