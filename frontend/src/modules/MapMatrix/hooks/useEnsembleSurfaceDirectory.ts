@@ -19,7 +19,6 @@ export type EnsembleSurfaceDirectoryOptions = {
 };
 export function useEnsembleSurfaceDirectory(options: EnsembleSurfaceDirectoryOptions) {
     let surfaceMetas: SurfaceMeta_api[] = options.surfaceMetas;
-    console.log("I am here");
     surfaceMetas = filterOnTimeType(surfaceMetas, options.timeType);
     surfaceMetas = filterOnAttributeType(
         surfaceMetas,

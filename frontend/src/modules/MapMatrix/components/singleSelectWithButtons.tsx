@@ -20,7 +20,7 @@ export const SingleSelectWithButtons: React.FC<SingleSelectWithButtonsProps> = (
         value: option,
         label: props.labelFunction?.(option) ?? option,
     }));
-
+    console.log("value from select", props.value);
     const handleSelectionChange = (selectedValue: string) => {
         props.onChange?.(selectedValue);
     };
@@ -38,7 +38,6 @@ export const SingleSelectWithButtons: React.FC<SingleSelectWithButtonsProps> = (
         const nextValue = props.options[nextIndex];
         handleSelectionChange(nextValue);
     };
-
     return (
         <tr>
             <td className="px-6 py-0 whitespace-nowrap">{props.name}</td>

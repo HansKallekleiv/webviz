@@ -18,7 +18,6 @@ export type EnsembleSelectWithButtonsProps = {
     onChange?: (values: EnsembleIdent | null) => void;
 };
 export const EnsembleSelectWithButtons: React.FC<EnsembleSelectWithButtonsProps> = (props) => {
-    console.log("I am in ensemble");
     const availableEnsembles = props.ensembleSet.getEnsembleArr();
     const availableEnsembleOptions = availableEnsembles.map((ensemble) => ({
         value: ensemble.getIdent().toString(),
@@ -31,7 +30,6 @@ export const EnsembleSelectWithButtons: React.FC<EnsembleSelectWithButtonsProps>
     const displayValue = props.controlledValue ? props.controlledValue.toString() : localValue;
 
     const handleSelectionChange = (selectedValue: string) => {
-        console.log("Ensemble changed");
         const foundEnsemble = props.ensembleSet.findEnsembleByIdentString(selectedValue);
         if (!props.controlledValue) {
             setLocalValue(selectedValue);
