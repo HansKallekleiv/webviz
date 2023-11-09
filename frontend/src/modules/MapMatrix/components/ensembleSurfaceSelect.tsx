@@ -27,7 +27,7 @@ import { useEnsembleSurfaceDirectory } from "../hooks/useEnsembleSurfaceDirector
 export type EnsembleSurfaceSelectProps = {
     ensembleSetSurfaceMetas: EnsembleSetSurfaceMetas;
     surfaceAttributeTypes: SurfaceAttributeType_api[];
-    controlledEnsembleIdent?: EnsembleIdent | null;
+    controlledEnsembleIdent?: { caseUuid: string; ensembleName: string } | null;
     controlledSurfaceName?: string;
     controlledSurfaceAttribute?: string;
     controlledSurfaceTimeOrInterval?: string | null;
@@ -61,7 +61,6 @@ enum Stage {
 }
 
 export const EnsembleSurfaceSelect: React.FC<EnsembleSurfaceSelectProps> = (props) => {
-    console.log("CONTROLLED TIME", props.controlledSurfaceTimeOrInterval, props.index);
     const ensembleSet = useEnsembleSet(props.workbenchSession);
     const [ensembleSetSurfaceMetaData, setEnsembleSetSurfaceMetaData] = React.useState<{
         ensembleIdent: EnsembleIdent;
@@ -74,11 +73,15 @@ export const EnsembleSurfaceSelect: React.FC<EnsembleSurfaceSelectProps> = (prop
     );
     const computedEnsembleIdent = fixupPossibleControlledEnsembleIdentValue(
         selectedEnsembleIdent,
-        props.controlledEnsembleIdent,
+        EnsembleIdent.fromCaseUuidAndEnsembleName(
+            props.controlledEnsembleIdent?.caseUuid ?? "",
+            props.controlledEnsembleIdent?.ensembleName ?? ""
+        ),
         ensembleSet.getEnsembleArr().map((ens) => ens.getIdent())
     );
 
-    if (computedEnsembleIdent?.toString() !== selectedEnsembleIdent?.toString()) {
+    if (computedEnsembleIdent?.toString() != selectedEnsembleIdent?.toString()) {
+        console.log("Ensemble changed", computedEnsembleIdent?.toString(), selectedEnsembleIdent?.toString());
         setSelectedEnsembleIdent(computedEnsembleIdent);
     }
     const computedEnsembleSurfaceMetaData = props.ensembleSetSurfaceMetas.data.find(
@@ -91,6 +94,7 @@ export const EnsembleSurfaceSelect: React.FC<EnsembleSurfaceSelectProps> = (prop
         computedEnsembleSurfaceMetaData &&
         !isEqual(computedEnsembleSurfaceMetaData, ensembleSetSurfaceMetaData)
     ) {
+        console.log("Ensemble surface metadata changed", computedEnsembleSurfaceMetaData, ensembleSetSurfaceMetaData);
         setEnsembleSetSurfaceMetaData(computedEnsembleSurfaceMetaData);
     }
     const [stage, setStage] = React.useState<Stage>(Stage.Realization);
@@ -123,7 +127,8 @@ export const EnsembleSurfaceSelect: React.FC<EnsembleSurfaceSelectProps> = (prop
         props.controlledSurfaceName,
         ensembleSurfaceDirectory.getSurfaceNames(null)
     );
-    if (computedSurfaceName !== surfaceName) {
+    if (computedSurfaceName != surfaceName) {
+        console.log("Surface name changed", computedSurfaceName, surfaceName);
         setSurfaceName(computedSurfaceName);
     }
     const computedSurfaceAttribute = fixupPossibleControlledValue(
@@ -131,7 +136,8 @@ export const EnsembleSurfaceSelect: React.FC<EnsembleSurfaceSelectProps> = (prop
         props.controlledSurfaceAttribute,
         ensembleSurfaceDirectory.getAttributeNames(computedSurfaceName)
     );
-    if (computedSurfaceAttribute !== surfaceAttribute) {
+    if (computedSurfaceAttribute != surfaceAttribute) {
+        console.log("Surface attribute changed", computedSurfaceAttribute, surfaceAttribute);
         setSurfaceAttribute(computedSurfaceAttribute);
     }
     const [surfaceTimeOrInterval, setSurfaceTimeOrInterval] = useValidState<string | null>(
@@ -141,17 +147,11 @@ export const EnsembleSurfaceSelect: React.FC<EnsembleSurfaceSelectProps> = (prop
     const computedSurfaceTimeOrInterval = fixupPossibleControlledValue(
         surfaceTimeOrInterval,
         props.controlledSurfaceTimeOrInterval,
-        ensembleSurfaceDirectory.getTimeOrIntervalStrings(computedSurfaceName, computedSurfaceAttribute),
-        true
+        ensembleSurfaceDirectory.getTimeOrIntervalStrings(computedSurfaceName, computedSurfaceAttribute)
     );
-    console.log(
-        "COMPUTEDTIME",
-        computedSurfaceTimeOrInterval,
-        props.controlledSurfaceTimeOrInterval,
-        surfaceTimeOrInterval,
-        props.index
-    );
-    if (computedSurfaceTimeOrInterval !== surfaceTimeOrInterval) {
+
+    if (computedSurfaceTimeOrInterval != surfaceTimeOrInterval) {
+        console.log("Surface time changed", computedSurfaceTimeOrInterval, surfaceTimeOrInterval);
         setSurfaceTimeOrInterval(computedSurfaceTimeOrInterval);
     }
     const computedRealizationNum = fixupPossibleControlledValue(
@@ -163,13 +163,15 @@ export const EnsembleSurfaceSelect: React.FC<EnsembleSurfaceSelectProps> = (prop
             ?.getRealizations()
             .map((real) => real) ?? []
     );
-    if (computedRealizationNum !== realizationNum) {
+    if (computedRealizationNum != realizationNum) {
+        console.log("Realization num changed", computedRealizationNum, realizationNum);
         setRealizationNum(computedRealizationNum);
     }
 
     React.useEffect(
         function onChange() {
-            const finalEnsembleIdent = props.controlledEnsembleIdent || selectedEnsembleIdent;
+            console.log("Something changed");
+            const finalEnsembleIdent = computedEnsembleIdent;
             const finalSurfaceName = props.controlledSurfaceName || surfaceName;
             const finalSurfaceAttribute = props.controlledSurfaceAttribute || surfaceAttribute;
             const finalSurfaceTimeOrInterval = fixupPossibleControlledValue(
@@ -177,7 +179,6 @@ export const EnsembleSurfaceSelect: React.FC<EnsembleSurfaceSelectProps> = (prop
                 props.controlledSurfaceTimeOrInterval,
                 ensembleSurfaceDirectory.getTimeOrIntervalStrings(computedSurfaceName, computedSurfaceAttribute)
             );
-            console.log("time", finalSurfaceTimeOrInterval);
             if (
                 props.onAddressChange &&
                 finalEnsembleIdent &&
@@ -201,7 +202,13 @@ export const EnsembleSurfaceSelect: React.FC<EnsembleSurfaceSelectProps> = (prop
                 }
             }
         },
-        [selectedEnsembleIdent, surfaceAttribute, surfaceName, surfaceTimeOrInterval, stage, realizationNum]
+        [
+            computedEnsembleIdent,
+            computedSurfaceName,
+            computedSurfaceAttribute,
+            computedSurfaceTimeOrInterval,
+            computedRealizationNum,
+        ]
     );
 
     return (
@@ -275,13 +282,8 @@ export const EnsembleSurfaceSelect: React.FC<EnsembleSurfaceSelectProps> = (prop
 function fixupPossibleControlledValue<T extends string | number>(
     value: T | null,
     possibleControlledValue: T | null | undefined,
-    possibleValues: T[],
-    print?: boolean
+    possibleValues: T[]
 ): T {
-    if (print) {
-        console.log("fixup", value, possibleControlledValue, possibleValues);
-    }
-
     if (
         possibleControlledValue !== undefined &&
         possibleControlledValue !== null &&
@@ -292,39 +294,10 @@ function fixupPossibleControlledValue<T extends string | number>(
     if (value === null && possibleValues.length > 0) {
         return possibleValues[0];
     }
-    if (print) {
-        console.log("fixup", value, possibleControlledValue, possibleValues);
-    }
+
     return (value === null ? "" : value) as T;
 }
-function fixupTimeString<T extends string | number>(
-    value: T | null,
-    possibleControlledValue: T | null | undefined,
-    possibleValues: T[],
-    print?: boolean
-): T | null {
-    if (print) {
-        console.log("fixup", value, possibleControlledValue, possibleValues);
-    }
 
-    if (
-        possibleControlledValue !== undefined &&
-        possibleControlledValue !== null &&
-        possibleValues.includes(possibleControlledValue)
-    ) {
-        return possibleControlledValue;
-    }
-    if (possibleControlledValue === null) {
-        return null;
-    }
-    if (value === null && possibleValues.length > 0) {
-        return possibleValues[0];
-    }
-    if (print) {
-        console.log("fixup", value, possibleControlledValue, possibleValues);
-    }
-    return value as T;
-}
 function fixupPossibleControlledEnsembleIdentValue(
     value: EnsembleIdent | null,
     possibleControlledValue: EnsembleIdent | null | undefined,

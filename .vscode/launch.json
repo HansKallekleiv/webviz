@@ -1,6 +1,13 @@
 {
     "configurations": [
         {
+            "name": "TS: Launch Chrome and Attach",
+            "request": "launch",
+            "type": "chrome",
+            "webRoot": "${workspaceFolder}/frontend",
+            "url": "http://localhost:8080"
+        },
+        {
             "name": "Python: Remote Attach",
             "type": "python",
             "request": "attach",
