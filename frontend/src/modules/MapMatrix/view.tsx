@@ -125,7 +125,7 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
         isRightRuler: false,
         isBottomRuler: false,
         isTopRuler: true,
-        backgroundColor: [155, 155, 155, 255],
+        backgroundColor: [255, 255, 255, 255],
     });
 
     return (
