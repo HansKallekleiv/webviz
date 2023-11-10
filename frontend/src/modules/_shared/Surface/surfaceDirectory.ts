@@ -111,7 +111,7 @@ export class SurfaceDirectory {
         );
 
         const minValues = filteredListWithValues.map((surface) => surface.value_min ?? Number.POSITIVE_INFINITY);
-        const maxValues = filteredListWithValues.map((surface) => surface.value_max ?? Number.POSITIVE_INFINITY);
+        const maxValues = filteredListWithValues.map((surface) => surface.value_max ?? Number.NEGATIVE_INFINITY);
 
         const min = filteredListWithValues.length > 0 ? Math.min(...minValues) : 0;
         const max = filteredListWithValues.length > 0 ? Math.max(...maxValues) : 0;

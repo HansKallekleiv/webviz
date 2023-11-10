@@ -19,6 +19,7 @@ import { IndexedSurfaceDatas, useSurfaceDataSetQueryByAddress } from "./hooks/us
 import { State } from "./state";
 
 export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>) {
+    const [viewportBounds, setviewPortBounds] = React.useState<[number, number, number, number] | undefined>(undefined);
     const [prevSurfaceDataSetQueryByAddress, setPrevSurfaceDataSetQueryByAddress] =
         React.useState<IndexedSurfaceDatas | null>(null);
 
@@ -77,7 +78,6 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
     const views: ViewsType = { layout: [numRows, numColumns], showLabel: true, viewports: viewPorts };
     const layers: Record<string, unknown>[] = [];
     const viewAnnotations: JSX.Element[] = [];
-    let bounds: [number, number, number, number] | null = null;
 
     surfaceDataSet.forEach((surface, index) => {
         const colorMin = surfaceSelections[index].colorMin;
@@ -85,15 +85,19 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
         const valueMin = surface?.surfaceData?.val_min ?? 0;
         const valueMax = surface?.surfaceData?.val_max ?? 0;
         if (surface.surfaceData) {
-            if (!bounds) {
-                bounds = [
+            if (!viewportBounds) {
+                const bounds: [number, number, number, number] = [
                     surface.surfaceData.x_min,
                     surface.surfaceData.y_min,
                     surface.surfaceData.x_max,
                     surface.surfaceData.y_max,
                 ];
+                setviewPortBounds(bounds);
             }
-            layers.push(makeSurfaceImageLayer(`surface-${index}`, surface.surfaceData, colorMin, colorMax));
+
+            layers.push(
+                makeSurfaceImageLayer(`surface-${index}`, surface.surfaceData, valueMin, valueMax, colorMin, colorMax)
+            );
             views.viewports[index] = {
                 id: `${index}view`,
                 show3D: false,
@@ -131,7 +135,7 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
                     id={"test"}
                     layers={layers}
                     views={views}
-                    bounds={bounds || undefined}
+                    bounds={viewportBounds || undefined}
                     workbenchServices={workbenchServices}
                     moduleContext={moduleContext}
                 >
@@ -199,7 +203,9 @@ function makeSurfaceImageLayer(
     id: string,
     surfaceData: SurfaceDataPng_api,
     valueMin: number | null,
-    valueMax: number | null
+    valueMax: number | null,
+    colorMin: number | null,
+    colorMax: number | null
 ): Record<string, unknown> {
     return {
         "@@type": "ColormapLayer",
@@ -213,5 +219,6 @@ function makeSurfaceImageLayer(
         ],
         rotDeg: surfaceData.rot_deg,
         valueRange: [valueMin, valueMax],
+        colorMapRange: [colorMin, colorMax],
     };
 }
