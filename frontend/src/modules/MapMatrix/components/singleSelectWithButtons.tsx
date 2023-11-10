@@ -24,11 +24,9 @@ export const SingleSelectWithButtons: React.FC<SingleSelectWithButtonsProps> = (
         <tr>
             <td className="px-6 py-0 whitespace-nowrap">{props.name}</td>
             <td className="px-6 py-0 w-full whitespace-nowrap">
-                {/* Dropdown */}
                 <Dropdown options={selectOptions} value={props.value} onChange={handleSelectionChange} />
             </td>
             <td className="px-0 py-0 whitespace-nowrap text-right">
-                {/* Action Buttons */}
                 <PrevNextButtonsProps onChange={handleSelectionChange} options={props.options} value={props.value} />
             </td>
         </tr>

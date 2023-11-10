@@ -1,7 +1,7 @@
 import React from "react";
 
 import { Label } from "@lib/components/Label";
-import { Select, SelectOption } from "@lib/components/Select";
+import { Select } from "@lib/components/Select";
 import { useValidState } from "@lib/hooks/useValidState";
 
 export type SingleSelectProps = {

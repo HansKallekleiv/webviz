@@ -10,7 +10,7 @@ type SyncSettingsProps = {
 };
 
 export const SyncSettings: React.FC<SyncSettingsProps> = (props) => {
-    function handleSyncedSettingsChange(key: any, value: boolean) {
+    function handleSyncedSettingsChange(key: keyof SyncedSettings, value: boolean) {
         const updatedSyncedSettings = { ...props.syncedSettings, [key]: value };
         props.onChange(updatedSyncedSettings);
     }

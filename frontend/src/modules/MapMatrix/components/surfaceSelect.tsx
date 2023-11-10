@@ -146,7 +146,6 @@ export const SurfaceSelect: React.FC<SurfaceSelectProps> = (props) => {
     }
     return (
         <>
-            {" "}
             <tr className="bg-slate-100">
                 <td className="px-6 py-0 whitespace-nowrap">{`Surface ${props.index + 1}`}</td>
                 <td></td>
