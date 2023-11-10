@@ -84,7 +84,39 @@ export class SurfaceDirectory {
         });
         return [...timeOrIntervalsSet].sort();
     }
+    //Get min and max value
+    public getValueRange(
+        requireSurfaceName: string | null,
+        requireAttributeName: string | null,
+        requireTimeOrIntervalString: string | null
+    ): { min: number; max: number } {
+        let filteredList = this._surfaceList;
 
+        if (requireSurfaceName || requireAttributeName || requireTimeOrIntervalString) {
+            filteredList = filteredList.filter((surface) => {
+                const matchedOnSurfName = !requireSurfaceName || surface.name === requireSurfaceName;
+                const matchedOnAttrName = !requireAttributeName || surface.attribute_name === requireAttributeName;
+                const matchedOnTimeOrIntervalString =
+                    !requireTimeOrIntervalString || surface.iso_date_or_interval === requireTimeOrIntervalString;
+                return matchedOnSurfName && matchedOnAttrName && matchedOnTimeOrIntervalString;
+            });
+        }
+        if (filteredList.length === 0) {
+            return { min: 0, max: 0 };
+        }
+
+        //Get min and max values, ignoring items with null values. Those are not included in the range. Setting default to 0
+        const filteredListWithValues = filteredList.filter(
+            (surface) => surface.value_min !== null && surface.value_max !== null
+        );
+
+        const minValues = filteredListWithValues.map((surface) => surface.value_min ?? Number.POSITIVE_INFINITY);
+        const maxValues = filteredListWithValues.map((surface) => surface.value_max ?? Number.POSITIVE_INFINITY);
+
+        const min = filteredListWithValues.length > 0 ? Math.min(...minValues) : 0;
+        const max = filteredListWithValues.length > 0 ? Math.max(...maxValues) : 0;
+        return { min, max };
+    }
     // Checks if a given name and attribute pair exists.
     public nameAttributePairExists(surfaceName: string | null, attributeName: string | null): boolean {
         if (!attributeName || !surfaceName) return false;

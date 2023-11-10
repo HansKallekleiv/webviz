@@ -1,3 +1,3 @@
-import { SurfaceAddress } from "@modules/_shared/Surface";
+import { SurfaceSelection } from "./settings";
 
-export type State = { surfaceAddresses: SurfaceAddress[] };
+export type State = { surfaceSelections: SurfaceSelection[] };

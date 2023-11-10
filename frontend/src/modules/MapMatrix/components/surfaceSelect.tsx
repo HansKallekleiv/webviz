@@ -87,6 +87,17 @@ export const SurfaceSelect: React.FC<SurfaceSelectProps> = (props) => {
     if (!computedRealizationNum || !availableRealizationNums.includes(computedRealizationNum)) {
         computedRealizationNum = availableRealizationNums[0];
     }
+
+    const valueRange = ensembleSurfaceDirectory.getValueRange(computedSurfaceName, computedSurfaceAttribute, null);
+    let computedValueMin: number | null = valueRange.min;
+    let computedValueMax: number | null = valueRange.max;
+    if (
+        props.surfaceSelection.statisticFunction === SurfaceStatisticFunction_api.STD &&
+        props.surfaceSelection.ensembleStage === EnsembleStageType.Statistics
+    ) {
+        computedValueMin = null;
+        computedValueMax = null;
+    }
     const computedSurfaceSelection: SurfaceSelection = {
         ensembleIdent: computedEnsembleIdent,
         surfaceName: computedSurfaceName,
@@ -95,6 +106,8 @@ export const SurfaceSelect: React.FC<SurfaceSelectProps> = (props) => {
         realizationNum: computedRealizationNum,
         ensembleStage: props.surfaceSelection.ensembleStage,
         statisticFunction: props.surfaceSelection.statisticFunction,
+        colorMin: computedValueMin,
+        colorMax: computedValueMax,
         uuid: props.surfaceSelection.uuid,
     };
 

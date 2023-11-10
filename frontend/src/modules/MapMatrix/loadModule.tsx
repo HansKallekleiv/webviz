@@ -5,7 +5,7 @@ import { State } from "./state";
 import { view } from "./view";
 
 const defaultState: State = {
-    surfaceAddresses: [],
+    surfaceSelections: [],
 };
 
 const module = ModuleRegistry.initModule<State>("MapMatrix", defaultState);

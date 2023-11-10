@@ -6,6 +6,7 @@ import { ContinuousLegend } from "@emerson-eps/color-tables";
 import { ModuleFCProps } from "@framework/Module";
 import { SyncedSubsurfaceViewer } from "@modules/SubsurfaceMap/components/SyncedSubsurfaceViewer";
 import { SurfaceAddress } from "@modules/_shared/Surface";
+import { SurfaceAddressFactory } from "@modules/_shared/Surface";
 import { ViewportType, ViewsType } from "@webviz/subsurface-viewer";
 import { ViewFooter } from "@webviz/subsurface-viewer/dist/components/ViewFooter";
 
@@ -13,6 +14,7 @@ import "animate.css";
 import { includes, isEqual } from "lodash";
 
 import { isoStringToDateOrIntervalLabel } from "./_utils/isoString";
+import { EnsembleStageType } from "./components/aggregationSelect";
 import { IndexedSurfaceDatas, useSurfaceDataSetQueryByAddress } from "./hooks/useSurfaceDataAsPngQuery";
 import { State } from "./state";
 
@@ -20,7 +22,27 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
     const [prevSurfaceDataSetQueryByAddress, setPrevSurfaceDataSetQueryByAddress] =
         React.useState<IndexedSurfaceDatas | null>(null);
 
-    const surfaceAddresses = moduleContext.useStoreValue("surfaceAddresses");
+    const surfaceSelections = moduleContext.useStoreValue("surfaceSelections");
+    const surfaceAddresses: SurfaceAddress[] = [];
+    surfaceSelections.forEach((surface) => {
+        if (surface.ensembleIdent && surface.surfaceName && surface.surfaceAttribute) {
+            const factory = new SurfaceAddressFactory(
+                surface.ensembleIdent?.getCaseUuid(),
+                surface.ensembleIdent?.getEnsembleName(),
+                surface.surfaceName,
+                surface.surfaceAttribute,
+                surface.surfaceTimeOrInterval
+            );
+            if (surface.ensembleStage === EnsembleStageType.Realization && surface.realizationNum !== null) {
+                const surfaceAddress = factory.createRealizationAddress(surface.realizationNum);
+                surfaceAddresses.push(surfaceAddress);
+            }
+            if (surface.ensembleStage === EnsembleStageType.Statistics) {
+                const surfaceAddress = factory.createStatisticalAddress(surface.statisticFunction);
+                surfaceAddresses.push(surfaceAddress);
+            }
+        }
+    });
 
     const surfaceDataSetQueryByAddress = useSurfaceDataSetQueryByAddress(surfaceAddresses);
     let surfaceDataSet: Array<{
@@ -58,6 +80,10 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
     let bounds: [number, number, number, number] | null = null;
 
     surfaceDataSet.forEach((surface, index) => {
+        const colorMin = surfaceSelections[index].colorMin;
+        const colorMax = surfaceSelections[index].colorMax;
+        const valueMin = surface?.surfaceData?.val_min ?? 0;
+        const valueMax = surface?.surfaceData?.val_max ?? 0;
         if (surface.surfaceData) {
             if (!bounds) {
                 bounds = [
@@ -67,7 +93,7 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
                     surface.surfaceData.y_max,
                 ];
             }
-            layers.push(makeSurfaceImageLayer(`surface-${index}`, surface.surfaceData));
+            layers.push(makeSurfaceImageLayer(`surface-${index}`, surface.surfaceData, colorMin, colorMax));
             views.viewports[index] = {
                 id: `${index}view`,
                 show3D: false,
@@ -80,8 +106,8 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
             makeViewAnnotation(
                 `${index}view`,
                 surface?.surfaceData ? surfaceAddresses[index] : null,
-                surface?.surfaceData?.val_min || 0,
-                surface?.surfaceData?.val_max || 0,
+                colorMin || valueMin,
+                colorMax || valueMax,
                 "Physics"
             )
         );
@@ -169,7 +195,12 @@ function makeViewAnnotation(
     );
 }
 
-function makeSurfaceImageLayer(id: string, surfaceData: SurfaceDataPng_api): Record<string, unknown> {
+function makeSurfaceImageLayer(
+    id: string,
+    surfaceData: SurfaceDataPng_api,
+    valueMin: number | null,
+    valueMax: number | null
+): Record<string, unknown> {
     return {
         "@@type": "ColormapLayer",
         id: id,
@@ -181,6 +212,6 @@ function makeSurfaceImageLayer(id: string, surfaceData: SurfaceDataPng_api): Rec
             surfaceData.y_max_surf_orient,
         ],
         rotDeg: surfaceData.rot_deg,
-        valueRange: [surfaceData.val_min, surfaceData.val_max],
+        valueRange: [valueMin, valueMax],
     };
 }

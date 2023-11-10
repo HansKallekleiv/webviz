@@ -41,6 +41,8 @@ export type SurfaceSelection = {
     uuid: string;
     statisticFunction: SurfaceStatisticFunction_api;
     ensembleStage: EnsembleStageType;
+    colorMin: number | null;
+    colorMax: number | null;
 };
 export type SyncedSettings = {
     ensemble: boolean;
@@ -181,28 +183,8 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
         });
     }
     React.useEffect(
-        function propagateSurfaceAddressesToView() {
-            const surfaceAddresses: SurfaceAddress[] = [];
-            state.surfaceSelections.forEach((surface) => {
-                if (surface.ensembleIdent && surface.surfaceName && surface.surfaceAttribute) {
-                    const factory = new SurfaceAddressFactory(
-                        surface.ensembleIdent?.getCaseUuid(),
-                        surface.ensembleIdent?.getEnsembleName(),
-                        surface.surfaceName,
-                        surface.surfaceAttribute,
-                        surface.surfaceTimeOrInterval
-                    );
-                    if (surface.ensembleStage === EnsembleStageType.Realization && surface.realizationNum !== null) {
-                        const surfaceAddress = factory.createRealizationAddress(surface.realizationNum);
-                        surfaceAddresses.push(surfaceAddress);
-                    }
-                    if (surface.ensembleStage === EnsembleStageType.Statistics) {
-                        const surfaceAddress = factory.createStatisticalAddress(surface.statisticFunction);
-                        surfaceAddresses.push(surfaceAddress);
-                    }
-                }
-            });
-            moduleContext.getStateStore().setValue("surfaceAddresses", surfaceAddresses);
+        function propogateSurfaceSelectionsToView() {
+            moduleContext.getStateStore().setValue("surfaceSelections", state.surfaceSelections);
         },
         [state.surfaceSelections]
     );
@@ -224,6 +206,8 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
             uuid: uuidv4(),
             statisticFunction: SurfaceStatisticFunction_api.MEAN,
             ensembleStage: EnsembleStageType.Realization,
+            colorMin: 0,
+            colorMax: 0,
         };
 
         if (state.surfaceSelections.length) {
