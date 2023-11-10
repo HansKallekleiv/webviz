@@ -1,11 +1,9 @@
 import React from "react";
 
-import { StatisticFunction_api, SurfaceAttributeType_api, SurfaceStatisticFunction_api } from "@api";
+import { SurfaceAttributeType_api, SurfaceStatisticFunction_api } from "@api";
 import { EnsembleIdent } from "@framework/EnsembleIdent";
 import { EnsembleSet } from "@framework/EnsembleSet";
-import { Button } from "@lib/components/Button";
 import { IconButton } from "@lib/components/IconButton";
-import { useValidState } from "@lib/hooks/useValidState";
 import { SurfaceDirectory, TimeType } from "@modules/_shared/Surface";
 import { Remove } from "@mui/icons-material";
 
@@ -13,7 +11,6 @@ import { isEqual } from "lodash";
 
 import { AggregationSelect, EnsembleStage, EnsembleStageType } from "./aggregationSelect";
 import { EnsembleSelectWithButtons } from "./ensembleSelectWithButtons";
-import { SingleRealizationSelectWithButtons } from "./singleRealizationSelectWithButtons";
 import { SingleSelectWithButtons } from "./singleSelectWithButtons";
 
 import { isoStringToDateOrIntervalLabel } from "../_utils/isoString";

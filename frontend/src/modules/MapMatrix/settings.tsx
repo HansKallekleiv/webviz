@@ -1,25 +1,19 @@
-import React, { useState } from "react";
+import React from "react";
 
 import { SurfaceAttributeType_api, SurfaceStatisticFunction_api } from "@api";
 import { EnsembleIdent } from "@framework/EnsembleIdent";
 import { ModuleFCProps } from "@framework/Module";
 import { useEnsembleSet } from "@framework/WorkbenchSession";
 import { Button } from "@lib/components/Button";
-import { Checkbox } from "@lib/components/Checkbox";
 import { CircularProgress } from "@lib/components/CircularProgress";
 import { CollapsibleGroup } from "@lib/components/CollapsibleGroup";
 import { Label } from "@lib/components/Label";
 import { RadioGroup } from "@lib/components/RadioGroup";
-import { Switch } from "@lib/components/Switch";
-import { SurfaceAddress, SurfaceAddressFactory } from "@modules/_shared/Surface";
 import { TimeType } from "@modules/_shared/Surface";
-import { Select } from "@mui/base";
 
 import { v4 as uuidv4 } from "uuid";
 
-import { EnsembleStage, EnsembleStageType } from "./components/aggregationSelect";
-import { LabelledSwitch } from "./components/labelledSwitch";
-import { MultiSelect } from "./components/multiSelect";
+import { EnsembleStageType } from "./components/aggregationSelect";
 import { SingleSelect } from "./components/singleSelect";
 import { SurfaceSelect } from "./components/surfaceSelect";
 import { SyncSettings } from "./components/syncSettings";
