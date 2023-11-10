@@ -1,10 +1,30 @@
-import {
-    SurfaceReducerActionType,
-    SurfaceReducerActions,
-    SurfaceReducerState,
-    SurfaceSpecification,
-    SyncedSettings,
-} from "../types";
+import { SurfaceAttributeType_api } from "@api";
+import { TimeType } from "@modules/_shared/Surface";
+
+import { SurfaceReducerState, SurfaceSpecification, SyncedSettings } from "../types";
+
+export enum SurfaceReducerActionType {
+    AddSurface,
+    RemoveSurface,
+    SetSurface,
+    SetSyncedSettings,
+    SetTimeMode,
+    SetAttributeType,
+}
+type SurfaceReducerPayload = {
+    [SurfaceReducerActionType.AddSurface]: SurfaceSpecification;
+    [SurfaceReducerActionType.RemoveSurface]: { id: string };
+    [SurfaceReducerActionType.SetSurface]: { surfaceSpecification: SurfaceSpecification };
+    [SurfaceReducerActionType.SetSyncedSettings]: { syncedSettings: SyncedSettings };
+    [SurfaceReducerActionType.SetTimeMode]: { timeMode: TimeType };
+    [SurfaceReducerActionType.SetAttributeType]: { attributeType: SurfaceAttributeType_api };
+};
+type SurfaceReducerActions = {
+    [T in SurfaceReducerActionType]: {
+        type: T;
+        payload: SurfaceReducerPayload[T];
+    };
+}[SurfaceReducerActionType];
 
 export function surfaceDispatcher(state: SurfaceReducerState, action: SurfaceReducerActions) {
     if (action.type === SurfaceReducerActionType.AddSurface) {

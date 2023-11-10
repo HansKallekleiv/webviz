@@ -13,7 +13,6 @@ import { TimeType } from "@modules/_shared/Surface";
 
 import { v4 as uuidv4 } from "uuid";
 
-import { SingleSelect } from "./components/singleSelect";
 import { SurfaceSelect } from "./components/surfaceSelect";
 import { SyncSettings } from "./components/syncSettings";
 import { useEnsembleSetSurfaceMetaQuery } from "./hooks/useEnsembleSetSurfaceMetaQuery";

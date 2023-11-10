@@ -9,29 +9,6 @@ export type SurfaceReducerState = {
     attributeType: SurfaceAttributeType_api;
 };
 
-export enum SurfaceReducerActionType {
-    AddSurface,
-    RemoveSurface,
-    SetSurface,
-    SetSyncedSettings,
-    SetTimeMode,
-    SetAttributeType,
-}
-export type SurfaceReducerPayload = {
-    [SurfaceReducerActionType.AddSurface]: SurfaceSpecification;
-    [SurfaceReducerActionType.RemoveSurface]: { id: string };
-    [SurfaceReducerActionType.SetSurface]: { surfaceSpecification: SurfaceSpecification };
-    [SurfaceReducerActionType.SetSyncedSettings]: { syncedSettings: SyncedSettings };
-    [SurfaceReducerActionType.SetTimeMode]: { timeMode: TimeType };
-    [SurfaceReducerActionType.SetAttributeType]: { attributeType: SurfaceAttributeType_api };
-};
-export type SurfaceReducerActions = {
-    [T in SurfaceReducerActionType]: {
-        type: T;
-        payload: SurfaceReducerPayload[T];
-    };
-}[SurfaceReducerActionType];
-
 export type SurfaceSpecification = {
     ensembleIdent: EnsembleIdent | null;
     surfaceName: string | null;

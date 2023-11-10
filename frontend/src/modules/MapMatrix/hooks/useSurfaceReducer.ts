@@ -3,8 +3,8 @@ import { useReducer } from "react";
 import { SurfaceAttributeType_api } from "@api";
 import { TimeType } from "@modules/_shared/Surface";
 
-import { surfaceDispatcher } from "../reducers/surfaceReducer";
-import { SurfaceReducerActionType, SurfaceReducerState, SurfaceSpecification, SyncedSettings } from "../types";
+import { SurfaceReducerActionType, surfaceDispatcher } from "../reducers/surfaceReducer";
+import { SurfaceReducerState, SurfaceSpecification, SyncedSettings } from "../types";
 
 export const initialSurfaceReducerState: SurfaceReducerState = {
     surfaceSpecifications: [],
