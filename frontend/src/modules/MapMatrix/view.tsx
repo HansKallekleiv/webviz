@@ -4,6 +4,7 @@ import { SurfaceDataPng_api } from "@api";
 import { View } from "@deck.gl/core/typed";
 import { ContinuousLegend } from "@emerson-eps/color-tables";
 import { ModuleFCProps } from "@framework/Module";
+import { useViewStatusWriter } from "@framework/StatusWriter";
 import { SyncedSubsurfaceViewer } from "@modules/SubsurfaceMap/components/SyncedSubsurfaceViewer";
 import { SurfaceAddress } from "@modules/_shared/Surface";
 import { SurfaceAddressFactory } from "@modules/_shared/Surface";
@@ -11,17 +12,20 @@ import { ViewportType, ViewsType } from "@webviz/subsurface-viewer";
 import { ViewFooter } from "@webviz/subsurface-viewer/dist/components/ViewFooter";
 
 import "animate.css";
-import { includes, isEqual } from "lodash";
+import { isEqual } from "lodash";
 
 import { isoStringToDateOrIntervalLabel } from "./_utils/isoString";
+import { StatisticFunctionToStringMapping } from "./components/aggregationSelect";
 import { EnsembleStageType } from "./components/aggregationSelect";
 import { IndexedSurfaceDatas, useSurfaceDataSetQueryByAddress } from "./hooks/useSurfaceDataAsPngQuery";
+import { SurfaceSelection } from "./settings";
 import { State } from "./state";
 
 export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>) {
     const [viewportBounds, setviewPortBounds] = React.useState<[number, number, number, number] | undefined>(undefined);
     const [prevSurfaceDataSetQueryByAddress, setPrevSurfaceDataSetQueryByAddress] =
         React.useState<IndexedSurfaceDatas | null>(null);
+    const statusWriter = useViewStatusWriter(moduleContext);
 
     const surfaceSelections = moduleContext.useStoreValue("surfaceSelections");
     const surfaceAddresses: SurfaceAddress[] = [];
@@ -59,6 +63,7 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
     } else if (prevSurfaceDataSetQueryByAddress) {
         surfaceDataSet = prevSurfaceDataSetQueryByAddress.data;
     }
+    statusWriter.setLoading(surfaceDataSetQueryByAddress.isFetching);
 
     const numSubplots = surfaceDataSet.length ?? 1;
 
@@ -109,7 +114,7 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
         viewAnnotations.push(
             makeViewAnnotation(
                 `${index}view`,
-                surface?.surfaceData ? surfaceAddresses[index] : null,
+                surfaceSelections[index],
                 colorMin || valueMin,
                 colorMax || valueMax,
                 "Physics"
@@ -147,7 +152,7 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
 }
 function makeViewAnnotation(
     id: string,
-    surfaceAddress: SurfaceAddress | null,
+    surfaceSelection: SurfaceSelection,
     colorMin: number,
     colorMax: number,
     colorName: string
@@ -167,22 +172,27 @@ function makeViewAnnotation(
                     legendFontSize={30}
                 />
                 <ViewFooter>
-                    {surfaceAddress ? (
+                    {surfaceSelection ? (
                         <div className="flex" style={{ bottom: 10 }}>
                             <div className=" m-0 bg-transparent  border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
-                                {surfaceAddress.name}
+                                {surfaceSelection.surfaceName}
                             </div>
                             <div className=" m-0 bg-transparent  border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
-                                {surfaceAddress.attribute}
+                                {surfaceSelection.surfaceAttribute}
                             </div>
-                            {surfaceAddress.isoDateOrInterval && (
+                            {surfaceSelection.surfaceTimeOrInterval && (
                                 <div className=" m-0 bg-transparent  border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
-                                    {isoStringToDateOrIntervalLabel(surfaceAddress.isoDateOrInterval)}
+                                    {isoStringToDateOrIntervalLabel(surfaceSelection.surfaceTimeOrInterval)}
                                 </div>
                             )}
-                            {surfaceAddress.addressType === "realization" && (
+                            {surfaceSelection.ensembleStage === EnsembleStageType.Realization && (
                                 <div className=" m-0 bg-transparent  border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
-                                    {`Real: ${surfaceAddress.realizationNum}`}
+                                    {`Real: ${surfaceSelection.realizationNum}`}
+                                </div>
+                            )}
+                            {surfaceSelection.ensembleStage === EnsembleStageType.Statistics && (
+                                <div className=" m-0 bg-transparent  border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
+                                    {`${StatisticFunctionToStringMapping[surfaceSelection.statisticFunction]}`}
                                 </div>
                             )}
                         </div>

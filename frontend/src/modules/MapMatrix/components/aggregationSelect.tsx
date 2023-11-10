@@ -36,7 +36,7 @@ export type AggregationSelectProps = {
     statisticFunction: SurfaceStatisticFunction_api;
     onChange(stage: EnsembleStage): void;
 };
-const StatisticFunctionToStringMapping = {
+export const StatisticFunctionToStringMapping = {
     [SurfaceStatisticFunction_api.MEAN]: "Mean",
     [SurfaceStatisticFunction_api.MIN]: "Min",
     [SurfaceStatisticFunction_api.MAX]: "Max",
