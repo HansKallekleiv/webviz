@@ -178,7 +178,7 @@ async def get_statistical_surface_data_as_png(
     if not xtgeo_surf:
         raise HTTPException(status_code=404, detail="Could not find or compute surface")
 
-    surf_data_response: schemas.SurfaceData = converters.to_api_surface_data_as_png(xtgeo_surf)
+    surf_data_response = converters.to_api_surface_data_as_png(xtgeo_surf)
     perf_metrics.record_lap("convert")
 
     LOGGER.debug(f"Calculated statistical surface in: {perf_metrics.to_string()}")
