@@ -11,7 +11,7 @@ import { CollapsibleGroup } from "@lib/components/CollapsibleGroup";
 import { Label } from "@lib/components/Label";
 import { RadioGroup } from "@lib/components/RadioGroup";
 import { Switch } from "@lib/components/Switch";
-import { SurfaceAddress } from "@modules/_shared/Surface";
+import { SurfaceAddress, SurfaceAddressFactory } from "@modules/_shared/Surface";
 import { TimeType } from "@modules/_shared/Surface";
 import { Select } from "@mui/base";
 
@@ -30,10 +30,7 @@ const TimeTypeEnumToStringMapping = {
     [TimeType.TimePoint]: "Time point",
     [TimeType.Interval]: "Time interval",
 };
-type UniqueSurfaceAddress = {
-    id: string;
-    data: SurfaceAddress | null;
-};
+
 export type SurfaceSelection = {
     ensembleIdent: EnsembleIdent | null;
     surfaceName: string | null;
@@ -89,7 +86,29 @@ type Actions = {
         payload: Payload[T];
     };
 }[ActionType];
-function surfaceReducer(state: ReducerState, action: Actions) {
+function synchronizeSurfaceSelections(surfaceSelections: SurfaceSelection[], syncedSettings: SyncedSettings) {
+    const firstSurfaceSelection = surfaceSelections[0];
+    surfaceSelections.forEach((surface, index) => {
+        if (index !== 0) {
+            if (syncedSettings.ensemble) {
+                surface.ensembleIdent = firstSurfaceSelection.ensembleIdent;
+            }
+            if (syncedSettings.name) {
+                surface.surfaceName = firstSurfaceSelection.surfaceName;
+            }
+            if (syncedSettings.attribute) {
+                surface.surfaceAttribute = firstSurfaceSelection.surfaceAttribute;
+            }
+            if (syncedSettings.timeOrInterval) {
+                surface.surfaceTimeOrInterval = firstSurfaceSelection.surfaceTimeOrInterval;
+            }
+            if (syncedSettings.realizationNum) {
+                surface.realizationNum = firstSurfaceSelection.realizationNum;
+            }
+        }
+    });
+}
+function surfaceDispatcher(state: ReducerState, action: Actions) {
     if (action.type === ActionType.AddSurface) {
         return {
             ...state,
@@ -106,15 +125,18 @@ function surfaceReducer(state: ReducerState, action: Actions) {
         const updatedSurfaceSelections = state.surfaceSelections.map((surface) =>
             surface.uuid === action.payload.uuid ? action.payload.surfaceSelection : surface
         );
+        synchronizeSurfaceSelections(updatedSurfaceSelections, state.syncedSettings);
         return {
             ...state,
             surfaceSelections: updatedSurfaceSelections,
         };
     }
     if (action.type === ActionType.SetSyncedSettings) {
+        synchronizeSurfaceSelections(state.surfaceSelections, action.payload.syncedSettings);
         return {
             ...state,
             syncedSettings: action.payload.syncedSettings,
+            surfaceSelections: state.surfaceSelections,
         };
     }
     if (action.type === ActionType.SetTimeMode) {
@@ -136,37 +158,7 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
     const ensembleSetSurfaceMetas = useEnsembleSetSurfaceMetaQuery(
         ensembleSet.getEnsembleArr().map((ens) => ens.getIdent())
     );
-    const [state, dispatch] = React.useReducer(surfaceReducer, initialState);
-
-    // const [surfaceAddresses, setSurfaceAddresses] = useState<Array<UniqueSurfaceAddress>>([]);
-
-    // const [timeType, setTimeType] = React.useState<TimeType>(TimeType.None);
-    // const [surfaceAttributeTypes, setSurfaceAttributeTypes] = React.useState<SurfaceAttributeType_api[]>(
-    //     Object.values(SurfaceAttributeType_api)
-    // );
-    // const [isControlledEnsemble, setIsControlledEnsemble] = React.useState<boolean>(false);
-    // const [isControlledSurfaceName, setIsControlledSurfaceName] = React.useState<boolean>(false);
-    // const [isControlledSurfaceAttribute, setIsControlledSurfaceAttribute] = React.useState<boolean>(false);
-    // const [isControlledSurfaceTimeOrInterval, setIsControlledSurfaceTimeOrInterval] = React.useState<boolean>(false);
-    // const [isControlledRealizationNum, setIsControlledRealizationNum] = React.useState<boolean>(false);
-    // // const [isControlledStage, setIsControlledStage] = React.useState<boolean>(false);
-
-    // const addSurfaceSelect = () => {
-    //     const newSurface: UniqueSurfaceAddress = {
-    //         id: uuidv4(), // generates a unique ID
-    //         data: null,
-    //     };
-
-    //     setSurfaceAddresses([...surfaceAddresses, newSurface]);
-    // };
-    // const removeSurfaceSelect = (uniqueId: string) => {
-    //     setSurfaceAddresses(surfaceAddresses.filter((surface) => surface.id !== uniqueId));
-    // };
-    // const handleSurfaceSelectChange = (uniqueId: string, newData: SurfaceAddress) => {
-    //     setSurfaceAddresses((prevAddresses) =>
-    //         prevAddresses.map((surface) => (surface.id === uniqueId ? { ...surface, data: newData } : surface))
-    //     );
-    // };
+    const [state, dispatch] = React.useReducer(surfaceDispatcher, initialState);
 
     function handleTimeModeChange(event: React.ChangeEvent<HTMLInputElement>) {
         dispatch({
@@ -185,18 +177,29 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
             },
         });
     }
-    // React.useEffect(() => {
-    //     function propagateSurfaceAddressesToView() {
-    //         // Extract SurfaceAddress data from the new structure before setting the value.
-    //         const surfaceAddressesData = surfaceAddresses
-    //             .map((uniqueSurface) => uniqueSurface.data)
-    //             .filter((address): address is SurfaceAddress => address !== null);
-    //         console.log("surfaceAddressesData", surfaceAddressesData);
-    //         moduleContext.getStateStore().setValue("surfaceAddresses", surfaceAddressesData);
-    //     }
-
-    //     propagateSurfaceAddressesToView();
-    // }, [surfaceAddresses]);
+    React.useEffect(
+        function propagateSurfaceAddressesToView() {
+            // Extract SurfaceAddress data from the new structure before setting the value.
+            const surfaceAddresses: SurfaceAddress[] = [];
+            state.surfaceSelections.forEach((surface) => {
+                if (surface.ensembleIdent && surface.surfaceName && surface.surfaceAttribute) {
+                    const factory = new SurfaceAddressFactory(
+                        surface.ensembleIdent?.getCaseUuid(),
+                        surface.ensembleIdent?.getEnsembleName(),
+                        surface.surfaceName,
+                        surface.surfaceAttribute,
+                        surface.surfaceTimeOrInterval
+                    );
+                    if (surface.realizationNum !== null) {
+                        const surfaceAddress = factory.createRealizationAddress(surface.realizationNum);
+                        surfaceAddresses.push(surfaceAddress);
+                    }
+                }
+            });
+            moduleContext.getStateStore().setValue("surfaceAddresses", surfaceAddresses);
+        },
+        [state.surfaceSelections]
+    );
     function handleSyncedSettingsChange(syncedSettings: SyncedSettings) {
         dispatch({
             type: ActionType.SetSyncedSettings,
@@ -243,6 +246,14 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
             },
         });
     }
+    function handleRemoveSurface(uuid: string) {
+        dispatch({
+            type: ActionType.RemoveSurface,
+            payload: {
+                id: uuid,
+            },
+        });
+    }
     return (
         <>
             <Label text="Time mode">
@@ -281,6 +292,7 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
                 <tbody>
                     {state.surfaceSelections.map((uniqueSurface, index) => (
                         <SurfaceSelect
+                            index={index}
                             key={uniqueSurface.uuid}
                             surfaceMetas={ensembleSetSurfaceMetas}
                             surfaceSelection={uniqueSurface}
@@ -289,65 +301,11 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
                             attributeType={state.attributeType}
                             syncedSettings={state.syncedSettings}
                             onChange={handleSurfaceSelectChange}
+                            onRemove={handleRemoveSurface}
                         />
                     ))}
                 </tbody>
             </table>
-            {JSON.stringify(state)}
         </>
     );
-    //         <div className="m-2">
-    //             <Button variant={"contained"} onClick={addSurfaceSelect}>
-    //                 Add Surface
-    //             </Button>
-    //         </div>
-    //         <table className="table-auto w-full divide-y divide-gray-200">
-    //             <tbody>
-    //                 {surfaceAddresses.map((uniqueSurface, index) => (
-    //                     <SurfaceSelect
-    //                         index={index}
-    //                         key={"surface-select--" + uniqueSurface.id}
-    //                         id={uniqueSurface.id}
-    //                         ensembleSetSurfaceMetas={ensembleSetSurfaceMetas}
-    //                         surfaceAttributeTypes={surfaceAttributeTypes}
-    //                         timeType={timeType}
-    //                         workbenchSession={workbenchSession}
-    //                         onRemove={removeSurfaceSelect}
-    //                         controlledEnsembleIdent={
-    //                             index > 0 && isControlledEnsemble
-    //                                 ? {
-    //                                       caseUuid: surfaceAddresses[0]?.data?.caseUuid || "",
-    //                                       ensembleName: surfaceAddresses[0]?.data?.ensemble || "",
-    //                                   }
-    //                                 : undefined
-    //                         }
-    //                         controlledSurfaceName={
-    //                             index > 0 && isControlledSurfaceName ? surfaceAddresses[0]?.data?.name : undefined
-    //                         }
-    //                         controlledSurfaceAttribute={
-    //                             index > 0 && isControlledSurfaceAttribute
-    //                                 ? surfaceAddresses[0]?.data?.attribute
-    //                                 : undefined
-    //                         }
-    //                         controlledSurfaceTimeOrInterval={
-    //                             index > 0 && isControlledSurfaceTimeOrInterval
-    //                                 ? surfaceAddresses[0]?.data?.isoDateOrInterval
-    //                                 : undefined
-    //                         }
-    //                         controlledRealizationNum={
-    //                             index > 0 && isControlledRealizationNum
-    //                                 ? surfaceAddresses[0]?.data?.addressType === "realization"
-    //                                     ? surfaceAddresses[0]?.data?.realizationNum
-    //                                     : undefined
-    //                                 : undefined
-    //                         }
-    //                         onAddressChange={(data: SurfaceAddress) =>
-    //                             handleSurfaceSelectChange(uniqueSurface.id, data)
-    //                         }
-    //                     />
-    //                 ))}
-    //             </tbody>
-    //         </table>
-    //     </div>
-    // );
 }
