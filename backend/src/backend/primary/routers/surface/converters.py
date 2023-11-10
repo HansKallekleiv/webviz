@@ -54,7 +54,7 @@ def to_api_surface_data_as_float32(xtgeo_surf: xtgeo.RegularSurface) -> schemas.
     )
 
 
-def to_api_surface_data_as_png(xtgeo_surf: xtgeo.RegularSurface) -> schemas.SurfaceData:
+def to_api_surface_data_as_png(xtgeo_surf: xtgeo.RegularSurface) -> schemas.SurfaceDataPng:
     """
     Create API SurfaceData from xtgeo regular surface
     """
