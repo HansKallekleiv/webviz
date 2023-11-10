@@ -65,7 +65,7 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
     statusWriter.setLoading(surfaceDataSetQueryByAddress.isFetching);
 
     const views: ViewsType = makeEmptySurfaceViews(surfaceDataSet.length ?? 1);
-
+    const viewAnnotations: JSX.Element[] = [];
     const layers: Record<string, unknown>[] = [
         {
             "@@type": "Axes2DLayer",
@@ -79,11 +79,10 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
             backgroundColor: [255, 255, 255, 255],
         },
     ];
-    const viewAnnotations: JSX.Element[] = [];
 
     surfaceDataSet.forEach((surface, index) => {
-        const colorMin = surfaceSpecifications[index].colorMin;
-        const colorMax = surfaceSpecifications[index].colorMax;
+        const colorMin = surfaceSpecifications[index].colorMin ?? null;
+        const colorMax = surfaceSpecifications[index].colorMax ?? null;
         const valueMin = surface?.surfaceData?.val_min ?? 0;
         const valueMax = surface?.surfaceData?.val_max ?? 0;
         if (surface.surfaceData) {

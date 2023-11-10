@@ -12,6 +12,7 @@ export type AggregationSelectProps = {
     availableRealizationNums: number[];
     realizationNum: number;
     statisticFunction: SurfaceStatisticFunction_api;
+    disableRealizationPicker?: boolean;
     onChange(stage: EnsembleStage): void;
 };
 export const StatisticFunctionToStringMapping = {
@@ -60,19 +61,24 @@ export const AggregationSelect: React.FC<AggregationSelectProps> = (props) => {
         return { value: val, label: StatisticFunctionToStringMapping[val] };
     });
     return (
-        <>
-            <tr>
-                <td className="px-6 py-0 whitespace-nowrap">Stage</td>
-                <td className="px-6 py-0 w-full whitespace-nowrap flex">
+        <tr>
+            <td className="px-6 py-0 whitespace-nowrap">Stage</td>
+            <td className="px-6 py-0 w-full  flex">
+                <div className="flex-grow">
                     <Dropdown options={stageOptions} value={props.stage} onChange={handleStageChange} />
-                    {props.stage == EnsembleStageType.Realization && (
+                </div>
+                {props.stage == EnsembleStageType.Realization && (
+                    <div className="flex-grow">
                         <Dropdown
                             options={realizationOptions}
                             value={props.realizationNum.toString()}
                             onChange={handleRealizationNumChange}
+                            disabled={props.disableRealizationPicker}
                         />
-                    )}
-                    {props.stage == EnsembleStageType.Statistics && (
+                    </div>
+                )}
+                {props.stage == EnsembleStageType.Statistics && (
+                    <div className="flex-grow">
                         <Dropdown
                             options={statisticOptions}
                             value={props.statisticFunction}
@@ -84,19 +90,20 @@ export const AggregationSelect: React.FC<AggregationSelectProps> = (props) => {
                                 })
                             }
                         />
-                    )}
-                </td>
+                    </div>
+                )}
+            </td>
 
-                <td className="px-0 py-0 whitespace-nowrap text-right">
-                    {props.stage == EnsembleStageType.Realization && (
-                        <PrevNextButtonsProps
-                            onChange={handleRealizationNumChange}
-                            options={realizationOptions.map((option) => option.value.toString())}
-                            value={props.realizationNum.toString()}
-                        />
-                    )}
-                </td>
-            </tr>
-        </>
+            <td className="px-0 py-0 whitespace-nowrap text-right">
+                {props.stage == EnsembleStageType.Realization && (
+                    <PrevNextButtonsProps
+                        disabled={props.disableRealizationPicker}
+                        onChange={handleRealizationNumChange}
+                        options={realizationOptions.map((option) => option.value.toString())}
+                        value={props.realizationNum.toString()}
+                    />
+                )}
+            </td>
+        </tr>
     );
 };

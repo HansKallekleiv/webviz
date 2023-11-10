@@ -195,6 +195,7 @@ export const SurfaceSelect: React.FC<SurfaceSelectProps> = (props) => {
                 stage={props.surfaceSpecification.ensembleStage}
                 statisticFunction={props.surfaceSpecification.statisticFunction}
                 availableRealizationNums={availableRealizationNums}
+                disableRealizationPicker={props.syncedSettings.realizationNum && props.index != 0}
                 realizationNum={computedRealizationNum}
                 onChange={handleEnsembleStageChange}
             />

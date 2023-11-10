@@ -8,6 +8,7 @@ export type PrevNextButtonsProps = {
     onChange: (value: string) => void;
     options: string[];
     value: string;
+    disabled?: boolean;
 };
 export const PrevNextButtonsProps: React.FC<PrevNextButtonsProps> = (props) => {
     const changeSelection = (direction: "prev" | "next") => {
@@ -26,10 +27,10 @@ export const PrevNextButtonsProps: React.FC<PrevNextButtonsProps> = (props) => {
 
     return (
         <div className="flex justify-end">
-            <IconButton onClick={() => changeSelection("prev")}>
+            <IconButton disabled={props.disabled} onClick={() => changeSelection("prev")}>
                 <ArrowCircleLeftIcon />
             </IconButton>
-            <IconButton onClick={() => changeSelection("next")}>
+            <IconButton disabled={props.disabled} onClick={() => changeSelection("next")}>
                 <ArrowCircleRightIcon />
             </IconButton>
         </div>
