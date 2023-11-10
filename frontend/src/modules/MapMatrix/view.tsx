@@ -8,6 +8,7 @@ import { useViewStatusWriter } from "@framework/StatusWriter";
 import { SyncedSubsurfaceViewer } from "@modules/SubsurfaceMap/components/SyncedSubsurfaceViewer";
 import { SurfaceAddress } from "@modules/_shared/Surface";
 import { SurfaceAddressFactory } from "@modules/_shared/Surface";
+// import { shouldUpdateViewPortBounds } from "@modules/_shared/Surface/subsurfaceMapUtils";
 import { ViewportType, ViewsType } from "@webviz/subsurface-viewer";
 import { ViewFooter } from "@webviz/subsurface-viewer/dist/components/ViewFooter";
 
@@ -63,23 +64,21 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
     }
     statusWriter.setLoading(surfaceDataSetQueryByAddress.isFetching);
 
-    const numSubplots = surfaceDataSet.length ?? 1;
+    const views: ViewsType = makeEmptySurfaceViews(surfaceDataSet.length ?? 1);
 
-    const numColumns = Math.ceil(Math.sqrt(numSubplots));
-    const numRows = Math.ceil(numSubplots / numColumns);
-    const viewPorts: ViewportType[] = [];
-    for (let index = 0; index < numSubplots; index++) {
-        viewPorts.push({
-            id: `${index}view`,
-            show3D: false,
-            isSync: true,
-            layerIds: [`surface-${index}`],
-            name: `Surface ${index}`,
-        });
-    }
-
-    const views: ViewsType = { layout: [numRows, numColumns], showLabel: true, viewports: viewPorts };
-    const layers: Record<string, unknown>[] = [];
+    const layers: Record<string, unknown>[] = [
+        {
+            "@@type": "Axes2DLayer",
+            id: "axes-layer2D",
+            marginH: 80,
+            marginV: 30,
+            isLeftRuler: true,
+            isRightRuler: false,
+            isBottomRuler: false,
+            isTopRuler: true,
+            backgroundColor: [255, 255, 255, 255],
+        },
+    ];
     const viewAnnotations: JSX.Element[] = [];
 
     surfaceDataSet.forEach((surface, index) => {
@@ -88,14 +87,18 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
         const valueMin = surface?.surfaceData?.val_min ?? 0;
         const valueMax = surface?.surfaceData?.val_max ?? 0;
         if (surface.surfaceData) {
+            const newBounds: [number, number, number, number] = [
+                surface.surfaceData.x_min,
+                surface.surfaceData.y_min,
+                surface.surfaceData.x_max,
+                surface.surfaceData.y_max,
+            ];
+            // Will cause an infite loop if bounds are varying between surfaces
+            // if (shouldUpdateViewPortBounds(viewportBounds, newBounds)) {
+            //     setviewPortBounds(newBounds);
+            // }
             if (!viewportBounds) {
-                const bounds: [number, number, number, number] = [
-                    surface.surfaceData.x_min,
-                    surface.surfaceData.y_min,
-                    surface.surfaceData.x_max,
-                    surface.surfaceData.y_max,
-                ];
-                setviewPortBounds(bounds);
+                setviewPortBounds(newBounds);
             }
 
             layers.push(
@@ -118,17 +121,6 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
                 "Physics"
             )
         );
-    });
-    layers.push({
-        "@@type": "Axes2DLayer",
-        id: "axes-layer2D",
-        marginH: 80,
-        marginV: 30,
-        isLeftRuler: true,
-        isRightRuler: false,
-        isBottomRuler: false,
-        isTopRuler: true,
-        backgroundColor: [255, 255, 255, 255],
     });
 
     return (
@@ -164,7 +156,6 @@ function makeViewAnnotation(
                     min={colorMin}
                     max={colorMax}
                     colorName={colorName}
-                    //transparent background
                     cssLegendStyles={{ top: "20", right: "0", backgroundColor: "transparent" }}
                     legendScaleSize={0.1}
                     legendFontSize={30}
@@ -229,4 +220,20 @@ function makeSurfaceImageLayer(
         valueRange: [valueMin, valueMax],
         colorMapRange: [colorMin, colorMax],
     };
+}
+
+function makeEmptySurfaceViews(numSubplots: number): ViewsType {
+    const numColumns = Math.ceil(Math.sqrt(numSubplots));
+    const numRows = Math.ceil(numSubplots / numColumns);
+    const viewPorts: ViewportType[] = [];
+    for (let index = 0; index < numSubplots; index++) {
+        viewPorts.push({
+            id: `${index}view`,
+            show3D: false,
+            isSync: true,
+            layerIds: [`surface-${index}`],
+            name: `Surface ${index}`,
+        });
+    }
+    return { layout: [numRows, numColumns], showLabel: true, viewports: viewPorts };
 }

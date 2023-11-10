@@ -6,6 +6,7 @@ import { useEnsembleSet } from "@framework/WorkbenchSession";
 import { Button } from "@lib/components/Button";
 import { CircularProgress } from "@lib/components/CircularProgress";
 import { CollapsibleGroup } from "@lib/components/CollapsibleGroup";
+import { Dropdown } from "@lib/components/Dropdown";
 import { Label } from "@lib/components/Label";
 import { RadioGroup } from "@lib/components/RadioGroup";
 import { TimeType } from "@modules/_shared/Surface";
@@ -31,26 +32,22 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
     const ensembleSetSurfaceMetas = useEnsembleSetSurfaceMetaQuery(
         ensembleSet.getEnsembleArr().map((ens) => ens.getIdent())
     );
-    const {
-        state,
-        addSurface,
-        removeSurface,
-        setSurfaceSpecification,
-        setAttributeType,
-        setSyncedSettings,
-        setTimeMode,
-    } = useSurfaceReducer();
+    const surfaceReducer = useSurfaceReducer();
 
     function handleTimeModeChange(event: React.ChangeEvent<HTMLInputElement>) {
-        setTimeMode(event.target.value as TimeType);
+        surfaceReducer.setTimeMode(event.target.value as TimeType);
     }
 
     function handleSurfaceAttributeTypeChange(val: string) {
-        setAttributeType(val as SurfaceAttributeType_api);
+        const newSurfaceAttributeType = val as SurfaceAttributeType_api;
+        if (newSurfaceAttributeType === SurfaceAttributeType_api.DEPTH) {
+            surfaceReducer.setTimeMode(TimeType.None);
+        }
+        surfaceReducer.setAttributeType(newSurfaceAttributeType);
     }
 
     function handleSyncedSettingsChange(syncedSettings: SyncedSettings) {
-        setSyncedSettings(syncedSettings);
+        surfaceReducer.setSyncedSettings(syncedSettings);
     }
     function handleAddSurface() {
         let newSurface: SurfaceSpecification = {
@@ -66,46 +63,54 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
             colorMax: 0,
         };
 
-        if (state.surfaceSpecifications.length) {
-            newSurface = { ...state.surfaceSpecifications[state.surfaceSpecifications.length - 1], uuid: uuidv4() };
+        if (surfaceReducer.state.surfaceSpecifications.length) {
+            newSurface = {
+                ...surfaceReducer.state.surfaceSpecifications[surfaceReducer.state.surfaceSpecifications.length - 1],
+                uuid: uuidv4(),
+            };
         }
-        addSurface(newSurface);
+        surfaceReducer.addSurface(newSurface);
     }
     function handleSurfaceSelectChange(surfaceSpecification: SurfaceSpecification) {
-        setSurfaceSpecification(surfaceSpecification);
+        surfaceReducer.setSurface(surfaceSpecification);
     }
     function handleRemoveSurface(uuid: string) {
-        removeSurface(uuid);
+        surfaceReducer.removeSurface(uuid);
     }
     React.useEffect(
         function propogateSurfaceSpecificationsToView() {
-            moduleContext.getStateStore().setValue("surfaceSpecifications", state.surfaceSpecifications);
+            moduleContext.getStateStore().setValue("surfaceSpecifications", surfaceReducer.state.surfaceSpecifications);
         },
-        [state.surfaceSpecifications]
+        [surfaceReducer.state.surfaceSpecifications]
     );
     return (
         <>
             <Label text="Time mode">
                 <RadioGroup
-                    value={state.timeMode}
+                    value={surfaceReducer.state.timeMode}
                     direction="horizontal"
                     options={Object.values(TimeType).map((val: TimeType) => {
                         return { value: val, label: TimeTypeEnumToStringMapping[val] };
                     })}
+                    disabled={surfaceReducer.state.attributeType === SurfaceAttributeType_api.DEPTH}
                     onChange={handleTimeModeChange}
                 />
             </Label>
-            <CollapsibleGroup expanded={false} title="Attribute type filter">
-                <SingleSelect
-                    name={"Surface attribute types"}
-                    options={Object.values(SurfaceAttributeType_api)}
+            <Label text="Surface attribute type">
+                <Dropdown
+                    options={Object.values(SurfaceAttributeType_api).map((val: SurfaceAttributeType_api) => {
+                        return { value: val, label: val };
+                    })}
                     onChange={handleSurfaceAttributeTypeChange}
-                    size={5}
+                    value={surfaceReducer.state.attributeType}
                 />
-            </CollapsibleGroup>
+            </Label>
 
             <CollapsibleGroup expanded={true} title="Synchronization">
-                <SyncSettings syncedSettings={state.syncedSettings} onChange={handleSyncedSettingsChange} />
+                <SyncSettings
+                    syncedSettings={surfaceReducer.state.syncedSettings}
+                    onChange={handleSyncedSettingsChange}
+                />
             </CollapsibleGroup>
             <div className="m-2">
                 <Button
@@ -119,16 +124,16 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
             </div>
             <table className="table-auto w-full divide-y divide-gray-200">
                 <tbody>
-                    {state.surfaceSpecifications.map((surfaceSpec, index) => (
+                    {surfaceReducer.state.surfaceSpecifications.map((surfaceSpec, index) => (
                         <SurfaceSelect
                             index={index}
                             key={surfaceSpec.uuid}
                             surfaceMetas={ensembleSetSurfaceMetas}
                             surfaceSpecification={surfaceSpec}
                             ensembleSet={ensembleSet}
-                            timeType={state.timeMode}
-                            attributeType={state.attributeType}
-                            syncedSettings={state.syncedSettings}
+                            timeType={surfaceReducer.state.timeMode}
+                            attributeType={surfaceReducer.state.attributeType}
+                            syncedSettings={surfaceReducer.state.syncedSettings}
                             onChange={handleSurfaceSelectChange}
                             onRemove={handleRemoveSurface}
                         />

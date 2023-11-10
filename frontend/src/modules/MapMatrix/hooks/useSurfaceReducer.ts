@@ -36,9 +36,9 @@ export const useSurfaceReducer = () => {
         });
     };
 
-    const setSurfaceSpecification = (surfaceSpecification: SurfaceSpecification) => {
+    const setSurface = (surfaceSpecification: SurfaceSpecification) => {
         dispatch({
-            type: SurfaceReducerActionType.SetSurfaceSpecification,
+            type: SurfaceReducerActionType.SetSurface,
             payload: { surfaceSpecification },
         });
     };
@@ -68,7 +68,7 @@ export const useSurfaceReducer = () => {
         state,
         addSurface,
         removeSurface,
-        setSurfaceSpecification,
+        setSurface,
         setSyncedSettings,
         setTimeMode,
         setAttributeType,

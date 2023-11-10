@@ -12,7 +12,7 @@ export type SurfaceReducerState = {
 export enum SurfaceReducerActionType {
     AddSurface,
     RemoveSurface,
-    SetSurfaceSpecification,
+    SetSurface,
     SetSyncedSettings,
     SetTimeMode,
     SetAttributeType,
@@ -20,7 +20,7 @@ export enum SurfaceReducerActionType {
 export type SurfaceReducerPayload = {
     [SurfaceReducerActionType.AddSurface]: SurfaceSpecification;
     [SurfaceReducerActionType.RemoveSurface]: { id: string };
-    [SurfaceReducerActionType.SetSurfaceSpecification]: { surfaceSpecification: SurfaceSpecification };
+    [SurfaceReducerActionType.SetSurface]: { surfaceSpecification: SurfaceSpecification };
     [SurfaceReducerActionType.SetSyncedSettings]: { syncedSettings: SyncedSettings };
     [SurfaceReducerActionType.SetTimeMode]: { timeMode: TimeType };
     [SurfaceReducerActionType.SetAttributeType]: { attributeType: SurfaceAttributeType_api };

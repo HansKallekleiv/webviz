@@ -19,7 +19,7 @@ export function surfaceDispatcher(state: SurfaceReducerState, action: SurfaceRed
             surfaceSpecifications: state.surfaceSpecifications.filter((surface) => surface.uuid !== action.payload.id),
         };
     }
-    if (action.type === SurfaceReducerActionType.SetSurfaceSpecification) {
+    if (action.type === SurfaceReducerActionType.SetSurface) {
         const updatedSurfaceSpecifications = state.surfaceSpecifications.map((surface) =>
             surface.uuid === action.payload.surfaceSpecification.uuid ? action.payload.surfaceSpecification : surface
         );
