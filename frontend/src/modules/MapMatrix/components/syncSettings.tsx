@@ -1,9 +1,8 @@
 import React from "react";
 
-import { Label } from "@lib/components/Label";
 import { Switch } from "@lib/components/Switch";
 
-import { SyncedSettings } from "../settings";
+import { SyncedSettings } from "../types";
 
 type SyncSettingsProps = {
     syncedSettings: SyncedSettings;

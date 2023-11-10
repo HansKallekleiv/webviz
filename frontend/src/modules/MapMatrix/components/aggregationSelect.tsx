@@ -5,29 +5,7 @@ import { Dropdown } from "@lib/components/Dropdown";
 
 import { PrevNextButtonsProps } from "./previousNextButtons";
 
-export enum EnsembleStageType {
-    Statistics = "Statistics",
-    Realization = "Realization",
-    // Observation = "Observation",
-}
-
-export type EnsembleStatisticStage = {
-    ensembleStage: EnsembleStageType.Statistics;
-    statisticFunction: SurfaceStatisticFunction_api;
-    realizationNums: number[];
-};
-
-export type EnsembleRealizationStage = {
-    ensembleStage: EnsembleStageType.Realization;
-    realizationNum: number;
-};
-
-// export type EnsembleObservationStage = {
-//     ensembleStage: EnsembleStageType.Observation;
-//     realizationNum?: number; // The observation might be tied to a realization (e.g., depth converted)
-// };
-
-export type EnsembleStage = EnsembleStatisticStage | EnsembleRealizationStage; //| EnsembleObservationStage;
+import { EnsembleStage, EnsembleStageType } from "../types";
 
 export type AggregationSelectProps = {
     stage: EnsembleStageType;

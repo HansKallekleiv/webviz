@@ -11,15 +11,13 @@ import { SurfaceAddressFactory } from "@modules/_shared/Surface";
 import { ViewportType, ViewsType } from "@webviz/subsurface-viewer";
 import { ViewFooter } from "@webviz/subsurface-viewer/dist/components/ViewFooter";
 
-import "animate.css";
 import { isEqual } from "lodash";
 
 import { isoStringToDateOrIntervalLabel } from "./_utils/isoString";
 import { StatisticFunctionToStringMapping } from "./components/aggregationSelect";
-import { EnsembleStageType } from "./components/aggregationSelect";
 import { IndexedSurfaceDatas, useSurfaceDataSetQueryByAddress } from "./hooks/useSurfaceDataAsPngQuery";
-import { SurfaceSelection } from "./settings";
 import { State } from "./state";
+import { EnsembleStageType, SurfaceSpecification } from "./types";
 
 export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>) {
     const [viewportBounds, setviewPortBounds] = React.useState<[number, number, number, number] | undefined>(undefined);
@@ -27,9 +25,9 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
         React.useState<IndexedSurfaceDatas | null>(null);
     const statusWriter = useViewStatusWriter(moduleContext);
 
-    const surfaceSelections = moduleContext.useStoreValue("surfaceSelections");
+    const surfaceSpecifications = moduleContext.useStoreValue("surfaceSpecifications");
     const surfaceAddresses: SurfaceAddress[] = [];
-    surfaceSelections.forEach((surface) => {
+    surfaceSpecifications.forEach((surface) => {
         if (surface.ensembleIdent && surface.surfaceName && surface.surfaceAttribute) {
             const factory = new SurfaceAddressFactory(
                 surface.ensembleIdent?.getCaseUuid(),
@@ -85,8 +83,8 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
     const viewAnnotations: JSX.Element[] = [];
 
     surfaceDataSet.forEach((surface, index) => {
-        const colorMin = surfaceSelections[index].colorMin;
-        const colorMax = surfaceSelections[index].colorMax;
+        const colorMin = surfaceSpecifications[index].colorMin;
+        const colorMax = surfaceSpecifications[index].colorMax;
         const valueMin = surface?.surfaceData?.val_min ?? 0;
         const valueMax = surface?.surfaceData?.val_max ?? 0;
         if (surface.surfaceData) {
@@ -114,7 +112,7 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
         viewAnnotations.push(
             makeViewAnnotation(
                 `${index}view`,
-                surfaceSelections[index],
+                surfaceSpecifications[index],
                 colorMin || valueMin,
                 colorMax || valueMax,
                 "Physics"
@@ -152,7 +150,7 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
 }
 function makeViewAnnotation(
     id: string,
-    surfaceSelection: SurfaceSelection,
+    surfaceSpecification: SurfaceSpecification,
     colorMin: number,
     colorMax: number,
     colorName: string
@@ -172,27 +170,27 @@ function makeViewAnnotation(
                     legendFontSize={30}
                 />
                 <ViewFooter>
-                    {surfaceSelection ? (
+                    {surfaceSpecification ? (
                         <div className="flex" style={{ bottom: 10 }}>
                             <div className=" m-0 bg-transparent  border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
-                                {surfaceSelection.surfaceName}
+                                {surfaceSpecification.surfaceName}
                             </div>
                             <div className=" m-0 bg-transparent  border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
-                                {surfaceSelection.surfaceAttribute}
+                                {surfaceSpecification.surfaceAttribute}
                             </div>
-                            {surfaceSelection.surfaceTimeOrInterval && (
+                            {surfaceSpecification.surfaceTimeOrInterval && (
                                 <div className=" m-0 bg-transparent  border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
-                                    {isoStringToDateOrIntervalLabel(surfaceSelection.surfaceTimeOrInterval)}
+                                    {isoStringToDateOrIntervalLabel(surfaceSpecification.surfaceTimeOrInterval)}
                                 </div>
                             )}
-                            {surfaceSelection.ensembleStage === EnsembleStageType.Realization && (
+                            {surfaceSpecification.ensembleStage === EnsembleStageType.Realization && (
                                 <div className=" m-0 bg-transparent  border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
-                                    {`Real: ${surfaceSelection.realizationNum}`}
+                                    {`Real: ${surfaceSpecification.realizationNum}`}
                                 </div>
                             )}
-                            {surfaceSelection.ensembleStage === EnsembleStageType.Statistics && (
+                            {surfaceSpecification.ensembleStage === EnsembleStageType.Statistics && (
                                 <div className=" m-0 bg-transparent  border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
-                                    {`${StatisticFunctionToStringMapping[surfaceSelection.statisticFunction]}`}
+                                    {`${StatisticFunctionToStringMapping[surfaceSpecification.statisticFunction]}`}
                                 </div>
                             )}
                         </div>

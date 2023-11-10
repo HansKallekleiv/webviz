@@ -9,28 +9,28 @@ import { Remove } from "@mui/icons-material";
 
 import { isEqual } from "lodash";
 
-import { AggregationSelect, EnsembleStage, EnsembleStageType } from "./aggregationSelect";
+import { AggregationSelect } from "./aggregationSelect";
 import { EnsembleSelectWithButtons } from "./ensembleSelectWithButtons";
 import { SingleSelectWithButtons } from "./singleSelectWithButtons";
 
 import { isoStringToDateOrIntervalLabel } from "../_utils/isoString";
 import { EnsembleSetSurfaceMetas } from "../hooks/useEnsembleSetSurfaceMetaQuery";
-import { SurfaceSelection, SyncedSettings } from "../settings";
+import { EnsembleStage, EnsembleStageType, SurfaceSpecification, SyncedSettings } from "../types";
 
 export type SurfaceSelectProps = {
     index: number;
     surfaceMetas: EnsembleSetSurfaceMetas;
-    surfaceSelection: SurfaceSelection;
+    surfaceSpecification: SurfaceSpecification;
     ensembleSet: EnsembleSet;
     timeType: TimeType;
     attributeType: SurfaceAttributeType_api;
     syncedSettings: SyncedSettings;
-    onChange: (surfaceSelection: SurfaceSelection) => void;
+    onChange: (surfaceSpecification: SurfaceSpecification) => void;
     onRemove: (uuid: string) => void;
 };
 
 export const SurfaceSelect: React.FC<SurfaceSelectProps> = (props) => {
-    let computedEnsembleIdent = props.surfaceSelection.ensembleIdent;
+    let computedEnsembleIdent = props.surfaceSpecification.ensembleIdent;
     if (
         !computedEnsembleIdent ||
         !props.ensembleSet.getEnsembleArr().some((el) => el.getIdent().equals(computedEnsembleIdent))
@@ -50,19 +50,19 @@ export const SurfaceSelect: React.FC<SurfaceSelectProps> = (props) => {
         includeAttributeTypes: [props.attributeType],
     });
 
-    let computedSurfaceName = props.surfaceSelection.surfaceName;
+    let computedSurfaceName = props.surfaceSpecification.surfaceName;
     if (!computedSurfaceName || !ensembleSurfaceDirectory.getSurfaceNames(null).includes(computedSurfaceName)) {
         computedSurfaceName = ensembleSurfaceDirectory.getSurfaceNames(null)[0];
     }
 
-    let computedSurfaceAttribute = props.surfaceSelection.surfaceAttribute;
+    let computedSurfaceAttribute = props.surfaceSpecification.surfaceAttribute;
     if (
         !computedSurfaceAttribute ||
         !ensembleSurfaceDirectory.getAttributeNames(computedSurfaceName).includes(computedSurfaceAttribute)
     ) {
         computedSurfaceAttribute = ensembleSurfaceDirectory.getAttributeNames(computedSurfaceName)[0];
     }
-    let computedTimeOrInterval = props.surfaceSelection.surfaceTimeOrInterval;
+    let computedTimeOrInterval = props.surfaceSpecification.surfaceTimeOrInterval;
     if (
         !computedTimeOrInterval ||
         !ensembleSurfaceDirectory
@@ -74,7 +74,7 @@ export const SurfaceSelect: React.FC<SurfaceSelectProps> = (props) => {
             computedSurfaceAttribute
         )[0];
     }
-    let computedRealizationNum = props.surfaceSelection.realizationNum;
+    let computedRealizationNum = props.surfaceSpecification.realizationNum;
     const availableRealizationNums =
         props.ensembleSet
             .findEnsemble(computedEnsembleIdent)
@@ -89,60 +89,60 @@ export const SurfaceSelect: React.FC<SurfaceSelectProps> = (props) => {
     let computedValueMin: number | null = valueRange.min;
     let computedValueMax: number | null = valueRange.max;
     if (
-        props.surfaceSelection.statisticFunction === SurfaceStatisticFunction_api.STD &&
-        props.surfaceSelection.ensembleStage === EnsembleStageType.Statistics
+        props.surfaceSpecification.statisticFunction === SurfaceStatisticFunction_api.STD &&
+        props.surfaceSpecification.ensembleStage === EnsembleStageType.Statistics
     ) {
         computedValueMin = null;
         computedValueMax = null;
     }
-    const computedSurfaceSelection: SurfaceSelection = {
+    const computedSurfaceSpecification: SurfaceSpecification = {
         ensembleIdent: computedEnsembleIdent,
         surfaceName: computedSurfaceName,
         surfaceAttribute: computedSurfaceAttribute,
         surfaceTimeOrInterval: computedTimeOrInterval,
         realizationNum: computedRealizationNum,
-        ensembleStage: props.surfaceSelection.ensembleStage,
-        statisticFunction: props.surfaceSelection.statisticFunction,
+        ensembleStage: props.surfaceSpecification.ensembleStage,
+        statisticFunction: props.surfaceSpecification.statisticFunction,
         colorMin: computedValueMin,
         colorMax: computedValueMax,
-        uuid: props.surfaceSelection.uuid,
+        uuid: props.surfaceSpecification.uuid,
     };
 
-    if (!isEqual(props.surfaceSelection, computedSurfaceSelection)) {
-        props.onChange(computedSurfaceSelection);
+    if (!isEqual(props.surfaceSpecification, computedSurfaceSpecification)) {
+        props.onChange(computedSurfaceSpecification);
     }
     function handleEnsembleSelectionChange(ensembleIdent: EnsembleIdent | null) {
-        props.onChange({ ...props.surfaceSelection, ensembleIdent });
+        props.onChange({ ...props.surfaceSpecification, ensembleIdent });
     }
 
     function handleSurfaceNameChange(surfaceName: string) {
-        props.onChange({ ...props.surfaceSelection, surfaceName });
+        props.onChange({ ...props.surfaceSpecification, surfaceName });
     }
     function handleSurfaceAttributeChange(surfaceAttribute: string) {
-        props.onChange({ ...props.surfaceSelection, surfaceAttribute });
+        props.onChange({ ...props.surfaceSpecification, surfaceAttribute });
     }
     function handleSurfaceTimeOrIntervalChange(surfaceTimeOrInterval: string) {
-        props.onChange({ ...props.surfaceSelection, surfaceTimeOrInterval });
+        props.onChange({ ...props.surfaceSpecification, surfaceTimeOrInterval });
     }
     function handleEnsembleStageChange(ensembleStage: EnsembleStage) {
         if (ensembleStage.ensembleStage == EnsembleStageType.Statistics) {
             props.onChange({
-                ...props.surfaceSelection,
+                ...props.surfaceSpecification,
                 ...{ ensembleStage: ensembleStage.ensembleStage, statisticFunction: ensembleStage.statisticFunction },
             });
         }
         // if (ensembleStage.ensembleStage == EnsembleStageType.Observation) {
-        //     props.onChange({ ...props.surfaceSelection, ...{ ensembleStage: ensembleStage.ensembleStage } });
+        //     props.onChange({ ...props.surfaceSpecification, ...{ ensembleStage: ensembleStage.ensembleStage } });
         // }
         if (ensembleStage.ensembleStage == EnsembleStageType.Realization) {
             props.onChange({
-                ...props.surfaceSelection,
+                ...props.surfaceSpecification,
                 ...{ ensembleStage: ensembleStage.ensembleStage, realizationNum: ensembleStage.realizationNum },
             });
         }
     }
     function handleRemove() {
-        props.onRemove(props.surfaceSelection.uuid);
+        props.onRemove(props.surfaceSpecification.uuid);
     }
     return (
         <>
@@ -193,8 +193,8 @@ export const SurfaceSelect: React.FC<SurfaceSelectProps> = (props) => {
                 />
             )}
             <AggregationSelect
-                stage={props.surfaceSelection.ensembleStage}
-                statisticFunction={props.surfaceSelection.statisticFunction}
+                stage={props.surfaceSpecification.ensembleStage}
+                statisticFunction={props.surfaceSpecification.statisticFunction}
                 availableRealizationNums={availableRealizationNums}
                 realizationNum={computedRealizationNum}
                 onChange={handleEnsembleStageChange}

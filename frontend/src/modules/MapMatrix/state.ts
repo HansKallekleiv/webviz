@@ -1,3 +1,3 @@
-import { SurfaceSelection } from "./settings";
+import { SurfaceSpecification } from "./types";
 
-export type State = { surfaceSelections: SurfaceSelection[] };
+export type State = { surfaceSpecifications: SurfaceSpecification[] };

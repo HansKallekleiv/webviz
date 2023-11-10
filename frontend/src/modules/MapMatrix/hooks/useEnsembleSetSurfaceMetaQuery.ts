@@ -1,4 +1,4 @@
-import { InplaceVolumetricsTableMetaData_api, SurfaceMeta_api } from "@api";
+import { SurfaceMeta_api } from "@api";
 import { apiService } from "@framework/ApiService";
 import { EnsembleIdent } from "@framework/EnsembleIdent";
 import { UseQueryResult, useQueries } from "@tanstack/react-query";
