@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-import { SurfaceAttributeType_api } from "@api";
+import { SurfaceAttributeType_api, SurfaceStatisticFunction_api } from "@api";
 import { EnsembleIdent } from "@framework/EnsembleIdent";
 import { ModuleFCProps } from "@framework/Module";
 import { useEnsembleSet } from "@framework/WorkbenchSession";
@@ -17,6 +17,7 @@ import { Select } from "@mui/base";
 
 import { v4 as uuidv4 } from "uuid";
 
+import { EnsembleStage, EnsembleStageType } from "./components/aggregationSelect";
 import { LabelledSwitch } from "./components/labelledSwitch";
 import { MultiSelect } from "./components/multiSelect";
 import { SingleSelect } from "./components/singleSelect";
@@ -38,6 +39,8 @@ export type SurfaceSelection = {
     surfaceTimeOrInterval: string | null;
     realizationNum: number | null;
     uuid: string;
+    statisticFunction: SurfaceStatisticFunction_api;
+    ensembleStage: EnsembleStageType;
 };
 export type SyncedSettings = {
     ensemble: boolean;
@@ -179,7 +182,6 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
     }
     React.useEffect(
         function propagateSurfaceAddressesToView() {
-            // Extract SurfaceAddress data from the new structure before setting the value.
             const surfaceAddresses: SurfaceAddress[] = [];
             state.surfaceSelections.forEach((surface) => {
                 if (surface.ensembleIdent && surface.surfaceName && surface.surfaceAttribute) {
@@ -190,8 +192,12 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
                         surface.surfaceAttribute,
                         surface.surfaceTimeOrInterval
                     );
-                    if (surface.realizationNum !== null) {
+                    if (surface.ensembleStage === EnsembleStageType.Realization && surface.realizationNum !== null) {
                         const surfaceAddress = factory.createRealizationAddress(surface.realizationNum);
+                        surfaceAddresses.push(surfaceAddress);
+                    }
+                    if (surface.ensembleStage === EnsembleStageType.Statistics) {
+                        const surfaceAddress = factory.createStatisticalAddress(surface.statisticFunction);
                         surfaceAddresses.push(surfaceAddress);
                     }
                 }
@@ -216,21 +222,12 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
             surfaceTimeOrInterval: null,
             realizationNum: null,
             uuid: uuidv4(),
+            statisticFunction: SurfaceStatisticFunction_api.MEAN,
+            ensembleStage: EnsembleStageType.Realization,
         };
 
-        if (!newSurface) {
-            if (state.surfaceSelections.length) {
-                newSurface = { ...state.surfaceSelections[state.surfaceSelections.length - 1], uuid: uuidv4() };
-            } else {
-                newSurface = {
-                    ensembleIdent: null,
-                    surfaceName: null,
-                    surfaceAttribute: null,
-                    surfaceTimeOrInterval: null,
-                    realizationNum: null,
-                    uuid: uuidv4(),
-                };
-            }
+        if (state.surfaceSelections.length) {
+            newSurface = { ...state.surfaceSelections[state.surfaceSelections.length - 1], uuid: uuidv4() };
         }
         dispatch({
             type: ActionType.AddSurface,

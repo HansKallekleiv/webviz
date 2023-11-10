@@ -1,6 +1,6 @@
 import React from "react";
 
-import { SurfaceAttributeType_api } from "@api";
+import { StatisticFunction_api, SurfaceAttributeType_api, SurfaceStatisticFunction_api } from "@api";
 import { EnsembleIdent } from "@framework/EnsembleIdent";
 import { EnsembleSet } from "@framework/EnsembleSet";
 import { Button } from "@lib/components/Button";
@@ -11,6 +11,7 @@ import { Remove } from "@mui/icons-material";
 
 import { isEqual } from "lodash";
 
+import { AggregationSelect, EnsembleStage, EnsembleStageType } from "./aggregationSelect";
 import { EnsembleSelectWithButtons } from "./ensembleSelectWithButtons";
 import { SingleRealizationSelectWithButtons } from "./singleRealizationSelectWithButtons";
 import { SingleSelectWithButtons } from "./singleSelectWithButtons";
@@ -92,6 +93,8 @@ export const SurfaceSelect: React.FC<SurfaceSelectProps> = (props) => {
         surfaceAttribute: computedSurfaceAttribute,
         surfaceTimeOrInterval: computedTimeOrInterval,
         realizationNum: computedRealizationNum,
+        ensembleStage: props.surfaceSelection.ensembleStage,
+        statisticFunction: props.surfaceSelection.statisticFunction,
         uuid: props.surfaceSelection.uuid,
     };
 
@@ -111,8 +114,22 @@ export const SurfaceSelect: React.FC<SurfaceSelectProps> = (props) => {
     function handleSurfaceTimeOrIntervalChange(surfaceTimeOrInterval: string) {
         props.onChange({ ...props.surfaceSelection, surfaceTimeOrInterval });
     }
-    function handleRealizationNumChange(realizationNum: number) {
-        props.onChange({ ...props.surfaceSelection, realizationNum });
+    function handleEnsembleStageChange(ensembleStage: EnsembleStage) {
+        if (ensembleStage.ensembleStage == EnsembleStageType.Statistics) {
+            props.onChange({
+                ...props.surfaceSelection,
+                ...{ ensembleStage: ensembleStage.ensembleStage, statisticFunction: ensembleStage.statisticFunction },
+            });
+        }
+        // if (ensembleStage.ensembleStage == EnsembleStageType.Observation) {
+        //     props.onChange({ ...props.surfaceSelection, ...{ ensembleStage: ensembleStage.ensembleStage } });
+        // }
+        if (ensembleStage.ensembleStage == EnsembleStageType.Realization) {
+            props.onChange({
+                ...props.surfaceSelection,
+                ...{ ensembleStage: ensembleStage.ensembleStage, realizationNum: ensembleStage.realizationNum },
+            });
+        }
     }
     function handleRemove() {
         props.onRemove(props.surfaceSelection.uuid);
@@ -165,14 +182,13 @@ export const SurfaceSelect: React.FC<SurfaceSelectProps> = (props) => {
                     onChange={handleSurfaceTimeOrIntervalChange}
                 />
             )}
-            {(!props.syncedSettings.realizationNum || props.index == 0) && (
-                <SingleSelectWithButtons
-                    name="Realization"
-                    options={availableRealizationNums.map((num) => num.toString())}
-                    value={computedRealizationNum.toString()}
-                    onChange={(value: string) => handleRealizationNumChange(parseInt(value))}
-                />
-            )}
+            <AggregationSelect
+                stage={props.surfaceSelection.ensembleStage}
+                statisticFunction={props.surfaceSelection.statisticFunction}
+                availableRealizationNums={availableRealizationNums}
+                realizationNum={computedRealizationNum}
+                onChange={handleEnsembleStageChange}
+            />
         </>
     );
 };
