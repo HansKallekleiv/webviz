@@ -48,7 +48,7 @@ export const AggregationSelect: React.FC<AggregationSelectProps> = (props) => {
         if (stage == EnsembleStageType.Realization) {
             props.onChange({
                 ensembleStage: EnsembleStageType.Realization,
-                realizationNum: props.realizationNum ? props.realizationNum : props.availableRealizationNums[0],
+                realizationNum: props.realizationNum ? props.realizationNum : props.availableRealizationNums[0] ?? 0,
             });
         }
     }

@@ -25,7 +25,7 @@ export const SurfaceSpecificationLabel: React.FC<SurfaceSpecificationLabelProps>
         return !prevSurfaceSpecification.current ||
             (surfaceSpecification && surfaceSpecification[key] !== prevSurfaceSpecification.current[key])
             ? "bg-green-200 animate__animated animate__fadeIn"
-            : "";
+            : " bg-transparent ";
     };
 
     React.useEffect(() => {
@@ -45,7 +45,7 @@ export const SurfaceSpecificationLabel: React.FC<SurfaceSpecificationLabelProps>
             return () => clearTimeout(timer);
         }
     }, [surfaceSpecification]);
-    const baseClassNames = "m-0 bg-transparent border border-gray-300 p-1 max-w-sm text-gray-800 text-sm";
+    const baseClassNames = "m-0 border border-gray-300 p-1 max-w-sm text-gray-800 text-sm";
     return (
         <div className="flex">
             {surfaceSpecification ? (
