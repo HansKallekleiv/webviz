@@ -9,6 +9,7 @@ import { CollapsibleGroup } from "@lib/components/CollapsibleGroup";
 import { Dropdown } from "@lib/components/Dropdown";
 import { Label } from "@lib/components/Label";
 import { RadioGroup } from "@lib/components/RadioGroup";
+import { ColorScaleGradientType } from "@lib/utils/ColorScale";
 import { TimeType } from "@modules/_shared/Surface";
 
 import { v4 as uuidv4 } from "uuid";
@@ -25,7 +26,10 @@ const TimeTypeEnumToStringMapping = {
     [TimeType.TimePoint]: "Time point",
     [TimeType.Interval]: "Time interval",
 };
-
+const ColorScaleGradientTypeToStringMapping = {
+    [ColorScaleGradientType.Sequential]: "Sequential",
+    [ColorScaleGradientType.Diverging]: "Diverging",
+};
 export function settings({ moduleContext, workbenchSession }: ModuleFCProps<State>) {
     const ensembleSet = useEnsembleSet(workbenchSession);
     const ensembleSetSurfaceMetas = useEnsembleSetSurfaceMetaQuery(
@@ -76,11 +80,23 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
     function handleRemoveSurface(uuid: string) {
         surfaceReducer.removeSurface(uuid);
     }
+    function handleColorScaleGradientTypeChange(event: React.ChangeEvent<HTMLInputElement>) {
+        console.log(event.target.value);
+        surfaceReducer.SetColorScaleGradientType(event.target.value as ColorScaleGradientType);
+    }
     React.useEffect(
         function propogateSurfaceSpecificationsToView() {
             moduleContext.getStateStore().setValue("surfaceSpecifications", surfaceReducer.state.surfaceSpecifications);
         },
         [surfaceReducer.state.surfaceSpecifications]
+    );
+    React.useEffect(
+        function propogateColorPaletteTypeToView() {
+            moduleContext
+                .getStateStore()
+                .setValue("colorScaleGradientType", surfaceReducer.state.colorScaleGradientType);
+        },
+        [surfaceReducer.state.colorScaleGradientType]
     );
     return (
         <>
@@ -102,6 +118,16 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
                     })}
                     onChange={handleSurfaceAttributeTypeChange}
                     value={surfaceReducer.state.attributeType}
+                />
+            </Label>
+            <Label text="Color palette">
+                <RadioGroup
+                    value={surfaceReducer.state.colorScaleGradientType}
+                    direction="horizontal"
+                    options={Object.values(ColorScaleGradientType).map((val: ColorScaleGradientType) => {
+                        return { value: val, label: ColorScaleGradientTypeToStringMapping[val] };
+                    })}
+                    onChange={handleColorScaleGradientTypeChange}
                 />
             </Label>
 

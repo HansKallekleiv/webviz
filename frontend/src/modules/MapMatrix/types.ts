@@ -1,5 +1,6 @@
 import { SurfaceAttributeType_api, SurfaceStatisticFunction_api } from "@api";
 import { EnsembleIdent } from "@framework/EnsembleIdent";
+import { ColorScaleGradientType } from "@lib/utils/ColorScale";
 import { TimeType } from "@modules/_shared/Surface";
 
 export type SurfaceReducerState = {
@@ -7,6 +8,7 @@ export type SurfaceReducerState = {
     syncedSettings: SyncedSettings;
     timeMode: TimeType;
     attributeType: SurfaceAttributeType_api;
+    colorScaleGradientType: ColorScaleGradientType;
 };
 
 export type SurfaceSpecification = {

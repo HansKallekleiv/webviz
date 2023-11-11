@@ -3,30 +3,36 @@ import React from "react";
 import { SurfaceDataPng_api } from "@api";
 import { View } from "@deck.gl/core/typed";
 import { ContinuousLegend } from "@emerson-eps/color-tables";
+import { colorTablesObj } from "@emerson-eps/color-tables";
 import { ModuleFCProps } from "@framework/Module";
 import { useViewStatusWriter } from "@framework/StatusWriter";
 import { SyncedSubsurfaceViewer } from "@modules/SubsurfaceMap/components/SyncedSubsurfaceViewer";
 import { SurfaceAddress } from "@modules/_shared/Surface";
 import { SurfaceAddressFactory } from "@modules/_shared/Surface";
 // import { shouldUpdateViewPortBounds } from "@modules/_shared/Surface/subsurfaceMapUtils";
+import { createContinuousColorScaleForMap } from "@modules/_shared/Surface/subsurfaceMapUtils";
 import { ViewportType, ViewsType } from "@webviz/subsurface-viewer";
 import { ViewFooter } from "@webviz/subsurface-viewer/dist/components/ViewFooter";
 
 import { isEqual } from "lodash";
 
-import { isoStringToDateOrIntervalLabel } from "./_utils/isoString";
-import { StatisticFunctionToStringMapping } from "./components/aggregationSelect";
+import { SurfaceSpecificationLabel } from "./components/surfaceSpecificationLabel";
 import { IndexedSurfaceDatas, useSurfaceDataSetQueryByAddress } from "./hooks/useSurfaceDataAsPngQuery";
 import { State } from "./state";
 import { EnsembleStageType, SurfaceSpecification } from "./types";
 
-export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>) {
+export function view({ moduleContext, workbenchServices, workbenchSettings }: ModuleFCProps<State>) {
     const [viewportBounds, setviewPortBounds] = React.useState<[number, number, number, number] | undefined>(undefined);
     const [prevSurfaceDataSetQueryByAddress, setPrevSurfaceDataSetQueryByAddress] =
         React.useState<IndexedSurfaceDatas | null>(null);
     const statusWriter = useViewStatusWriter(moduleContext);
 
     const surfaceSpecifications = moduleContext.useStoreValue("surfaceSpecifications");
+    const colorScaleGradientType = moduleContext.useStoreValue("colorScaleGradientType");
+    const surfaceColorScale = workbenchSettings.useContinuousColorScale({
+        gradientType: colorScaleGradientType,
+    });
+    const colorTables = createContinuousColorScaleForMap(surfaceColorScale);
     const surfaceAddresses: SurfaceAddress[] = [];
     surfaceSpecifications.forEach((surface) => {
         if (surface.ensembleIdent && surface.surfaceName && surface.surfaceAttribute) {
@@ -115,9 +121,9 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
             makeViewAnnotation(
                 `${index}view`,
                 surfaceSpecifications[index],
+                colorTables,
                 colorMin || valueMin,
-                colorMax || valueMax,
-                "Physics"
+                colorMax || valueMax
             )
         );
     });
@@ -129,6 +135,7 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
                     id={"test"}
                     layers={layers}
                     views={views}
+                    colorTables={colorTables}
                     bounds={viewportBounds || undefined}
                     workbenchServices={workbenchServices}
                     moduleContext={moduleContext}
@@ -142,9 +149,9 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
 function makeViewAnnotation(
     id: string,
     surfaceSpecification: SurfaceSpecification,
+    colorTables: colorTablesObj[],
     colorMin: number,
-    colorMax: number,
-    colorName: string
+    colorMax: number
 ): JSX.Element {
     return (
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -154,43 +161,14 @@ function makeViewAnnotation(
                 <ContinuousLegend
                     min={colorMin}
                     max={colorMax}
-                    colorName={colorName}
-                    cssLegendStyles={{ top: "20", right: "0", backgroundColor: "transparent" }}
+                    colorName="Continuous"
+                    colorTables={colorTables}
+                    cssLegendStyles={{ top: "20px", right: "0px", backgroundColor: "transparent" }}
                     legendScaleSize={0.1}
                     legendFontSize={30}
                 />
                 <ViewFooter>
-                    {surfaceSpecification ? (
-                        <div className="flex" style={{ bottom: 10 }}>
-                            <div className=" m-0 bg-transparent  border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
-                                {surfaceSpecification.surfaceName}
-                            </div>
-                            <div className=" m-0 bg-transparent  border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
-                                {surfaceSpecification.surfaceAttribute}
-                            </div>
-                            {surfaceSpecification.surfaceTimeOrInterval && (
-                                <div className=" m-0 bg-transparent  border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
-                                    {isoStringToDateOrIntervalLabel(surfaceSpecification.surfaceTimeOrInterval)}
-                                </div>
-                            )}
-                            {surfaceSpecification.ensembleStage === EnsembleStageType.Realization && (
-                                <div className=" m-0 bg-transparent  border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
-                                    {`Real: ${surfaceSpecification.realizationNum}`}
-                                </div>
-                            )}
-                            {surfaceSpecification.ensembleStage === EnsembleStageType.Statistics && (
-                                <div className=" m-0 bg-transparent  border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
-                                    {`${StatisticFunctionToStringMapping[surfaceSpecification.statisticFunction]}`}
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        <div className="flex">
-                            <div className=" m-0 bg-transparent  border border-gray-300 p-1  max-w-sm text-gray-800 text-sm">
-                                No surface found
-                            </div>
-                        </div>
-                    )}
+                    <SurfaceSpecificationLabel surfaceSpecification={surfaceSpecification} />
                 </ViewFooter>
             </>
         </View>
@@ -218,6 +196,7 @@ function makeSurfaceImageLayer(
         rotDeg: surfaceData.rot_deg,
         valueRange: [valueMin, valueMax],
         colorMapRange: [colorMin, colorMax],
+        colorMapName: "Continuous",
     };
 }
 

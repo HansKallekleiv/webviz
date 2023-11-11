@@ -1,6 +1,7 @@
 import { useReducer } from "react";
 
 import { SurfaceAttributeType_api } from "@api";
+import { ColorScaleGradientType } from "@lib/utils/ColorScale";
 import { TimeType } from "@modules/_shared/Surface";
 
 import { SurfaceReducerActionType, surfaceDispatcher } from "../reducers/surfaceReducer";
@@ -17,6 +18,7 @@ export const initialSurfaceReducerState: SurfaceReducerState = {
     },
     timeMode: TimeType.None,
     attributeType: SurfaceAttributeType_api.DEPTH,
+    colorScaleGradientType: ColorScaleGradientType.Sequential,
 };
 
 export const useSurfaceReducer = () => {
@@ -63,6 +65,12 @@ export const useSurfaceReducer = () => {
             payload: { attributeType },
         });
     };
+    const SetColorScaleGradientType = (colorScaleGradientType: ColorScaleGradientType) => {
+        dispatch({
+            type: SurfaceReducerActionType.SetColorScaleGradientType,
+            payload: { colorScaleGradientType },
+        });
+    };
 
     return {
         state,
@@ -72,5 +80,6 @@ export const useSurfaceReducer = () => {
         setSyncedSettings,
         setTimeMode,
         setAttributeType,
+        SetColorScaleGradientType,
     };
 };

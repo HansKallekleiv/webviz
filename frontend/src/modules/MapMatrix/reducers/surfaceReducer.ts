@@ -1,4 +1,5 @@
 import { SurfaceAttributeType_api } from "@api";
+import { ColorScaleGradientType } from "@lib/utils/ColorScale";
 import { TimeType } from "@modules/_shared/Surface";
 
 import { SurfaceReducerState, SurfaceSpecification, SyncedSettings } from "../types";
@@ -10,6 +11,7 @@ export enum SurfaceReducerActionType {
     SetSyncedSettings,
     SetTimeMode,
     SetAttributeType,
+    SetColorScaleGradientType,
 }
 type SurfaceReducerPayload = {
     [SurfaceReducerActionType.AddSurface]: SurfaceSpecification;
@@ -18,6 +20,7 @@ type SurfaceReducerPayload = {
     [SurfaceReducerActionType.SetSyncedSettings]: { syncedSettings: SyncedSettings };
     [SurfaceReducerActionType.SetTimeMode]: { timeMode: TimeType };
     [SurfaceReducerActionType.SetAttributeType]: { attributeType: SurfaceAttributeType_api };
+    [SurfaceReducerActionType.SetColorScaleGradientType]: { colorScaleGradientType: ColorScaleGradientType };
 };
 type SurfaceReducerActions = {
     [T in SurfaceReducerActionType]: {
@@ -67,6 +70,12 @@ export function surfaceDispatcher(state: SurfaceReducerState, action: SurfaceRed
         return {
             ...state,
             attributeType: action.payload.attributeType,
+        };
+    }
+    if (action.type === SurfaceReducerActionType.SetColorScaleGradientType) {
+        return {
+            ...state,
+            colorScaleGradientType: action.payload.colorScaleGradientType,
         };
     }
     return state;
