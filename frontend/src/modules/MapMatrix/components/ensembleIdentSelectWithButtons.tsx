@@ -8,14 +8,14 @@ import { useValidState } from "@lib/hooks/useValidState";
 import ArrowCircleLeftIcon from "@mui/icons-material/ArrowCircleLeft";
 import ArrowCircleRightIcon from "@mui/icons-material/ArrowCircleRight";
 
-export type EnsembleSelectWithButtonsProps = {
+export type EnsembleIdentSelectWithButtonsProps = {
     name: string;
     ensembleSet: EnsembleSet;
-    controlledValue: EnsembleIdent | null;
+    value: EnsembleIdent | null;
 
     onChange?: (values: EnsembleIdent | null) => void;
 };
-export const EnsembleSelectWithButtons: React.FC<EnsembleSelectWithButtonsProps> = (props) => {
+export const EnsembleIdentSelectWithButtons: React.FC<EnsembleIdentSelectWithButtonsProps> = (props) => {
     const availableEnsembles = props.ensembleSet.getEnsembleArr();
     const availableEnsembleOptions = availableEnsembles.map((ensemble) => ({
         value: ensemble.getIdent().toString(),
@@ -25,11 +25,11 @@ export const EnsembleSelectWithButtons: React.FC<EnsembleSelectWithButtonsProps>
 
     const [localValue, setLocalValue] = useValidState(availableEnsembleIdentStrings[0], availableEnsembleIdentStrings);
 
-    const displayValue = props.controlledValue ? props.controlledValue.toString() : localValue;
+    const displayValue = props.value ? props.value.toString() : localValue;
 
     const handleSelectionChange = (selectedValue: string) => {
         const foundEnsemble = props.ensembleSet.findEnsembleByIdentString(selectedValue);
-        if (!props.controlledValue) {
+        if (!props.value) {
             setLocalValue(selectedValue);
         }
         props.onChange?.(foundEnsemble ? foundEnsemble.getIdent() : null);

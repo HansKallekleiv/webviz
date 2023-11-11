@@ -9,8 +9,8 @@ import { Remove } from "@mui/icons-material";
 
 import { isEqual } from "lodash";
 
-import { AggregationSelect } from "./aggregationSelect";
-import { EnsembleSelectWithButtons } from "./ensembleSelectWithButtons";
+import { EnsembleIdentSelectWithButtons } from "./ensembleIdentSelectWithButtons";
+import { EnsembleStageSelect } from "./ensembleStageSelect";
 import { SingleSelectWithButtons } from "./singleSelectWithButtons";
 
 import { isoStringToDateOrIntervalLabel } from "../_utils/isoString";
@@ -156,10 +156,10 @@ export const SurfaceSelect: React.FC<SurfaceSelectProps> = (props) => {
                 </td>
             </tr>
             {(!props.syncedSettings.ensemble || props.index == 0) && (
-                <EnsembleSelectWithButtons
+                <EnsembleIdentSelectWithButtons
                     name="Ensemble"
                     ensembleSet={props.ensembleSet}
-                    controlledValue={computedEnsembleIdent}
+                    value={computedEnsembleIdent}
                     onChange={handleEnsembleSelectionChange}
                 />
             )}
@@ -191,7 +191,7 @@ export const SurfaceSelect: React.FC<SurfaceSelectProps> = (props) => {
                     onChange={handleSurfaceTimeOrIntervalChange}
                 />
             )}
-            <AggregationSelect
+            <EnsembleStageSelect
                 stage={props.surfaceSpecification.ensembleStage}
                 statisticFunction={props.surfaceSpecification.statisticFunction}
                 availableRealizationNums={availableRealizationNums}

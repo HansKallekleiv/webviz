@@ -1,16 +1,11 @@
 import React from "react";
 
-import { SurfaceAttributeType_api, SurfaceStatisticFunction_api } from "@api";
+import { SurfaceStatisticFunction_api } from "@api";
 import { ModuleFCProps } from "@framework/Module";
 import { useEnsembleSet } from "@framework/WorkbenchSession";
 import { Button } from "@lib/components/Button";
 import { CircularProgress } from "@lib/components/CircularProgress";
 import { CollapsibleGroup } from "@lib/components/CollapsibleGroup";
-import { Dropdown } from "@lib/components/Dropdown";
-import { Label } from "@lib/components/Label";
-import { RadioGroup } from "@lib/components/RadioGroup";
-import { ColorScaleGradientType } from "@lib/utils/ColorScale";
-import { TimeType } from "@modules/_shared/Surface";
 
 import { v4 as uuidv4 } from "uuid";
 
@@ -35,7 +30,7 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
     }
     function handleAddSurface() {
         let newSurface: SurfaceSpecification = {
-            ensembleIdent: ensembleSet.getEnsembleArr()[0]?.getIdent() ?? null,
+            ensembleIdent: null,
             surfaceName: null,
             surfaceAttribute: null,
             surfaceTimeOrInterval: null,

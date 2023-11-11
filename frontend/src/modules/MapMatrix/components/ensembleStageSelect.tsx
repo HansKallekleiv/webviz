@@ -7,7 +7,7 @@ import { PrevNextButtonsProps } from "./previousNextButtons";
 
 import { EnsembleStage, EnsembleStageType } from "../types";
 
-export type AggregationSelectProps = {
+export type EnsembleStageSelectProps = {
     stage: EnsembleStageType;
     availableRealizationNums: number[];
     realizationNum: number;
@@ -25,7 +25,7 @@ export const StatisticFunctionToStringMapping = {
     [SurfaceStatisticFunction_api.P90]: "P90",
 };
 
-export const AggregationSelect: React.FC<AggregationSelectProps> = (props) => {
+export const EnsembleStageSelect: React.FC<EnsembleStageSelectProps> = (props) => {
     function handleRealizationNumChange(realNum: string) {
         props.onChange({
             ensembleStage: EnsembleStageType.Realization,
