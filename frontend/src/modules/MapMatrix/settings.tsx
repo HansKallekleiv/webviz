@@ -45,7 +45,7 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
         if (surfaceReducer.state.surfaceSpecifications.length) {
             newSurface = {
                 ...surfaceReducer.state.surfaceSpecifications[surfaceReducer.state.surfaceSpecifications.length - 1],
-                uuid: uuidv4(),
+                uuid: newSurface.uuid,
             };
         }
         surfaceReducer.addSurface(newSurface);
@@ -83,7 +83,7 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
             <CollapsibleGroup expanded={true} title="Colors">
                 <SurfaceColorSelect
                     colorScaleGradientType={surfaceReducer.state.colorScaleGradientType}
-                    onColorGradientTypeChange={surfaceReducer.SetColorScaleGradientType}
+                    onColorGradientTypeChange={surfaceReducer.setColorScaleGradientType}
                 />
             </CollapsibleGroup>
             <CollapsibleGroup expanded={true} title="Synchronization">
@@ -96,7 +96,7 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
                 <Button
                     variant={"contained"}
                     onClick={handleAddSurface}
-                    disabled={ensembleSetSurfaceMetas.isFetching}
+                    disabled={ensembleSetSurfaceMetas.isFetching && ensembleSet.getEnsembleArr().length > 0}
                     startIcon={ensembleSetSurfaceMetas.isFetching ? <CircularProgress /> : null}
                 >
                     Add Surface

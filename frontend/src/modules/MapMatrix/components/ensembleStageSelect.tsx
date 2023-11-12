@@ -71,7 +71,7 @@ export const EnsembleStageSelect: React.FC<EnsembleStageSelectProps> = (props) =
                     <div className="flex-grow">
                         <Dropdown
                             options={realizationOptions}
-                            value={props.realizationNum.toString()}
+                            value={props.realizationNum?.toString()}
                             onChange={handleRealizationNumChange}
                             disabled={props.disableRealizationPicker}
                         />
@@ -100,7 +100,7 @@ export const EnsembleStageSelect: React.FC<EnsembleStageSelectProps> = (props) =
                         disabled={props.disableRealizationPicker}
                         onChange={handleRealizationNumChange}
                         options={realizationOptions.map((option) => option.value.toString())}
-                        value={props.realizationNum.toString()}
+                        value={props.realizationNum?.toString()}
                     />
                 )}
             </td>

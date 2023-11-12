@@ -14,7 +14,7 @@ export type IndexedSurfaceDatas = {
     isFetching: boolean;
 };
 
-export function useSurfaceDataSetQueryByAddress(surfaceAddresses: SurfaceAddress[]): IndexedSurfaceDatas {
+export function useSurfaceDataSetQueryByAddresses(surfaceAddresses: SurfaceAddress[]): IndexedSurfaceDatas {
     const queryResults = useQueries({
         queries: surfaceAddresses.map((surfAddr: SurfaceAddress) => {
             let queryKey: QueryKey = ["dummy"];

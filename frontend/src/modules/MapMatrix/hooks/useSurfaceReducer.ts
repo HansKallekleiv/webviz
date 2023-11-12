@@ -65,7 +65,7 @@ export const useSurfaceReducer = () => {
             payload: { attributeType },
         });
     };
-    const SetColorScaleGradientType = (colorScaleGradientType: ColorScaleGradientType) => {
+    const setColorScaleGradientType = (colorScaleGradientType: ColorScaleGradientType) => {
         dispatch({
             type: SurfaceReducerActionType.SetColorScaleGradientType,
             payload: { colorScaleGradientType },
@@ -80,6 +80,6 @@ export const useSurfaceReducer = () => {
         setSyncedSettings,
         setTimeMode,
         setAttributeType,
-        SetColorScaleGradientType,
+        setColorScaleGradientType,
     };
 };

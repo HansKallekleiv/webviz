@@ -17,59 +17,42 @@ import { ViewFooter } from "@webviz/subsurface-viewer/dist/components/ViewFooter
 import { isEqual } from "lodash";
 
 import { SurfaceSpecificationLabel } from "./components/surfaceSpecificationLabel";
-import { IndexedSurfaceDatas, useSurfaceDataSetQueryByAddress } from "./hooks/useSurfaceDataAsPngQuery";
+import { IndexedSurfaceDatas, useSurfaceDataSetQueryByAddresses } from "./hooks/useSurfaceDataAsPngQuery";
 import { State } from "./state";
 import { EnsembleStageType, SurfaceSpecification } from "./types";
 
 export function view({ moduleContext, workbenchServices, workbenchSettings }: ModuleFCProps<State>) {
     const [viewportBounds, setviewPortBounds] = React.useState<[number, number, number, number] | undefined>(undefined);
-    const [prevSurfaceDataSetQueryByAddress, setPrevSurfaceDataSetQueryByAddress] =
-        React.useState<IndexedSurfaceDatas | null>(null);
-    const statusWriter = useViewStatusWriter(moduleContext);
 
     const surfaceSpecifications = moduleContext.useStoreValue("surfaceSpecifications");
-    const colorScaleGradientType = moduleContext.useStoreValue("colorScaleGradientType");
-    const surfaceColorScale = workbenchSettings.useContinuousColorScale({
-        gradientType: colorScaleGradientType,
-    });
-    const colorTables = createContinuousColorScaleForMap(surfaceColorScale);
-    const surfaceAddresses: SurfaceAddress[] = [];
-    surfaceSpecifications.forEach((surface) => {
-        if (surface.ensembleIdent && surface.surfaceName && surface.surfaceAttribute) {
-            const factory = new SurfaceAddressFactory(
-                surface.ensembleIdent?.getCaseUuid(),
-                surface.ensembleIdent?.getEnsembleName(),
-                surface.surfaceName,
-                surface.surfaceAttribute,
-                surface.surfaceTimeOrInterval
-            );
-            if (surface.ensembleStage === EnsembleStageType.Realization && surface.realizationNum !== null) {
-                const surfaceAddress = factory.createRealizationAddress(surface.realizationNum);
-                surfaceAddresses.push(surfaceAddress);
-            }
-            if (surface.ensembleStage === EnsembleStageType.Statistics) {
-                const surfaceAddress = factory.createStatisticalAddress(surface.statisticFunction);
-                surfaceAddresses.push(surfaceAddress);
-            }
-        }
-    });
+    const surfaceAddresses = createSurfaceAddressesFromSpecifications(surfaceSpecifications);
+    const surfaceDataSetQueryByAddresses = useSurfaceDataSetQueryByAddresses(surfaceAddresses);
 
-    const surfaceDataSetQueryByAddress = useSurfaceDataSetQueryByAddress(surfaceAddresses);
+    const statusWriter = useViewStatusWriter(moduleContext);
+    statusWriter.setLoading(surfaceDataSetQueryByAddresses.isFetching);
+
+    const [prevSurfaceDataSetQueryByAddresses, setPrevSurfaceDataSetQueryByAddresses] =
+        React.useState<IndexedSurfaceDatas | null>(null);
+
     let surfaceDataSet: Array<{
         index: number;
         surfaceData: SurfaceDataPng_api | null;
     }> = [];
     if (
-        !surfaceDataSetQueryByAddress.isFetching &&
-        !isEqual(prevSurfaceDataSetQueryByAddress, surfaceDataSetQueryByAddress)
+        !surfaceDataSetQueryByAddresses.isFetching &&
+        !isEqual(prevSurfaceDataSetQueryByAddresses, surfaceDataSetQueryByAddresses)
     ) {
-        setPrevSurfaceDataSetQueryByAddress(surfaceDataSetQueryByAddress);
-        surfaceDataSet = surfaceDataSetQueryByAddress.data;
-    } else if (prevSurfaceDataSetQueryByAddress) {
-        surfaceDataSet = prevSurfaceDataSetQueryByAddress.data;
+        setPrevSurfaceDataSetQueryByAddresses(surfaceDataSetQueryByAddresses);
+        surfaceDataSet = surfaceDataSetQueryByAddresses.data;
+    } else if (prevSurfaceDataSetQueryByAddresses) {
+        surfaceDataSet = prevSurfaceDataSetQueryByAddresses.data;
     }
-    statusWriter.setLoading(surfaceDataSetQueryByAddress.isFetching);
 
+    const colorScaleGradientType = moduleContext.useStoreValue("colorScaleGradientType");
+    const surfaceColorScale = workbenchSettings.useContinuousColorScale({
+        gradientType: colorScaleGradientType,
+    });
+    const colorTables = createContinuousColorScaleForMap(surfaceColorScale);
     const views: ViewsType = makeEmptySurfaceViews(surfaceDataSet.length ?? 1);
     const viewAnnotations: JSX.Element[] = [];
     const layers: Record<string, unknown>[] = [
@@ -214,4 +197,28 @@ function makeEmptySurfaceViews(numSubplots: number): ViewsType {
         });
     }
     return { layout: [numRows, numColumns], showLabel: true, viewports: viewPorts };
+}
+
+function createSurfaceAddressesFromSpecifications(surfaceSpecifications: SurfaceSpecification[]): SurfaceAddress[] {
+    const surfaceAddresses: SurfaceAddress[] = [];
+    surfaceSpecifications.forEach((surface) => {
+        if (surface.ensembleIdent && surface.surfaceName && surface.surfaceAttribute) {
+            const factory = new SurfaceAddressFactory(
+                surface.ensembleIdent?.getCaseUuid(),
+                surface.ensembleIdent?.getEnsembleName(),
+                surface.surfaceName,
+                surface.surfaceAttribute,
+                surface.surfaceTimeOrInterval
+            );
+            if (surface.ensembleStage === EnsembleStageType.Realization && surface.realizationNum !== null) {
+                const surfaceAddress = factory.createRealizationAddress(surface.realizationNum);
+                surfaceAddresses.push(surfaceAddress);
+            }
+            if (surface.ensembleStage === EnsembleStageType.Statistics) {
+                const surfaceAddress = factory.createStatisticalAddress(surface.statisticFunction);
+                surfaceAddresses.push(surfaceAddress);
+            }
+        }
+    });
+    return surfaceAddresses;
 }

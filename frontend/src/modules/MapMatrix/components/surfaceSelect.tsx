@@ -31,6 +31,7 @@ export type SurfaceSelectProps = {
 
 export const SurfaceSelect: React.FC<SurfaceSelectProps> = (props) => {
     let computedEnsembleIdent = props.surfaceSpecification.ensembleIdent;
+
     if (
         !computedEnsembleIdent ||
         !props.ensembleSet.getEnsembleArr().some((el) => el.getIdent().equals(computedEnsembleIdent))
@@ -40,7 +41,7 @@ export const SurfaceSelect: React.FC<SurfaceSelectProps> = (props) => {
 
     const ensembleSurfaceMetadata = computedEnsembleIdent
         ? props.surfaceMetas.data.find((ensembleSurfaceSet) =>
-              ensembleSurfaceSet.ensembleIdent.equals(computedEnsembleIdent)
+              ensembleSurfaceSet.ensembleIdent?.equals(computedEnsembleIdent)
           )
         : undefined;
 
@@ -75,11 +76,14 @@ export const SurfaceSelect: React.FC<SurfaceSelectProps> = (props) => {
         )[0];
     }
     let computedRealizationNum = props.surfaceSpecification.realizationNum;
-    const availableRealizationNums =
-        props.ensembleSet
-            .findEnsemble(computedEnsembleIdent)
-            ?.getRealizations()
-            .map((real) => real) ?? [];
+    let availableRealizationNums: number[] = [];
+    if (props.ensembleSet && computedEnsembleIdent) {
+        availableRealizationNums =
+            props.ensembleSet
+                .findEnsemble(computedEnsembleIdent)
+                ?.getRealizations()
+                .map((real) => real) ?? [];
+    }
 
     if (!computedRealizationNum || !availableRealizationNums.includes(computedRealizationNum)) {
         computedRealizationNum = availableRealizationNums[0];
