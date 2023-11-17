@@ -4,6 +4,7 @@ import { ColorScaleGradientType } from "@lib/utils/ColorScale";
 import { TimeType } from "@modules/_shared/Surface";
 
 export type SurfaceReducerState = {
+    ensembleIdents: EnsembleIdent[];
     surfaceSpecifications: SurfaceSpecification[];
     syncedSettings: SyncedSettings;
     timeMode: TimeType;

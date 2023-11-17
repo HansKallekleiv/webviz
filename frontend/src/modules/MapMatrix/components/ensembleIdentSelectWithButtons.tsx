@@ -10,33 +10,32 @@ import ArrowCircleRightIcon from "@mui/icons-material/ArrowCircleRight";
 
 export type EnsembleIdentSelectWithButtonsProps = {
     name: string;
-    ensembleSet: EnsembleSet;
+    ensembleIdents: EnsembleIdent[];
     value: EnsembleIdent | null;
-
+    ensembleSet: EnsembleSet;
     onChange?: (values: EnsembleIdent | null) => void;
 };
 export const EnsembleIdentSelectWithButtons: React.FC<EnsembleIdentSelectWithButtonsProps> = (props) => {
-    const availableEnsembles = props.ensembleSet.getEnsembleArr();
+    const selectedEnsemble = props.ensembleSet
+        .getEnsembleArr()
+        .filter((ensemble) => ensemble.getIdent().equals(props.value));
+    // Check if ensembleIdents are in in ensembleSet
+    const availableEnsembles = props.ensembleSet
+        .getEnsembleArr()
+        .filter((ensemble) => props.ensembleIdents.includes(ensemble.getIdent()));
+
     const availableEnsembleOptions = availableEnsembles.map((ensemble) => ({
         value: ensemble.getIdent().toString(),
         label: ensemble.getDisplayName(),
     }));
-    const availableEnsembleIdentStrings = availableEnsembles.map((ensemble) => ensemble.getIdent().toString());
-
-    const [localValue, setLocalValue] = useValidState(availableEnsembleIdentStrings[0], availableEnsembleIdentStrings);
-
-    const displayValue = props.value ? props.value.toString() : localValue;
-
-    const handleSelectionChange = (selectedValue: string) => {
-        const foundEnsemble = props.ensembleSet.findEnsembleByIdentString(selectedValue);
-        if (!props.value) {
-            setLocalValue(selectedValue);
-        }
-        props.onChange?.(foundEnsemble ? foundEnsemble.getIdent() : null);
+    const handleSelectionChange = (identString: string) => {
+        const ensembleIdent = EnsembleIdent.fromString(identString);
+        props.onChange?.(ensembleIdent);
     };
 
     const changeSelection = (direction: "prev" | "next") => {
-        const currentIndex = availableEnsembleIdentStrings.indexOf(displayValue);
+        const availableEnsembleIdentStrings = availableEnsembleOptions.map((option) => option.value);
+        const currentIndex = availableEnsembleIdentStrings.indexOf(props.value?.toString() ?? "");
         let nextIndex = direction === "next" ? currentIndex + 1 : currentIndex - 1;
 
         if (nextIndex >= availableEnsembleIdentStrings.length) {
@@ -53,7 +52,11 @@ export const EnsembleIdentSelectWithButtons: React.FC<EnsembleIdentSelectWithBut
         <tr>
             <td className="px-6 py-0 whitespace-nowrap">{props.name}</td>
             <td className="px-6 py-0 w-full whitespace-nowrap">
-                <Dropdown options={availableEnsembleOptions} value={displayValue} onChange={handleSelectionChange} />
+                <Dropdown
+                    options={availableEnsembleOptions}
+                    value={props.value?.toString()}
+                    onChange={handleSelectionChange}
+                />
             </td>
             <td className="px-0 py-0 whitespace-nowrap text-right">
                 <div className="flex justify-end">

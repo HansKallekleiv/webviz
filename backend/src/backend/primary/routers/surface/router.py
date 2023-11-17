@@ -211,7 +211,7 @@ async def get_statistical_surface_data_as_png(
     if service_stat_func_to_compute is None:
         raise HTTPException(status_code=404, detail="Invalid statistic requested")
 
-    xtgeo_surf = access.get_statistical_surface_data_async(
+    xtgeo_surf = await access.get_statistical_surface_data_async(
         statistic_function=service_stat_func_to_compute,
         name=name,
         attribute=attribute,

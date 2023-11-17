@@ -3,6 +3,7 @@ import React from "react";
 import { SurfaceAttributeType_api, SurfaceStatisticFunction_api } from "@api";
 import { EnsembleIdent } from "@framework/EnsembleIdent";
 import { EnsembleSet } from "@framework/EnsembleSet";
+import { WorkbenchSession, useEnsembleSet } from "@framework/WorkbenchSession";
 import { IconButton } from "@lib/components/IconButton";
 import { SurfaceDirectory, TimeType } from "@modules/_shared/Surface";
 import { Remove } from "@mui/icons-material";
@@ -21,22 +22,20 @@ export type SurfaceSelectProps = {
     index: number;
     surfaceMetas: EnsembleSetSurfaceMetas;
     surfaceSpecification: SurfaceSpecification;
-    ensembleSet: EnsembleSet;
+    ensembleIdents: EnsembleIdent[];
     timeType: TimeType;
     attributeType: SurfaceAttributeType_api;
     syncedSettings: SyncedSettings;
     onChange: (surfaceSpecification: SurfaceSpecification) => void;
     onRemove: (uuid: string) => void;
+    ensembleSet: EnsembleSet;
 };
 
 export const SurfaceSelect: React.FC<SurfaceSelectProps> = (props) => {
     let computedEnsembleIdent = props.surfaceSpecification.ensembleIdent;
 
-    if (
-        !computedEnsembleIdent ||
-        !props.ensembleSet.getEnsembleArr().some((el) => el.getIdent().equals(computedEnsembleIdent))
-    ) {
-        computedEnsembleIdent = props.ensembleSet.getEnsembleArr()[0]?.getIdent();
+    if (!computedEnsembleIdent || !props.ensembleIdents.some((el) => el.equals(computedEnsembleIdent))) {
+        computedEnsembleIdent = props.ensembleIdents[0];
     }
 
     const ensembleSurfaceMetadata = computedEnsembleIdent
@@ -77,12 +76,10 @@ export const SurfaceSelect: React.FC<SurfaceSelectProps> = (props) => {
     }
     let computedRealizationNum = props.surfaceSpecification.realizationNum;
     let availableRealizationNums: number[] = [];
-    if (props.ensembleSet && computedEnsembleIdent) {
-        availableRealizationNums =
-            props.ensembleSet
-                .findEnsemble(computedEnsembleIdent)
-                ?.getRealizations()
-                .map((real) => real) ?? [];
+
+    if (computedEnsembleIdent) {
+        const ensemble = props.ensembleSet.findEnsemble(computedEnsembleIdent);
+        availableRealizationNums = ensemble?.getRealizations().map((real) => real) ?? [];
     }
 
     if (!computedRealizationNum || !availableRealizationNums.includes(computedRealizationNum)) {
@@ -162,8 +159,9 @@ export const SurfaceSelect: React.FC<SurfaceSelectProps> = (props) => {
             {(!props.syncedSettings.ensemble || props.index == 0) && (
                 <EnsembleIdentSelectWithButtons
                     name="Ensemble"
-                    ensembleSet={props.ensembleSet}
+                    ensembleIdents={props.ensembleIdents}
                     value={computedEnsembleIdent}
+                    ensembleSet={props.ensembleSet}
                     onChange={handleEnsembleSelectionChange}
                 />
             )}

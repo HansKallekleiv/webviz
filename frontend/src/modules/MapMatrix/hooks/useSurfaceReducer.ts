@@ -1,6 +1,7 @@
 import { useReducer } from "react";
 
 import { SurfaceAttributeType_api } from "@api";
+import { EnsembleIdent } from "@framework/EnsembleIdent";
 import { ColorScaleGradientType } from "@lib/utils/ColorScale";
 import { TimeType } from "@modules/_shared/Surface";
 
@@ -8,6 +9,7 @@ import { SurfaceReducerActionType, surfaceDispatcher } from "../reducers/surface
 import { SurfaceReducerState, SurfaceSpecification, SyncedSettings } from "../types";
 
 export const initialSurfaceReducerState: SurfaceReducerState = {
+    ensembleIdents: [],
     surfaceSpecifications: [],
     syncedSettings: {
         ensemble: false,
@@ -24,6 +26,12 @@ export const initialSurfaceReducerState: SurfaceReducerState = {
 export const useSurfaceReducer = () => {
     const [state, dispatch] = useReducer(surfaceDispatcher, initialSurfaceReducerState);
 
+    const setEnsembleIdents = (ensembleIdents: EnsembleIdent[]) => {
+        dispatch({
+            type: SurfaceReducerActionType.SetEnsembleIdents,
+            payload: { ensembleIdents },
+        });
+    };
     const addSurface = (surfaceSpecification: SurfaceSpecification) => {
         dispatch({
             type: SurfaceReducerActionType.AddSurface,
@@ -74,6 +82,7 @@ export const useSurfaceReducer = () => {
 
     return {
         state,
+        setEnsembleIdents,
         addSurface,
         removeSurface,
         setSurface,

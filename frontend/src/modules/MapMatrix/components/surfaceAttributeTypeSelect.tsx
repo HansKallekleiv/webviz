@@ -9,7 +9,7 @@ import { TimeType } from "@modules/_shared/Surface";
 const SurfaceAttributeTypeToStringMapping = {
     [SurfaceAttributeType_api.DEPTH]: "Depth surfaces",
     [SurfaceAttributeType_api.TIME]: "Time surfaces",
-    [SurfaceAttributeType_api.PROPERTY]: "Static/Simulation attributes",
+    [SurfaceAttributeType_api.PROPERTY]: "Extracted grid properties",
     [SurfaceAttributeType_api.SEISMIC]: "Seismic attributes",
     [SurfaceAttributeType_api.THICKNESS]: "Thickness surfaces??",
     [SurfaceAttributeType_api.ISOCHORE]: "Isochores",
@@ -44,7 +44,7 @@ export const SurfaceAttributeTypeSelect: React.FC<SurfaceAttributeTypeSelectProp
     return (
         <div className="flex mb-2  gap-4 text-sm">
             <div className="flex-grow">
-                <Label text="Surface attribute type">
+                <Label text="Surface type">
                     <Dropdown
                         options={Object.values(SurfaceAttributeType_api).map((val: SurfaceAttributeType_api) => {
                             return { label: SurfaceAttributeTypeToStringMapping[val], value: val };
@@ -54,7 +54,7 @@ export const SurfaceAttributeTypeSelect: React.FC<SurfaceAttributeTypeSelectProp
                     />
                 </Label>
             </div>
-            <Label text="Time">
+            <Label text="Static / dynamic">
                 <Dropdown
                     value={props.timeMode}
                     options={[

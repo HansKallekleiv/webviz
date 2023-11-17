@@ -1,10 +1,12 @@
 import { SurfaceAttributeType_api } from "@api";
+import { EnsembleIdent } from "@framework/EnsembleIdent";
 import { ColorScaleGradientType } from "@lib/utils/ColorScale";
 import { TimeType } from "@modules/_shared/Surface";
 
 import { SurfaceReducerState, SurfaceSpecification, SyncedSettings } from "../types";
 
 export enum SurfaceReducerActionType {
+    SetEnsembleIdents,
     AddSurface,
     RemoveSurface,
     SetSurface,
@@ -14,6 +16,7 @@ export enum SurfaceReducerActionType {
     SetColorScaleGradientType,
 }
 type SurfaceReducerPayload = {
+    [SurfaceReducerActionType.SetEnsembleIdents]: { ensembleIdents: EnsembleIdent[] };
     [SurfaceReducerActionType.AddSurface]: SurfaceSpecification;
     [SurfaceReducerActionType.RemoveSurface]: { id: string };
     [SurfaceReducerActionType.SetSurface]: { surfaceSpecification: SurfaceSpecification };
@@ -30,6 +33,12 @@ type SurfaceReducerActions = {
 }[SurfaceReducerActionType];
 
 export function surfaceDispatcher(state: SurfaceReducerState, action: SurfaceReducerActions) {
+    if (action.type === SurfaceReducerActionType.SetEnsembleIdents) {
+        return {
+            ...state,
+            ensembleIdents: action.payload.ensembleIdents,
+        };
+    }
     if (action.type === SurfaceReducerActionType.AddSurface) {
         return {
             ...state,
