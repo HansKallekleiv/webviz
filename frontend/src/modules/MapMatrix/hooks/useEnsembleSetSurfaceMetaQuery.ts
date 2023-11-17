@@ -3,8 +3,6 @@ import { apiService } from "@framework/ApiService";
 import { EnsembleIdent } from "@framework/EnsembleIdent";
 import { UseQueryResult, useQueries } from "@tanstack/react-query";
 
-import { filter } from "lodash";
-
 const STALE_TIME = 60 * 1000;
 const CACHE_TIME = 60 * 1000;
 type EnsembleSurfaceMetas = {
@@ -15,15 +13,13 @@ export type EnsembleSetSurfaceMetas = {
     data: EnsembleSurfaceMetas[];
     isFetching: boolean;
 };
-function intersectSurfaceMetas(ensembleSurfaceMetas: EnsembleSurfaceMetas[]): EnsembleSurfaceMetas[] {
+function intersectEnsembleSetSurfaceMetas(ensembleSurfaceMetas: EnsembleSurfaceMetas[]): EnsembleSurfaceMetas[] {
     if (!ensembleSurfaceMetas || ensembleSurfaceMetas.length === 0) {
         return [];
     }
 
-    // Create a map to store the count of each surfaceMeta across ensembles
     const surfaceMetaCountMap = new Map<string, number>();
 
-    // Populate the map with counts
     for (const ensembleSurfaceMeta of ensembleSurfaceMetas) {
         for (const surfaceMeta of ensembleSurfaceMeta.surfaceMetas ?? []) {
             const key = `${surfaceMeta.name}-${surfaceMeta.attribute_name}-${surfaceMeta.iso_date_or_interval}`;
@@ -31,13 +27,11 @@ function intersectSurfaceMetas(ensembleSurfaceMetas: EnsembleSurfaceMetas[]): En
         }
     }
 
-    // Filter the surfaceMetas that are present in all ensembles
     const filteredSurfaceMetas = ensembleSurfaceMetas[0].surfaceMetas?.filter((surfaceMeta) => {
         const key = `${surfaceMeta.name}-${surfaceMeta.attribute_name}-${surfaceMeta.iso_date_or_interval}`;
         return surfaceMetaCountMap.get(key) === ensembleSurfaceMetas.length;
     });
 
-    // Return the new array with filtered surfaceMetas
     return ensembleSurfaceMetas
         .map((ensembleSurfaceMeta) => ({
             ensembleIdent: ensembleSurfaceMeta.ensembleIdent,
@@ -62,7 +56,7 @@ export function useEnsembleSetSurfaceMetaQuery(ensembleIdents: EnsembleIdent[]):
             enabled: Boolean(ensembleIdent),
         })),
         combine: (results: UseQueryResult<Array<SurfaceMeta_api>>[]) => ({
-            data: intersectSurfaceMetas(
+            data: intersectEnsembleSetSurfaceMetas(
                 results.map((result, index) => ({
                     ensembleIdent: ensembleIdents[index],
                     surfaceMetas: result.data,

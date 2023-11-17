@@ -7,6 +7,7 @@ import { MultiEnsembleSelect } from "@framework/components/MultiEnsembleSelect";
 import { Button } from "@lib/components/Button";
 import { CircularProgress } from "@lib/components/CircularProgress";
 import { CollapsibleGroup } from "@lib/components/CollapsibleGroup";
+import { Label } from "@lib/components/Label";
 
 import { v4 as uuidv4 } from "uuid";
 
@@ -73,29 +74,30 @@ export function settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
 
     return (
         <>
-            <CollapsibleGroup expanded={true} title="Ensembles">
-                Only the intersection of surfaces in the selected ensembles will be shown.
-                <MultiEnsembleSelect
-                    ensembleSet={ensembleSet}
-                    value={reducer.state.ensembleIdents}
-                    onChange={reducer.setEnsembleIdents}
-                    size={4}
+            <CollapsibleGroup expanded={true} title="Data selection">
+                <Label text="Ensembles">
+                    <MultiEnsembleSelect
+                        ensembleSet={ensembleSet}
+                        value={reducer.state.ensembleIdents}
+                        onChange={reducer.setEnsembleIdents}
+                        size={4}
+                    />
+                </Label>
+                <SurfaceAttributeTypeSelect
+                    onAttributeChange={reducer.setAttributeType}
+                    onTimeModeChange={reducer.setTimeMode}
+                    timeMode={reducer.state.timeMode}
+                    attributeType={reducer.state.attributeType}
                 />
             </CollapsibleGroup>
-            <SurfaceAttributeTypeSelect
-                onAttributeChange={reducer.setAttributeType}
-                onTimeModeChange={reducer.setTimeMode}
-                timeMode={reducer.state.timeMode}
-                attributeType={reducer.state.attributeType}
-            />
 
-            <CollapsibleGroup expanded={true} title="Colors">
+            <CollapsibleGroup expanded={false} title="Colors">
                 <SurfaceColorSelect
                     colorScaleGradientType={reducer.state.colorScaleGradientType}
                     onColorGradientTypeChange={reducer.setColorScaleGradientType}
                 />
             </CollapsibleGroup>
-            <CollapsibleGroup expanded={true} title="Synchronization">
+            <CollapsibleGroup expanded={false} title="Synchronization">
                 <SyncSettings syncedSettings={reducer.state.syncedSettings} onChange={handleSyncedSettingsChange} />
             </CollapsibleGroup>
             <div className="m-2">

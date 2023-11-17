@@ -3,7 +3,6 @@ import React from "react";
 import { SurfaceAttributeType_api } from "@api";
 import { Dropdown } from "@lib/components/Dropdown";
 import { Label } from "@lib/components/Label";
-import { RadioGroup } from "@lib/components/RadioGroup";
 import { TimeType } from "@modules/_shared/Surface";
 
 const SurfaceAttributeTypeToStringMapping = {

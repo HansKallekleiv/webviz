@@ -3,7 +3,6 @@ import React from "react";
 import { SurfaceAttributeType_api, SurfaceStatisticFunction_api } from "@api";
 import { EnsembleIdent } from "@framework/EnsembleIdent";
 import { EnsembleSet } from "@framework/EnsembleSet";
-import { WorkbenchSession, useEnsembleSet } from "@framework/WorkbenchSession";
 import { IconButton } from "@lib/components/IconButton";
 import { SurfaceDirectory, TimeType } from "@modules/_shared/Surface";
 import { Remove } from "@mui/icons-material";

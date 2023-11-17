@@ -87,9 +87,7 @@ class SurfaceAccess(SumoEnsemble):
         else:
             timestamp_arr = time_or_interval_str.split("/", 1)
             if len(timestamp_arr) == 0 or len(timestamp_arr) > 2:
-                raise ValueError(
-                    "time_or_interval_str must contain a single timestamp or interval"
-                )
+                raise ValueError("time_or_interval_str must contain a single timestamp or interval")
             if len(timestamp_arr) == 1:
                 time_filter = TimeFilter(
                     TimeType.TIMESTAMP,
@@ -121,9 +119,7 @@ class SurfaceAccess(SumoEnsemble):
             LOGGER.warning(f"No realization surface found in Sumo for {addr_str}")
             return None
         if surf_count > 1:
-            LOGGER.warning(
-                f"Multiple ({surf_count}) surfaces found in Sumo for: {addr_str}. Returning first surface."
-            )
+            LOGGER.warning(f"Multiple ({surf_count}) surfaces found in Sumo for: {addr_str}. Returning first surface.")
 
         sumo_surf: Surface = await surface_collection.getitem_async(0)
         et_locate_ms = timer.lap_ms()
@@ -165,9 +161,7 @@ class SurfaceAccess(SumoEnsemble):
         else:
             timestamp_arr = time_or_interval_str.split("/", 1)
             if len(timestamp_arr) == 0 or len(timestamp_arr) > 2:
-                raise ValueError(
-                    "time_or_interval_str must contain a single timestamp or interval"
-                )
+                raise ValueError("time_or_interval_str must contain a single timestamp or interval")
             if len(timestamp_arr) == 1:
                 time_filter = TimeFilter(
                     TimeType.TIMESTAMP,
@@ -200,15 +194,11 @@ class SurfaceAccess(SumoEnsemble):
         realizations = await surface_collection.realizations_async
         et_collect_reals_ms = timer.lap_ms()
 
-        xtgeo_surf = await _compute_statistical_surface_async(
-            statistic_function, surface_collection
-        )
+        xtgeo_surf = await _compute_statistical_surface_async(statistic_function, surface_collection)
         et_calc_stat_ms = timer.lap_ms()
 
         if not xtgeo_surf:
-            LOGGER.warning(
-                f"Could not calculate statistical surface using Sumo for {addr_str}"
-            )
+            LOGGER.warning(f"Could not calculate statistical surface using Sumo for {addr_str}")
             return None
 
         LOGGER.debug(
@@ -221,9 +211,7 @@ class SurfaceAccess(SumoEnsemble):
 
         return xtgeo_surf
 
-    def _make_addr_str(
-        self, real_num: int, name: str, attribute: str, date_str: Optional[str]
-    ) -> str:
+    def _make_addr_str(self, real_num: int, name: str, attribute: str, date_str: Optional[str]) -> str:
         addr_str = f"R:{real_num}__N:{name}__A:{attribute}__D:{date_str}__I:{self._iteration_name}__C:{self._case_uuid}"
         return addr_str
 

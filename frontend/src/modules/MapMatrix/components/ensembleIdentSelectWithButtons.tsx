@@ -4,7 +4,6 @@ import { EnsembleIdent } from "@framework/EnsembleIdent";
 import { EnsembleSet } from "@framework/EnsembleSet";
 import { Dropdown } from "@lib/components/Dropdown";
 import { IconButton } from "@lib/components/IconButton";
-import { useValidState } from "@lib/hooks/useValidState";
 import ArrowCircleLeftIcon from "@mui/icons-material/ArrowCircleLeft";
 import ArrowCircleRightIcon from "@mui/icons-material/ArrowCircleRight";
 
@@ -16,9 +15,6 @@ export type EnsembleIdentSelectWithButtonsProps = {
     onChange?: (values: EnsembleIdent | null) => void;
 };
 export const EnsembleIdentSelectWithButtons: React.FC<EnsembleIdentSelectWithButtonsProps> = (props) => {
-    const selectedEnsemble = props.ensembleSet
-        .getEnsembleArr()
-        .filter((ensemble) => ensemble.getIdent().equals(props.value));
     // Check if ensembleIdents are in in ensembleSet
     const availableEnsembles = props.ensembleSet
         .getEnsembleArr()

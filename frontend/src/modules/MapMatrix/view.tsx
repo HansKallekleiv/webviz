@@ -6,11 +6,13 @@ import { ContinuousLegend } from "@emerson-eps/color-tables";
 import { colorTablesObj } from "@emerson-eps/color-tables";
 import { ModuleFCProps } from "@framework/Module";
 import { useViewStatusWriter } from "@framework/StatusWriter";
+import { IconButton } from "@lib/components/IconButton";
 import { SyncedSubsurfaceViewer } from "@modules/SubsurfaceMap/components/SyncedSubsurfaceViewer";
 import { SurfaceAddress } from "@modules/_shared/Surface";
 import { SurfaceAddressFactory } from "@modules/_shared/Surface";
 // import { shouldUpdateViewPortBounds } from "@modules/_shared/Surface/subsurfaceMapUtils";
 import { createContinuousColorScaleForMap } from "@modules/_shared/Surface/subsurfaceMapUtils";
+import { Home } from "@mui/icons-material";
 import { ViewportType, ViewsType } from "@webviz/subsurface-viewer";
 import { ViewFooter } from "@webviz/subsurface-viewer/dist/components/ViewFooter";
 
@@ -23,7 +25,6 @@ import { EnsembleStageType, SurfaceSpecification } from "./types";
 
 export function view({ moduleContext, workbenchServices, workbenchSettings }: ModuleFCProps<State>) {
     const [viewportBounds, setviewPortBounds] = React.useState<[number, number, number, number] | undefined>(undefined);
-
     const surfaceSpecifications = moduleContext.useStoreValue("surfaceSpecifications");
     const surfaceAddresses = createSurfaceAddressesFromSpecifications(surfaceSpecifications);
     const surfaceDataSetQueryByAddresses = useSurfaceDataSetQueryByAddresses(surfaceAddresses);
@@ -81,16 +82,12 @@ export function view({ moduleContext, workbenchServices, workbenchSettings }: Mo
                 surface.surfaceData.x_max,
                 surface.surfaceData.y_max,
             ];
-            // Will cause an infite loop if bounds are varying between surfaces
-            // if (shouldUpdateViewPortBounds(viewportBounds, newBounds)) {
-            //     setviewPortBounds(newBounds);
-            // }
             if (!viewportBounds) {
                 setviewPortBounds(newBounds);
             }
 
             layers.push(
-                makeSurfaceImageLayer(`surface-${index}`, surface.surfaceData, valueMin, valueMax, colorMin, colorMax)
+                createSurfaceImageLayer(`surface-${index}`, surface.surfaceData, valueMin, valueMax, colorMin, colorMax)
             );
             views.viewports[index] = {
                 id: `${index}view`,
@@ -112,8 +109,8 @@ export function view({ moduleContext, workbenchServices, workbenchSettings }: Mo
     });
 
     return (
-        <div className="relative w-full h-full flex flex-col">
-            <div className="z-1">
+        <div className="w-full h-full flex">
+            <div className="relative w-full h-full  flex-col z-1">
                 <SyncedSubsurfaceViewer
                     id={"test"}
                     layers={layers}
@@ -125,6 +122,11 @@ export function view({ moduleContext, workbenchServices, workbenchSettings }: Mo
                 >
                     {viewAnnotations}
                 </SyncedSubsurfaceViewer>
+            </div>
+            <div className="flex-col">
+                <IconButton size="large" onClick={() => setviewPortBounds(undefined)}>
+                    <Home />
+                </IconButton>
             </div>
         </div>
     );
@@ -158,7 +160,7 @@ function makeViewAnnotation(
     );
 }
 
-function makeSurfaceImageLayer(
+function createSurfaceImageLayer(
     id: string,
     surfaceData: SurfaceDataPng_api,
     valueMin: number | null,
