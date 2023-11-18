@@ -34,37 +34,46 @@ logging.basicConfig(
 logging.getLogger("src.services.sumo_access").setLevel(level=logging.DEBUG)
 logging.getLogger("src.backend.primary.routers.surface").setLevel(level=logging.DEBUG)
 
-from logging import INFO, getLogger
+from src.config import APPLICATIONINSIGHTS_CONNECTION_STRING
 
-from azure.monitor.opentelemetry import configure_azure_monitor
+if APPLICATIONINSIGHTS_CONNECTION_STRING:
+    from azure.monitor.opentelemetry import configure_azure_monitor
 
-configure_azure_monitor(
-    logger_name="my_application_logger",
-)
+    from logging import INFO, getLogger
 
-# Logging calls with this logger will be tracked
-logger = getLogger("my_application_logger")
-logger.setLevel(INFO)
+    # Test
+    configure_azure_monitor(
+        connection_string=APPLICATIONINSIGHTS_CONNECTION_STRING,
+        logger_name="my_application_logger",
+    )
 
-# Logging calls with any logger that is a child logger will also be tracked
-logger_child = getLogger("my-application_logger.module")
-logger_child.setLevel(INFO)
+    logger = getLogger("my_application_logger")
+    logger.setLevel(INFO)
 
-# Logging calls with this logger will not be tracked
-logger_not_tracked = getLogger("not_my_application_logger")
-logger_not_tracked.setLevel(INFO)
+    logger_child = getLogger("my-application_logger.module")
+    logger_child.setLevel(INFO)
 
-logger.info("info log")
-logger.warning("warning log")
-logger.error("error log")
+    logger_not_tracked = getLogger("not_my_application_logger")
+    logger_not_tracked.setLevel(INFO)
 
-logger.info("info log")
-logger.warning("warning log")
-logger.error("error log")
+    logger.info("info log")
+    logger.warning("warning log")
+    logger.error("error log")
 
-logger_not_tracked.info("info log2")
-logger_not_tracked.warning("warning log2")
-logger_not_tracked.error("error log2")
+    logger.info("info log")
+    logger.warning("warning log")
+    logger.error("error log")
+
+    logger_not_tracked.info("info log2")
+    logger_not_tracked.warning("warning log2")
+    logger_not_tracked.error("error log2")
+    # Log all
+    configure_azure_monitor(
+        connection_string=APPLICATIONINSIGHTS_CONNECTION_STRING,
+        logger_name="src",
+    )
+else:
+    print("No APPLICATIONINSIGHTS_CONNECTION_STRING found, skipping telemetry configuration.")
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
