@@ -33,47 +33,8 @@ logging.basicConfig(
 )
 logging.getLogger("src.services.sumo_access").setLevel(level=logging.DEBUG)
 logging.getLogger("src.backend.primary.routers.surface").setLevel(level=logging.DEBUG)
-
+logger = logging.getLogger(__name__)
 from src.config import APPLICATIONINSIGHTS_CONNECTION_STRING
-
-if APPLICATIONINSIGHTS_CONNECTION_STRING:
-    from azure.monitor.opentelemetry import configure_azure_monitor
-
-    from logging import INFO, getLogger
-
-    # Test
-    configure_azure_monitor(
-        connection_string=APPLICATIONINSIGHTS_CONNECTION_STRING,
-        logger_name="my_application_logger",
-    )
-
-    logger = getLogger("my_application_logger")
-    logger.setLevel(INFO)
-
-    logger_child = getLogger("my-application_logger.module")
-    logger_child.setLevel(INFO)
-
-    logger_not_tracked = getLogger("not_my_application_logger")
-    logger_not_tracked.setLevel(INFO)
-
-    logger.info("info log")
-    logger.warning("warning log")
-    logger.error("error log")
-
-    logger.info("info log")
-    logger.warning("warning log")
-    logger.error("error log")
-
-    logger_not_tracked.info("info log2")
-    logger_not_tracked.warning("warning log2")
-    logger_not_tracked.error("error log2")
-    # Log all
-    configure_azure_monitor(
-        connection_string=APPLICATIONINSIGHTS_CONNECTION_STRING,
-        logger_name="src",
-    )
-else:
-    print("No APPLICATIONINSIGHTS_CONNECTION_STRING found, skipping telemetry configuration.")
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -85,6 +46,19 @@ app = FastAPI(
     root_path="/api",
     default_response_class=ORJSONResponse,
 )
+
+if APPLICATIONINSIGHTS_CONNECTION_STRING:
+    from azure.monitor.opentelemetry import configure_azure_monitor
+    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+
+    # Test application insights logging
+    configure_azure_monitor(
+        connection_string=APPLICATIONINSIGHTS_CONNECTION_STRING,
+    )
+    FastAPIInstrumentor.instrument_app(app)
+
+else:
+    logger.info("No APPLICATIONINSIGHTS_CONNECTION_STRING found, skipping telemetry configuration.")
 
 # The tags we add here will determine the name of the frontend api service for our endpoints as well as
 # providing some grouping when viewing the openapi documentation.
@@ -125,4 +99,5 @@ app.add_middleware(AddProcessTimeToServerTimingMiddleware, metric_name="total")
 
 @app.get("/")
 async def root() -> str:
+    logger.info(f"Backend is alive at this time: {datetime.datetime.now()}")
     return f"Backend is alive at this time: {datetime.datetime.now()}"
