@@ -33,7 +33,7 @@ logging.basicConfig(
 )
 logging.getLogger("src.services.sumo_access").setLevel(level=logging.DEBUG)
 logging.getLogger("src.backend.primary.routers.surface").setLevel(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 from src.config import APPLICATIONINSIGHTS_CONNECTION_STRING
 
 
