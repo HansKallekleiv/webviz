@@ -34,6 +34,38 @@ logging.basicConfig(
 logging.getLogger("src.services.sumo_access").setLevel(level=logging.DEBUG)
 logging.getLogger("src.backend.primary.routers.surface").setLevel(level=logging.DEBUG)
 
+from logging import INFO, getLogger
+
+from azure.monitor.opentelemetry import configure_azure_monitor
+
+configure_azure_monitor(
+    logger_name="my_application_logger",
+)
+
+# Logging calls with this logger will be tracked
+logger = getLogger("my_application_logger")
+logger.setLevel(INFO)
+
+# Logging calls with any logger that is a child logger will also be tracked
+logger_child = getLogger("my-application_logger.module")
+logger_child.setLevel(INFO)
+
+# Logging calls with this logger will not be tracked
+logger_not_tracked = getLogger("not_my_application_logger")
+logger_not_tracked.setLevel(INFO)
+
+logger.info("info log")
+logger.warning("warning log")
+logger.error("error log")
+
+logger.info("info log")
+logger.warning("warning log")
+logger.error("error log")
+
+logger_not_tracked.info("info log2")
+logger_not_tracked.warning("warning log2")
+logger_not_tracked.error("error log2")
+
 
 def custom_generate_unique_id(route: APIRoute) -> str:
     return f"{route.name}"
