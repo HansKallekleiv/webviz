@@ -25,14 +25,24 @@ from .routers.polygons.router import router as polygons_router
 from .routers.graph.router import router as graph_router
 from .routers.observations.router import router as observations_router
 from .routers.rft.router import router as rft_router
+from .exception_handlers import add_exception_handlers
 
-logging.basicConfig(
-    level=logging.WARNING,
-    format="%(asctime)s %(levelname)-3s [%(name)s]: %(message)s",
-    datefmt="%H:%M:%S",
-)
-logging.getLogger("src.services.sumo_access").setLevel(level=logging.DEBUG)
-logging.getLogger("src.backend.primary.routers.surface").setLevel(level=logging.DEBUG)
+logger = logging.getLogger("backend_primary")
+
+if logger.hasHandlers():
+    logger.handlers.clear()
+
+logger.setLevel(logging.DEBUG)
+
+formatter = logging.Formatter("%(levelname)s:%(asctime)s %(message)s")
+handler = logging.StreamHandler()
+handler.setFormatter(formatter)
+handler.setLevel(logging.DEBUG)
+logger.addHandler(handler)
+
+logger.info("Logger is configured")
+
+from src.config import APPLICATIONINSIGHTS_CONNECTION_STRING
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -44,6 +54,18 @@ app = FastAPI(
     root_path="/api",
     default_response_class=ORJSONResponse,
 )
+add_exception_handlers(app)
+
+if APPLICATIONINSIGHTS_CONNECTION_STRING:
+    from azure.monitor.opentelemetry import configure_azure_monitor
+    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+
+    # Test application insights logging
+    configure_azure_monitor(connection_string=APPLICATIONINSIGHTS_CONNECTION_STRING, loggger_name="backend_primary")
+    FastAPIInstrumentor.instrument_app(app)
+
+else:
+    logger.info("No APPLICATIONINSIGHTS_CONNECTION_STRING found, skipping telemetry configuration.")
 
 # The tags we add here will determine the name of the frontend api service for our endpoints as well as
 # providing some grouping when viewing the openapi documentation.
@@ -84,4 +106,5 @@ app.add_middleware(AddProcessTimeToServerTimingMiddleware, metric_name="total")
 
 @app.get("/")
 async def root() -> str:
+    logger.info(f"Backend is alive at this time: {datetime.datetime.now()}")
     return f"Backend is alive at this time: {datetime.datetime.now()}"
