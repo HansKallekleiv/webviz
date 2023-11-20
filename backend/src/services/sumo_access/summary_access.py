@@ -91,6 +91,8 @@ class SummaryAccess(SumoEnsemble):
         # Should we always combine the chunks?
         table = table.combine_chunks()
 
+        LOGGER.info(f"Got vector table from Sumo in: {timer.elapsed_ms()}ms (infoLevel)")
+
         LOGGER.debug(
             f"Got vector table from Sumo in: {timer.elapsed_ms()}ms ("
             f"loading={et_loading_ms}ms, "

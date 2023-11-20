@@ -32,7 +32,8 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)-3s [%(name)s]: %(message)s",
     datefmt="%H:%M:%S",
 )
-logging.getLogger("src.services.sumo_access").setLevel(level=logging.DEBUG)
+#logging.getLogger("src.services.sumo_access").setLevel(level=logging.DEBUG)
+logging.getLogger("src.services.sumo_access.surface_access").setLevel(level=logging.DEBUG)
 logging.getLogger("src.backend.primary.routers.surface").setLevel(level=logging.DEBUG)
 logger = logging.getLogger()
 from src.config import APPLICATIONINSIGHTS_CONNECTION_STRING

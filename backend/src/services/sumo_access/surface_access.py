@@ -126,6 +126,9 @@ class SurfaceAccess(SumoEnsemble):
         xtgeo_surf = xtgeo.surface_from_file(byte_stream)
         et_xtgeo_read_ms = timer.lap_ms()
 
+        LOGGER.info(f"get_realization_surface_data_async() took: {timer.elapsed_ms()}ms (infoLevel)")
+        LOGGER.debug(f"get_realization_surface_data_async() took: {timer.elapsed_ms()}ms (debugLevel)")
+
         size_mb = byte_stream.getbuffer().nbytes / (1024 * 1024)
         LOGGER.info(
             f"Got realization surface from Sumo",
