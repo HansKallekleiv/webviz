@@ -27,21 +27,14 @@ from .routers.observations.router import router as observations_router
 from .routers.rft.router import router as rft_router
 from .exception_handlers import add_exception_handlers
 
-logger = logging.getLogger("backend_primary")
-
-if logger.hasHandlers():
-    logger.handlers.clear()
-
-logger.setLevel(logging.DEBUG)
-
-formatter = logging.Formatter("%(levelname)s:%(asctime)s %(message)s")
-handler = logging.StreamHandler()
-handler.setFormatter(formatter)
-handler.setLevel(logging.DEBUG)
-logger.addHandler(handler)
-
-logger.info("Logger is configured")
-
+logging.basicConfig(
+    level=logging.WARNING,
+    format="%(asctime)s %(levelname)-3s [%(name)s]: %(message)s",
+    datefmt="%H:%M:%S",
+)
+logging.getLogger("src.services.sumo_access").setLevel(level=logging.DEBUG)
+logging.getLogger("src.backend.primary.routers.surface").setLevel(level=logging.DEBUG)
+logger = logging.getLogger()
 from src.config import APPLICATIONINSIGHTS_CONNECTION_STRING
 
 
@@ -61,7 +54,7 @@ if APPLICATIONINSIGHTS_CONNECTION_STRING:
     from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
     # Test application insights logging
-    configure_azure_monitor(connection_string=APPLICATIONINSIGHTS_CONNECTION_STRING, loggger_name="backend_primary")
+    configure_azure_monitor(connection_string=APPLICATIONINSIGHTS_CONNECTION_STRING)
     FastAPIInstrumentor.instrument_app(app)
 
 else:
