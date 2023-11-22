@@ -18,7 +18,12 @@ spec:
           ports:
               - name: http
                 port: 8080
-
+          secretRefs:
+              azureKeyVaults:
+                  - name: webviz
+                    items:
+                        - name: APPLICATIONINSIGHTS-CONNECTION-STRING
+                          envVar: VITE_APPLICATIONINSIGHTS_CONNECTION_STRING
         - name: backend-primary
           dockerFileName: backend.Dockerfile
           ports:
