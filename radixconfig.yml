@@ -22,6 +22,8 @@ spec:
               azureKeyVaults:
                   - name: webviz
                     items:
+                        - name: WEBVIZ-CLIENT-SECRET
+                          envVar: WEBVIZ_CLIENT_SECRET
                         - name: APPLICATIONINSIGHTS-CONNECTION-STRING
                           envVar: APPLICATIONINSIGHTS_CONNECTION_STRING
         - name: backend-primary
