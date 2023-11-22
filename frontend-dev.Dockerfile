@@ -7,7 +7,7 @@ USER node
 COPY --chown=node:node . /usr/src/app
 
 WORKDIR /usr/src/app/frontend
-
+ENV VITE_APPLICATIONINSIGHTS_CONNECTION_STRING=$APPLICATIONINSIGHTS_CONNECTION_STRING
 RUN npm ci --ignore-scripts
 
 CMD ["npm", "run", "dev"]

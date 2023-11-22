@@ -23,7 +23,7 @@ spec:
                   - name: webviz
                     items:
                         - name: APPLICATIONINSIGHTS-CONNECTION-STRING
-                          envVar: VITE_APPLICATIONINSIGHTS_CONNECTION_STRING
+                          envVar: APPLICATIONINSIGHTS_CONNECTION_STRING
         - name: backend-primary
           dockerFileName: backend.Dockerfile
           ports:
