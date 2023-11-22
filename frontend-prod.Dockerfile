@@ -13,7 +13,7 @@ COPY --chown=node:node . /usr/src/app
 
 WORKDIR /usr/src/app/frontend
 ENV NODE_ENV production
-
+ENV VITE_APPLICATIONINSIGHTS_CONNECTION_STRING=$APPLICATIONINSIGHTS_CONNECTION_STRING
 # Building wsc requires increasing memory allocated to Node
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
@@ -31,7 +31,7 @@ RUN apk add abuild musl-dev make mercurial gcc
 USER nginx
 RUN cd /tmp \
     && hg clone -r ${NGINX_VERSION}-${PKG_RELEASE} https://hg.nginx.org/pkg-oss
-ENV VITE_APPLICATIONINSIGHTS_CONNECTION_STRING=$APPLICATIONINSIGHTS_CONNECTION_STRING
+
 WORKDIR /tmp/pkg-oss/alpine
 RUN make abuild-module-brotli
 
@@ -55,7 +55,7 @@ COPY --from=builder_frontend /usr/src/app/frontend/dist /usr/share/nginx/dist
 COPY ./nginx.conf /etc/nginx/nginx.conf
 
 USER root
-ENV VITE_APPLICATIONINSIGHTS_CONNECTION_STRING=$APPLICATIONINSIGHTS_CONNECTION_STRING
+
 RUN apk add --no-cache --allow-untrusted /tmp/packages/nginx-module-brotli-${NGINX_VERSION}*.apk \
     && rm -rf /tmp/packages \
     && chown -R $UID:0 /usr/share/nginx \
