@@ -13,11 +13,11 @@ COPY --chown=node:node . /usr/src/app
 
 WORKDIR /usr/src/app/frontend
 ENV NODE_ENV production
-ENV VITE_APPLICATIONINSIGHTS_CONNECTION_STRING=$APPLICATIONINSIGHTS_CONNECTION_STRING
+
 # Building wsc requires increasing memory allocated to Node
 ENV NODE_OPTIONS="--max-old-space-size=4096"
+CMD ["./rename_env_var_and_build.sh"]
 
-RUN npm ci --include=dev && npm run build && node compress_static.cjs
 
 ###########################################
 # Compile brotli extension to nginx image #
