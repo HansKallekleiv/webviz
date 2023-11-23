@@ -15,6 +15,8 @@ import { PrivateWorkbenchServices } from "./internal/PrivateWorkbenchServices";
 import { PrivateWorkbenchSettings } from "./internal/PrivateWorkbenchSettings";
 import { WorkbenchSessionPrivate } from "./internal/WorkbenchSessionPrivate";
 
+import { appInsights } from "../appInsights";
+
 export enum WorkbenchEvents {
     ModuleInstancesChanged = "ModuleInstancesChanged",
 }
@@ -163,12 +165,13 @@ export class Workbench {
         this._layout.push({ ...layout, moduleInstanceId: moduleInstance.getId() });
         this.notifySubscribers(WorkbenchEvents.ModuleInstancesChanged);
         this.getGuiMessageBroker().setState(GuiState.ActiveModuleInstanceId, moduleInstance.getId());
+        appInsights.trackEvent({ name: "ModuleInstanceAdded", properties: { moduleName: moduleName } });
         return moduleInstance;
     }
 
     removeModuleInstance(moduleInstanceId: string): void {
         const channels = this._broadcaster.getChannelsForModuleInstance(moduleInstanceId);
-
+        appInsights;
         for (const channel of channels) {
             for (const moduleInstance of this._moduleInstances) {
                 for (const [inputChannelName, inputChannel] of Object.entries(moduleInstance.getInputChannels())) {
@@ -178,7 +181,13 @@ export class Workbench {
                 }
             }
         }
-
+        const moduleInstance = this._moduleInstances.find((el) => el.getId() === moduleInstanceId);
+        if (moduleInstance) {
+            appInsights.trackEvent({
+                name: "ModuleInstanceRemoved",
+                properties: { moduleName: moduleInstance.getName() },
+            });
+        }
         this._broadcaster.unregisterAllChannelsForModuleInstance(moduleInstanceId);
         this._moduleInstances = this._moduleInstances.filter((el) => el.getId() !== moduleInstanceId);
 
