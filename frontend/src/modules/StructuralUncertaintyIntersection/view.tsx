@@ -25,8 +25,6 @@ import {
     addWellborePathLayer,
 } from "./utils/esvIntersectionControllerUtils";
 import {
-    createSeismicSliceImageDataArrayFromFenceData,
-    createSeismicSliceImageYAxisValuesArrayFromFenceData,
     makeExtendedTrajectoryFromTrajectoryXyzPoints,
     makeReferenceSystemFromTrajectoryXyzPoints,
     makeTrajectoryXyzPointsFromWellboreTrajectory,
