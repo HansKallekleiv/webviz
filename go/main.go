@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"runtime"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -24,6 +26,9 @@ func convertFloat32toFloat64(float32Slice []float32) []float64 {
 func main() {
 	router := gin.Default()
 	fmt.Println("Starting server...")
+
+	fmt.Println("Number of CPUs: ", runtime.NumCPU())
+
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "Hello World",
@@ -51,7 +56,7 @@ func main() {
 		var mu sync.Mutex
 		startTime := time.Now()
 		allZValues := make([][]float64, 0)
-
+		fmt.Println("Number of goroutines: ", runtime.NumGoroutine())
 		for _, data := range dataMap {
 			wg.Add(1)
 			go func(data []byte) {
