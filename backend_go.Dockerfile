@@ -4,7 +4,8 @@ FROM golang:latest
 RUN useradd --create-home --uid 1234 appuser
 ENV PROJECT_DIR=/app \
     GO111MODULE=on \
-    CGO_ENABLED=1
+    CGO_ENABLED=1 \
+    GOMAXPROCS=8
 WORKDIR /app
 
 COPY ./go ./
