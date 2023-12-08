@@ -56,7 +56,7 @@ func main() {
 		var mu sync.Mutex
 		startTime := time.Now()
 		allZValues := make([][]float64, 0)
-		fmt.Println("Number of goroutines: ", runtime.NumGoroutine())
+
 		for _, data := range dataMap {
 			wg.Add(1)
 			go func(data []byte) {
@@ -124,6 +124,7 @@ func GetBlobsRaw(objectIds []string, sasToken string, baseUrl string) (map[strin
 
 	for _, objectId := range objectIds {
 		wg.Add(1)
+		fmt.Println("Number of goroutines: ", runtime.NumGoroutine())
 		go GetBlobRaw(objectId, dataMap, &wg, &mutex, &sasToken, baseUrl, errorChan)
 	}
 

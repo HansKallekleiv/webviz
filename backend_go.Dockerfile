@@ -15,6 +15,6 @@ USER 1234
 
 RUN go get -u github.com/gin-gonic/gin
 
-# The build flag sets how to build after a change has been detected in the source code
-# The command flag sets how to run the app after it has been built
-RUN go build -o main . && go run main.go
+RUN go build -o main .
+
+CMD ["./main"]
