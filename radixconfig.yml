@@ -30,14 +30,14 @@ spec:
               - websocketfriendly
           resources:
               requests:
-                  memory: 8Gi
-                  cpu: 16
+                  memory: 32Gi
+                  cpu: 16000m
               limits:
                   memory: 32Gi
 
           horizontalScaling:
-              minReplicas: 2
-              maxReplicas: 4
+              minReplicas: 1
+              maxReplicas: 1
               resources:
                   memory:
                       averageUtilization: 60
