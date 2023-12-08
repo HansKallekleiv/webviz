@@ -87,7 +87,7 @@ func main() {
 		wg.Wait()
 		duration := time.Now().Sub(startTime)
 		fmt.Printf("Time spent in intersect: %v\n", duration)
-
+		fmt.Println("Number of CPUs: ", runtime.NumCPU())
 		c.JSON(http.StatusOK, allZValues)
 	})
 
