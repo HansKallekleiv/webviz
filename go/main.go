@@ -124,7 +124,7 @@ func GetBlobsRaw(objectIds []string, sasToken string, baseUrl string) (map[strin
 
 	for _, objectId := range objectIds {
 		wg.Add(1)
-		fmt.Println("Number of goroutines: ", runtime.NumGoroutine())
+
 		go GetBlobRaw(objectId, dataMap, &wg, &mutex, &sasToken, baseUrl, errorChan)
 	}
 
