@@ -30,8 +30,8 @@ spec:
         - websocketfriendly
       resources:
         requests:
-          memory: 16Gi
-          cpu: 8000m
+          memory: 8Gi
+          cpu: 4000m
         limits:
           memory: 16Gi
 
