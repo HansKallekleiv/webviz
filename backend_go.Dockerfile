@@ -14,7 +14,7 @@ RUN chown -R appuser:appuser /app
 
 USER 1234
 
-RUN go get -u github.com/gin-gonic/gin
+RUN go get -u github.com/gofiber/fiber/v2
 
 RUN go build -o main .
 

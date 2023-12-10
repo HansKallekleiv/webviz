@@ -12,7 +12,7 @@ import (
 
 	"runtime"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v2"
 )
 
 func convertFloat32toFloat64(float32Slice []float32) []float64 {
@@ -24,30 +24,31 @@ func convertFloat32toFloat64(float32Slice []float32) []float64 {
 }
 
 func main() {
-	router := gin.Default()
+	app := fiber.New()
 	fmt.Println("Starting server...")
 
 	fmt.Println("Number of CPUs: ", runtime.NumCPU())
 
-	router.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "Hello World",
-		})
+	app.Get("/", func(c *fiber.Ctx) error {
+		return c.SendString("Hello, World 👋!")
 	})
 
-	router.POST("/intersectSurface", func(c *gin.Context) {
+	app.Post("/intersectSurface", func(c *fiber.Ctx) error {
 		// Endpoint to serve intersected surfaces
 		var iReq utils.IntersectRequest
 
-		if err := c.BindJSON(&iReq); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
+		if err := c.BodyParser(&iReq); err != nil {
+			return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+				"error": err.Error(),
+			})
 		}
 
 		dataMap, err := downloadBlobsRaw(iReq.ObjectIDs, iReq.AuthToken, iReq.BaseUri)
+
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err})
-			return
+			return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+				"error": err,
+			})
 		}
 
 		// Run in parallell
@@ -88,10 +89,11 @@ func main() {
 		duration := time.Now().Sub(startTime)
 		fmt.Printf("Time spent in intersect: %v\n", duration)
 		fmt.Println("Number of CPUs: ", runtime.NumCPU())
-		c.JSON(http.StatusOK, allZValues)
+		return c.JSON(allZValues)
 	})
 
-	router.Run(":5001") // Listen and serve on 0.0.0.0:5001
+	app.Listen("0.0.0.0:5001")
+
 }
 
 func downloadBlobsRaw(objectIds []string, sasToken string, baseUrl string) (map[string][]byte, []error) {
