@@ -43,7 +43,7 @@ func main() {
 			})
 		}
 
-		dataMap, err := downloadBlobsRaw(iReq.ObjectIDs, iReq.AuthToken, iReq.BaseUri)
+		dataMap, logString, err := downloadBlobsRaw(iReq.ObjectIDs, iReq.AuthToken, iReq.BaseUri)
 
 		if err != nil {
 			return c.Status(http.StatusBadRequest).JSON(fiber.Map{
@@ -87,8 +87,8 @@ func main() {
 
 		wg.Wait()
 		duration := time.Now().Sub(startTime)
-		fmt.Printf("Time spent in intersect: %v\n", duration)
-		fmt.Println("Number of CPUs: ", runtime.NumCPU())
+		logString += fmt.Sprintf("| Isec time %v\n", duration)
+		fmt.Printf(logString)
 		return c.JSON(allZValues)
 	})
 
@@ -96,13 +96,13 @@ func main() {
 
 }
 
-func downloadBlobsRaw(objectIds []string, sasToken string, baseUrl string) (map[string][]byte, []error) {
+func downloadBlobsRaw(objectIds []string, sasToken string, baseUrl string) (map[string][]byte, string, []error) {
 	// Start timing
 	startTime := time.Now()
 	dataMap, errArray := GetBlobsRaw(objectIds, sasToken, baseUrl)
 	downloadTime := time.Now()
 	durationDownload := downloadTime.Sub(startTime)
-	fmt.Printf("Time spent in GetBlobsRaw: %v\n", durationDownload)
+	// fmt.Printf("Time spent in GetBlobsRaw: %v\n", durationDownload)
 	var totalSize int
 	for _, blob := range dataMap {
 		totalSize += len(blob) // Assuming blob is a byte slice
@@ -110,11 +110,14 @@ func downloadBlobsRaw(objectIds []string, sasToken string, baseUrl string) (map[
 	const bytesPerMB = 1048576
 	downloadSpeed := float64(totalSize) / durationDownload.Seconds() / bytesPerMB
 
-	fmt.Printf("Download speed: %f mbytes/sec\n", downloadSpeed)
-	fmt.Printf("Size: %f MB\n", float64(totalSize)/bytesPerMB)
-	fmt.Printf("dataMap length: %v\n", len(dataMap))
-	fmt.Printf("errArray length: %v\n", len(errArray))
-	return dataMap, errArray
+	// fmt.Printf("Download speed: %f mbytes/sec\n", downloadSpeed)
+	// fmt.Printf("Size: %f MB\n", float64(totalSize)/bytesPerMB)
+	// fmt.Printf("dataMap length: %v\n", len(dataMap))
+	// fmt.Printf("errArray length: %v\n", len(errArray))
+
+	// Make a single log string of speed and size
+	logString := fmt.Sprintf("%f MB | %f mbytes/sec", float64(totalSize)/bytesPerMB, downloadSpeed)
+	return dataMap, logString, errArray
 }
 
 func GetBlobsRaw(objectIds []string, sasToken string, baseUrl string) (map[string][]byte, []error) {
@@ -140,7 +143,7 @@ func GetBlobsRaw(objectIds []string, sasToken string, baseUrl string) (map[strin
 		errArray = append(errArray, err)
 	}
 
-	fmt.Printf("errArray length: %v\n", len(errArray))
+	// fmt.Printf("errArray length: %v\n", len(errArray))
 	return dataMap, errArray
 }
 func GetBlobRaw(objectId string, dataMap map[string][]byte, wg *sync.WaitGroup, mutex *sync.Mutex, sasToken *string, baseUrl string, errorChannel chan<- error) {
