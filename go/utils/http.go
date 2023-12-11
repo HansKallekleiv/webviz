@@ -20,3 +20,24 @@ func HttpGet(url string) ([]byte, int, error) {
 
 	return body, res.StatusCode, nil
 }
+
+// package utils
+
+// import "github.com/valyala/fasthttp"
+
+// // Use fasthttp instead of net/http
+// func HttpGet(url string) ([]byte, int, error) {
+// 	req := fasthttp.AcquireRequest()
+// 	req.SetRequestURI(url)
+// 	req.Header.SetMethod("GET")
+
+// 	resp := fasthttp.AcquireResponse()
+// 	defer fasthttp.ReleaseResponse(resp)
+
+// 	err := fasthttp.Do(req, resp)
+// 	if err != nil {
+// 		return nil, 500, err
+// 	}
+
+// 	return resp.Body(), resp.StatusCode(), nil
+// }
