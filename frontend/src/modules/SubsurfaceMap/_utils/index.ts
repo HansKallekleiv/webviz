@@ -1,5 +1,5 @@
 export {
-    createSurfaceMeshLayer,
+    createMapLayer,
     createWellboreTrajectoryLayer,
     createSurfacePolygonsLayer,
     createNorthArrowLayer,

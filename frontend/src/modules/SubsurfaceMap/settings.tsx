@@ -16,6 +16,7 @@ import { Button } from "@lib/components/Button";
 import { Checkbox } from "@lib/components/Checkbox";
 import { CircularProgress } from "@lib/components/CircularProgress";
 import { CollapsibleGroup } from "@lib/components/CollapsibleGroup";
+import { Dropdown } from "@lib/components/Dropdown";
 import { Input } from "@lib/components/Input";
 import { Label } from "@lib/components/Label";
 import { QueryStateWrapper } from "@lib/components/QueryStateWrapper";
@@ -31,6 +32,8 @@ import {
     useSurfaceDirectoryQuery,
 } from "@modules/_shared/Surface";
 import { useWellHeadersQuery } from "@modules/_shared/WellBore/queryHooks";
+
+import { isEqual } from "lodash";
 
 import { AggregationSelector } from "./components/AggregationSelector";
 import { SurfaceColorSelector } from "./components/SurfaceColorSelector";
@@ -72,11 +75,10 @@ export function Settings({
     const ensembleSet = useEnsembleSet(workbenchSession);
     const [selectedEnsembleIdent, setSelectedEnsembleIdent] = React.useState<EnsembleIdent | null>(null);
     const [selectedMeshSurfaceName, setSelectedMeshSurfaceName] = React.useState<string | null>(null);
-    const [selectedMeshSurfaceAttribute, setSelectedMeshSurfaceAttribute] = React.useState<string | null>(null);
     const [usePropertySurface, setUsePropertySurface] = React.useState<boolean>(false);
-    const [selectedPropertySurfaceName, setSelectedPropertySurfaceName] = React.useState<string | null>(null);
-    const [selectedPropertySurfaceAttribute, setSelectedPropertySurfaceAttribute] = React.useState<string | null>(null);
-    const [selectedPropertyTimeOrInterval, setSelectedPropertyTimeOrInterval] = React.useState<string | null>(null);
+    const [selectedSurfaceNames, setSelectedSurfaceNames] = React.useState<string[]>([]);
+    const [selectedSurfaceAttribute, setSelectedSurfaceAttribute] = React.useState<string | null>(null);
+    const [selectedSurfaceDates, setSelectedSurfaceDates] = React.useState<string[]>([]);
     const [timeType, setTimeType] = React.useState<SurfaceTimeType>(SurfaceTimeType.None);
     const [selectedPolygonName, setSelectedPolygonName] = React.useState<string | null>(null);
     const [selectedPolygonAttribute, setSelectedPolygonAttribute] = React.useState<string | null>(null);
@@ -102,107 +104,55 @@ export function Settings({
     if (computedEnsembleIdent && !computedEnsembleIdent.equals(selectedEnsembleIdent)) {
         setSelectedEnsembleIdent(computedEnsembleIdent);
     }
-    // Mesh surface
-    const meshSurfDirQuery = useSurfaceDirectoryQuery(
-        computedEnsembleIdent?.getCaseUuid(),
-        computedEnsembleIdent?.getEnsembleName()
-    );
-    const meshSurfaceDirectory = new SurfaceDirectory(
-        meshSurfDirQuery.data
-            ? {
-                  surfaceMetas: meshSurfDirQuery.data,
-                  timeType: SurfaceTimeType.None,
-                  includeAttributeTypes: [SurfaceAttributeType_api.DEPTH],
-              }
-            : null
-    );
 
-    const fixedMeshSurfSpec = fixupSurface(
-        meshSurfaceDirectory,
-        {
-            surfaceName: selectedMeshSurfaceName,
-            surfaceAttribute: selectedMeshSurfaceAttribute,
-            timeOrInterval: null,
-        },
-        {
-            surfaceName: syncedValueSurface?.name || null,
-            surfaceAttribute: syncedValueSurface?.attribute || null,
-            timeOrInterval: null,
-        }
-    );
-    const computedMeshSurfaceName = fixedMeshSurfSpec.surfaceName;
-    const computedMeshSurfaceAttribute = fixedMeshSurfSpec.surfaceAttribute;
-
-    if (computedMeshSurfaceName && computedMeshSurfaceName !== selectedMeshSurfaceName) {
-        setSelectedMeshSurfaceName(computedMeshSurfaceName);
-    }
-    if (computedMeshSurfaceAttribute && computedMeshSurfaceAttribute !== selectedMeshSurfaceAttribute) {
-        setSelectedMeshSurfaceAttribute(computedMeshSurfaceAttribute);
-    }
-
-    let meshSurfNameOptions: SelectOption[] = [];
-    let meshSurfAttributeOptions: SelectOption[] = [];
-    meshSurfNameOptions = meshSurfaceDirectory.getSurfaceNames(null).map((name) => ({ value: name, label: name }));
-    meshSurfAttributeOptions = meshSurfaceDirectory
-        .getAttributeNames(computedMeshSurfaceName)
-        .map((attr) => ({ value: attr, label: attr }));
-
-    // Property surface
-    // TODO add timestamp and time interval surfaces
     const propertySurfDirQuery = useSurfaceDirectoryQuery(
         computedEnsembleIdent?.getCaseUuid(),
         computedEnsembleIdent?.getEnsembleName()
     );
 
-    const propertySurfaceDirectory = new SurfaceDirectory(
+    const surfaceDirectory = new SurfaceDirectory(
         propertySurfDirQuery.data
             ? {
                   surfaceMetas: propertySurfDirQuery.data,
                   timeType: timeType,
-                  excludeAttributeTypes: [SurfaceAttributeType_api.DEPTH],
               }
             : null
     );
 
-    const fixedPropertySurfSpec = fixupSurface(
-        propertySurfaceDirectory,
-        {
-            surfaceName: selectedPropertySurfaceName,
-            surfaceAttribute: selectedPropertySurfaceAttribute,
-            timeOrInterval: selectedPropertyTimeOrInterval,
-        },
-        {
-            surfaceName: null,
-            surfaceAttribute: null,
-            timeOrInterval: null,
-        }
+    const fixedSurfaceSelections = fixupSelectedSurfaceSelections(
+        surfaceDirectory,
+        syncedValueSurface?.attribute ?? null,
+        selectedSurfaceAttribute,
+        selectedSurfaceNames,
+        selectedSurfaceDates
     );
-    const computedPropertySurfaceName = fixedPropertySurfSpec.surfaceName;
-    const computedPropertySurfaceAttribute = fixedPropertySurfSpec.surfaceAttribute;
-    const computedPropertyTimeOrInterval = fixedPropertySurfSpec.timeOrInterval;
 
-    if (computedPropertySurfaceName && computedPropertySurfaceName !== selectedPropertySurfaceName) {
-        setSelectedPropertySurfaceName(computedPropertySurfaceName);
-    }
-    if (computedPropertySurfaceAttribute && computedPropertySurfaceAttribute !== selectedPropertySurfaceAttribute) {
-        setSelectedPropertySurfaceAttribute(computedPropertySurfaceAttribute);
-    }
-    if (computedPropertyTimeOrInterval && computedPropertyTimeOrInterval !== computedPropertyTimeOrInterval) {
-        setSelectedPropertyTimeOrInterval(computedPropertyTimeOrInterval);
-    }
-    let propertySurfNameOptions: SelectOption[] = [];
-    let propertySurfAttributeOptions: SelectOption[] = [];
-    let propertySurfTimeOrIntervalOptions: SelectOption[] = [];
+    const computedSurfaceAttribute = fixedSurfaceSelections.surfaceAttribute;
+    const computedSurfaceNames = fixedSurfaceSelections.surfaceNames;
+    const computedSurfaceDates = fixedSurfaceSelections.surfaceDates;
 
-    propertySurfNameOptions = propertySurfaceDirectory
-        .getSurfaceNames(null)
+    if (computedSurfaceAttribute && computedSurfaceAttribute !== selectedSurfaceAttribute) {
+        setSelectedSurfaceAttribute(computedSurfaceAttribute);
+    }
+
+    if (!isEqual(computedSurfaceNames, selectedSurfaceNames)) {
+        setSelectedSurfaceNames(computedSurfaceNames);
+    }
+    if (computedSurfaceDates && computedSurfaceDates !== computedSurfaceDates) {
+        setSelectedSurfaceDates(computedSurfaceDates);
+    }
+    let surfaceNameOptions: SelectOption[] = [];
+    let surfaceAttributeOptions: SelectOption[] = [];
+    let surfaceTimeOptions: SelectOption[] = [];
+
+    surfaceAttributeOptions = surfaceDirectory.getAttributeNames(null).map((attr) => ({ value: attr, label: attr }));
+    surfaceNameOptions = surfaceDirectory
+        .getSurfaceNames(computedSurfaceAttribute)
         .map((name) => ({ value: name, label: name }));
-    propertySurfAttributeOptions = propertySurfaceDirectory
-        .getAttributeNames(computedPropertySurfaceName)
-        .map((attr) => ({ value: attr, label: attr }));
+
     if (timeType === SurfaceTimeType.Interval || timeType === SurfaceTimeType.TimePoint) {
-        propertySurfTimeOrIntervalOptions = propertySurfaceDirectory
-            .getTimeOrIntervalStrings(computedPropertySurfaceName, computedPropertySurfaceAttribute)
+        surfaceTimeOptions = surfaceDirectory
+            .getTimeOrIntervalStrings(null, computedSurfaceAttribute)
             .map((interval) => ({
                 value: interval,
                 label:
@@ -253,78 +203,58 @@ export function Settings({
         .map((attr) => ({ value: attr, label: attr }));
 
     React.useEffect(
-        function propagateMeshSurfaceSelectionToView() {
-            let surfAddr: SurfaceAddress | null = null;
-
-            if (computedEnsembleIdent && computedMeshSurfaceName && computedMeshSurfaceAttribute) {
-                const addrFactory = new SurfaceAddressFactory(
-                    computedEnsembleIdent.getCaseUuid(),
-                    computedEnsembleIdent.getEnsembleName(),
-                    computedMeshSurfaceName,
-                    computedMeshSurfaceAttribute,
-                    null
-                );
-
-                if (aggregation === null) {
-                    surfAddr = addrFactory.createRealizationAddress(realizationNum);
-                } else {
-                    surfAddr = addrFactory.createStatisticalAddress(aggregation);
-                }
-            }
-
-            console.debug(`propagateSurfaceSelectionToView() => ${surfAddr ? "valid surfAddr" : "NULL surfAddr"}`);
-            moduleContext.getStateStore().setValue("meshSurfaceAddress", surfAddr);
-        },
-        [
-            selectedEnsembleIdent,
-            selectedMeshSurfaceName,
-            selectedMeshSurfaceAttribute,
-            aggregation,
-            realizationNum,
-            computedEnsembleIdent,
-            computedMeshSurfaceName,
-            computedMeshSurfaceAttribute,
-            moduleContext,
-        ]
-    );
-    React.useEffect(
         function propagatePropertySurfaceSelectionToView() {
-            let surfAddr: SurfaceAddress | null = null;
-            if (!usePropertySurface) {
-                moduleContext.getStateStore().setValue("propertySurfaceAddress", surfAddr);
-                return;
-            }
-            if (computedEnsembleIdent && computedPropertySurfaceName && computedPropertySurfaceAttribute) {
-                const addrFactory = new SurfaceAddressFactory(
-                    computedEnsembleIdent.getCaseUuid(),
-                    computedEnsembleIdent.getEnsembleName(),
-                    computedPropertySurfaceName,
-                    computedPropertySurfaceAttribute,
-                    computedPropertyTimeOrInterval
-                );
+            let surfaceAddresses: SurfaceAddress[] = [];
 
-                if (aggregation === null) {
-                    surfAddr = addrFactory.createRealizationAddress(realizationNum);
-                } else {
-                    surfAddr = addrFactory.createStatisticalAddress(aggregation);
+            if (computedEnsembleIdent && computedSurfaceNames.length && computedSurfaceAttribute) {
+                for (const surfaceName of computedSurfaceNames) {
+                    if (timeType !== SurfaceTimeType.None) {
+                        for (const surfaceDate of computedSurfaceDates) {
+                            const addrFactory = new SurfaceAddressFactory(
+                                computedEnsembleIdent.getCaseUuid(),
+                                computedEnsembleIdent.getEnsembleName(),
+                                surfaceName,
+                                computedSurfaceAttribute,
+                                surfaceDate
+                            );
+                            const surfAddr = generateRealizationOrStatisticalAddress(
+                                addrFactory,
+                                realizationNum,
+                                aggregation
+                            );
+                            surfaceAddresses.push(surfAddr);
+                        }
+                    } else {
+                        const addrFactory = new SurfaceAddressFactory(
+                            computedEnsembleIdent.getCaseUuid(),
+                            computedEnsembleIdent.getEnsembleName(),
+                            surfaceName,
+                            computedSurfaceAttribute,
+                            null
+                        );
+                        const surfAddr = generateRealizationOrStatisticalAddress(
+                            addrFactory,
+                            realizationNum,
+                            aggregation
+                        );
+                        surfaceAddresses.push(surfAddr);
+                    }
                 }
-            }
 
-            console.debug(`propagateSurfaceSelectionToView() => ${surfAddr ? "valid surfAddr" : "NULL surfAddr"}`);
-            moduleContext.getStateStore().setValue("propertySurfaceAddress", surfAddr);
+                moduleContext.getStateStore().setValue("surfaceAddresses", surfaceAddresses);
+            }
         },
         [
             selectedEnsembleIdent,
-            selectedPropertySurfaceName,
-            selectedPropertySurfaceAttribute,
-            selectedPropertyTimeOrInterval,
+            selectedSurfaceNames,
+            selectedSurfaceAttribute,
+            selectedSurfaceDates,
             aggregation,
             realizationNum,
-            usePropertySurface,
             computedEnsembleIdent,
-            computedPropertySurfaceName,
-            computedPropertySurfaceAttribute,
-            computedPropertyTimeOrInterval,
+            computedSurfaceNames,
+            computedSurfaceAttribute,
+            computedSurfaceDates,
             moduleContext,
         ]
     );
@@ -353,7 +283,7 @@ export function Settings({
             aggregation,
             realizationNum,
             computedEnsembleIdent,
-            computedMeshSurfaceName,
+            computedSurfaceNames,
             computedPolygonsName,
             computedPolygonsAttribute,
             moduleContext,
@@ -410,33 +340,9 @@ export function Settings({
         }
     }
 
-    function handleMeshSurfNameSelectionChange(selectedSurfNames: string[]) {
-        const newName = selectedSurfNames[0] ?? null;
-        setSelectedMeshSurfaceName(newName);
-        if (newName && computedMeshSurfaceAttribute) {
-            syncHelper.publishValue(SyncSettingKey.SURFACE, "global.syncValue.surface", {
-                name: newName,
-                attribute: computedMeshSurfaceAttribute,
-            });
-        }
-    }
-    function handleMeshSurfAttributeSelectionChange(selectedSurfAttributes: string[]) {
-        const newAttr = selectedSurfAttributes[0] ?? null;
-        setSelectedMeshSurfaceAttribute(newAttr);
-        if (newAttr && computedMeshSurfaceName) {
-            syncHelper.publishValue(SyncSettingKey.SURFACE, "global.syncValue.surface", {
-                name: computedMeshSurfaceName,
-                attribute: newAttr,
-            });
-        }
-    }
-    function handlePropertySurfNameSelectionChange(selectedSurfNames: string[]) {
-        const newName = selectedSurfNames[0] ?? null;
-        setSelectedPropertySurfaceName(newName);
-    }
-    function handlePropertySurfAttributeSelectionChange(selectedSurfAttributes: string[]) {
-        const newAttr = selectedSurfAttributes[0] ?? null;
-        setSelectedPropertySurfaceAttribute(newAttr);
+    function handlePropertySurfAttributeSelectionChange(selectedSurfAttribute: string) {
+        const newAttr = selectedSurfAttribute;
+        setSelectedSurfaceAttribute(newAttr);
     }
     function handlePolyNameSelectionChange(selectedPolyNames: string[]) {
         const newName = selectedPolyNames[0] ?? null;
@@ -468,16 +374,6 @@ export function Settings({
             setContourIncValue(contourInc);
         }
     }
-    function handleTimeOrIntervalSelectionChange(selectedSurfTimeIntervals: string[]) {
-        console.debug("handleTimeOrIntervalSelectionChange()");
-        const newTimeOrInterval = selectedSurfTimeIntervals[0] ?? null;
-        setSelectedPropertyTimeOrInterval(newTimeOrInterval);
-        if (newTimeOrInterval) {
-            syncHelper.publishValue(SyncSettingKey.DATE, "global.syncValue.date", {
-                timeOrInterval: newTimeOrInterval,
-            });
-        }
-    }
     function handleTimeModeChange(event: React.ChangeEvent<HTMLInputElement>) {
         setTimeType(event.target.value as SurfaceTimeType);
     }
@@ -501,103 +397,60 @@ export function Settings({
                     </Label>
                 )}
             </CollapsibleGroup>
-            <CollapsibleGroup expanded={true} title="Depth surface">
-                <QueryStateWrapper
-                    queryResult={meshSurfDirQuery}
-                    errorComponent={"Error loading surface directory"}
-                    loadingComponent={<CircularProgress />}
-                >
-                    <Label
-                        text="Stratigraphic name"
-                        labelClassName={syncHelper.isSynced(SyncSettingKey.SURFACE) ? "bg-indigo-700 text-white" : ""}
-                    >
-                        <Select
-                            options={meshSurfNameOptions}
-                            value={computedMeshSurfaceName ? [computedMeshSurfaceName] : []}
-                            onChange={handleMeshSurfNameSelectionChange}
-                            size={5}
-                        />
-                    </Label>
-                    <Label
-                        text="Attribute"
-                        labelClassName={syncHelper.isSynced(SyncSettingKey.SURFACE) ? "bg-indigo-700 text-white" : ""}
-                    >
-                        <Select
-                            options={meshSurfAttributeOptions}
-                            value={computedMeshSurfaceAttribute ? [computedMeshSurfaceAttribute] : []}
-                            onChange={handleMeshSurfAttributeSelectionChange}
-                            size={5}
-                        />
-                    </Label>
-                </QueryStateWrapper>
-            </CollapsibleGroup>
-            <CollapsibleGroup expanded={false} title="Property surface (color)">
+            <CollapsibleGroup expanded={false} title="Attribute surface">
                 <>
-                    <Label
-                        wrapperClassName=" flow-root mt-4 mb-2"
-                        labelClassName="float-left block text-sm font-medium text-gray-700 dark:text-gray-200"
-                        text={"Enable"}
+                    <QueryStateWrapper
+                        queryResult={propertySurfDirQuery}
+                        errorComponent={"Error loading surface directory"}
+                        loadingComponent={<CircularProgress />}
                     >
-                        <div className=" float-right">
-                            <Checkbox
-                                onChange={(e: any) => setUsePropertySurface(e.target.checked)}
-                                checked={usePropertySurface}
-                            />
-                        </div>
-                    </Label>
-                    {usePropertySurface && (
-                        <QueryStateWrapper
-                            queryResult={propertySurfDirQuery}
-                            errorComponent={"Error loading surface directory"}
-                            loadingComponent={<CircularProgress />}
+                        <RadioGroup
+                            value={timeType}
+                            direction="horizontal"
+                            options={Object.values(SurfaceTimeType).map((val: SurfaceTimeType) => {
+                                return { value: val, label: SurfaceTimeTypeEnumToStringMapping[val] };
+                            })}
+                            onChange={handleTimeModeChange}
+                        />
+                        <Label
+                            text="Attribute"
+                            labelClassName={
+                                syncHelper.isSynced(SyncSettingKey.SURFACE) ? "bg-indigo-700 text-white" : ""
+                            }
                         >
-                            {" "}
-                            <RadioGroup
-                                value={timeType}
-                                direction="horizontal"
-                                options={Object.values(SurfaceTimeType).map((val: SurfaceTimeType) => {
-                                    return { value: val, label: SurfaceTimeTypeEnumToStringMapping[val] };
-                                })}
-                                onChange={handleTimeModeChange}
+                            <Dropdown
+                                options={surfaceAttributeOptions}
+                                value={computedSurfaceAttribute ? computedSurfaceAttribute : ""}
+                                onChange={handlePropertySurfAttributeSelectionChange}
                             />
-                            <Label
-                                text="Stratigraphic name"
-                                labelClassName={
-                                    syncHelper.isSynced(SyncSettingKey.SURFACE) ? "bg-indigo-700 text-white" : ""
-                                }
-                            >
+                        </Label>
+
+                        <Label
+                            text="Tops/Zones"
+                            labelClassName={
+                                syncHelper.isSynced(SyncSettingKey.SURFACE) ? "bg-indigo-700 text-white" : ""
+                            }
+                        >
+                            <Select
+                                options={surfaceNameOptions}
+                                value={computedSurfaceNames ? computedSurfaceNames : []}
+                                onChange={setSelectedSurfaceNames}
+                                size={5}
+                                multiple
+                            />
+                        </Label>
+                        {timeType !== SurfaceTimeType.None && (
+                            <Label text={timeType === SurfaceTimeType.TimePoint ? "Time Points" : "Time Intervals"}>
                                 <Select
-                                    options={propertySurfNameOptions}
-                                    value={computedPropertySurfaceName ? [computedPropertySurfaceName] : []}
-                                    onChange={handlePropertySurfNameSelectionChange}
+                                    options={surfaceTimeOptions}
+                                    value={computedSurfaceDates ? computedSurfaceDates : []}
+                                    onChange={setSelectedSurfaceDates}
                                     size={5}
+                                    multiple
                                 />
                             </Label>
-                            <Label
-                                text="Attribute"
-                                labelClassName={
-                                    syncHelper.isSynced(SyncSettingKey.SURFACE) ? "bg-indigo-700 text-white" : ""
-                                }
-                            >
-                                <Select
-                                    options={propertySurfAttributeOptions}
-                                    value={computedPropertySurfaceAttribute ? [computedPropertySurfaceAttribute] : []}
-                                    onChange={handlePropertySurfAttributeSelectionChange}
-                                    size={5}
-                                />
-                            </Label>
-                            {timeType !== SurfaceTimeType.None && (
-                                <Label text={timeType === SurfaceTimeType.TimePoint ? "Time Point" : "Time Interval"}>
-                                    <Select
-                                        options={propertySurfTimeOrIntervalOptions}
-                                        value={computedPropertyTimeOrInterval ? [computedPropertyTimeOrInterval] : []}
-                                        onChange={handleTimeOrIntervalSelectionChange}
-                                        size={5}
-                                    />
-                                </Label>
-                            )}
-                        </QueryStateWrapper>
-                    )}
+                        )}
+                    </QueryStateWrapper>
                 </>
             </CollapsibleGroup>
             <CollapsibleGroup expanded={false} title="Polygons">
@@ -646,7 +499,7 @@ export function Settings({
                                 value={computedPolygonsAttribute ? [computedPolygonsAttribute] : []}
                                 placeholder={
                                     linkPolygonNameToSurfaceName
-                                        ? `No attributes found for ${computedMeshSurfaceName}`
+                                        ? `No attributes found for ${computedSurfaceNames}`
                                         : `No attributes found for ${computedPolygonsName}`
                                 }
                                 onChange={handlePolyAttributeSelectionChange}
@@ -695,19 +548,7 @@ export function Settings({
                         .useContinuousColorScale({ gradientType: ColorScaleGradientType.Sequential })
                         .getColorPalette()
                         .getId()}
-                    initialValueRange={
-                        usePropertySurface
-                            ? propertySurfaceDirectory.getMinMaxValues(
-                                  selectedPropertySurfaceName,
-                                  selectedPropertySurfaceAttribute,
-                                  null
-                              )
-                            : meshSurfaceDirectory.getMinMaxValues(
-                                  selectedMeshSurfaceName,
-                                  selectedMeshSurfaceAttribute,
-                                  null
-                              )
-                    }
+                    initialValueRange={surfaceDirectory.getMinMaxValues(null, selectedSurfaceAttribute, null)}
                     onChange={setSurfaceColorScale}
                 />
             </CollapsibleGroup>
@@ -774,50 +615,6 @@ export function Settings({
     );
 }
 
-type PartialSurfSpec = {
-    surfaceName: string | null;
-    surfaceAttribute: string | null;
-    timeOrInterval: string | null;
-};
-
-function fixupSurface(
-    surfaceDirectory: SurfaceDirectory,
-    selectedSurface: PartialSurfSpec,
-    syncedSurface: PartialSurfSpec
-): PartialSurfSpec {
-    const surfaceNames = surfaceDirectory.getSurfaceNames(null);
-    const finalSurfaceName = fixupSyncedOrSelectedOrFirstValue(
-        syncedSurface.surfaceName,
-        selectedSurface.surfaceName,
-        surfaceNames
-    );
-    let finalSurfaceAttribute: string | null = null;
-    let finalTimeOrInterval: string | null = null;
-    if (finalSurfaceName) {
-        const surfaceAttributes = surfaceDirectory.getAttributeNames(finalSurfaceName);
-        finalSurfaceAttribute = fixupSyncedOrSelectedOrFirstValue(
-            syncedSurface.surfaceAttribute,
-            selectedSurface.surfaceAttribute,
-            surfaceAttributes
-        );
-    }
-    if (finalSurfaceName && finalSurfaceAttribute) {
-        const selectedTimeOrIntervals = surfaceDirectory.getTimeOrIntervalStrings(
-            finalSurfaceName,
-            finalSurfaceAttribute
-        );
-        finalTimeOrInterval = fixupSyncedOrSelectedOrFirstValue(
-            syncedSurface.timeOrInterval,
-            selectedSurface.timeOrInterval,
-            selectedTimeOrIntervals
-        );
-    }
-    return {
-        surfaceName: finalSurfaceName,
-        surfaceAttribute: finalSurfaceAttribute,
-        timeOrInterval: finalTimeOrInterval,
-    };
-}
 type PartialPolygonsSpec = {
     polygonsName: string | null;
     polygonsAttribute: string | null;
@@ -849,6 +646,24 @@ function fixupPolygons(
         polygonsAttribute: finalPolygonsAttribute,
     };
 }
+function isoStringToDateLabel(input: string): string {
+    const date = input.split("T")[0];
+    return `${date}`;
+}
+
+function isoIntervalStringToDateLabel(input: string): string {
+    const [start, end] = input.split("/");
+    const startDate = start.split("T")[0];
+    const endDate = end.split("T")[0];
+    return `${startDate}/${endDate}`;
+}
+
+type PartialSurfSpec = {
+    surfaceAttribute: string | null;
+    surfaceNames: string[];
+    surfaceDates: string[];
+};
+
 function fixupSyncedOrSelectedOrFirstValue(
     syncedValue: string | null,
     selectedValue: string | null,
@@ -866,14 +681,54 @@ function fixupSyncedOrSelectedOrFirstValue(
     return null;
 }
 
-function isoStringToDateLabel(input: string): string {
-    const date = input.split("T")[0];
-    return `${date}`;
+function fixupSelectedSurfaceSelections(
+    surfaceDirectory: SurfaceDirectory,
+    syncedSurfaceAttribute: string | null,
+    selectedSurfaceAttribute: string | null,
+    surfaceNames: string[],
+    surfaceDates: string[]
+): PartialSurfSpec {
+    const availableSurfaceAttributes = surfaceDirectory.getAttributeNames(null);
+    const finalSurfaceAttribute = fixupSyncedOrSelectedOrFirstValue(
+        syncedSurfaceAttribute,
+        selectedSurfaceAttribute,
+        availableSurfaceAttributes
+    );
+    let finalSurfaceNames: string[] | null = null;
+    let finalTimeOrIntervals: string[] | null = null;
+    if (!finalSurfaceAttribute) {
+        return {
+            surfaceNames: [],
+            surfaceAttribute: null,
+            surfaceDates: [],
+        };
+    }
+    const availableSurfaceNames = surfaceDirectory.getSurfaceNames(finalSurfaceAttribute);
+    const selectedSurfaceNames =
+        surfaceNames?.filter((name) => availableSurfaceNames.includes(name)) ?? availableSurfaceNames;
+    const availableTimeOrIntervals = surfaceDirectory.getTimeOrIntervalStrings(
+        selectedSurfaceNames[0],
+        finalSurfaceAttribute
+    );
+    const selectedTimeOrIntervals =
+        surfaceDates?.filter((time) => availableTimeOrIntervals.includes(time)) ?? availableTimeOrIntervals;
+    finalSurfaceNames = selectedSurfaceNames;
+    finalTimeOrIntervals = selectedTimeOrIntervals;
+    return {
+        surfaceNames: finalSurfaceNames,
+        surfaceAttribute: finalSurfaceAttribute,
+        surfaceDates: finalTimeOrIntervals,
+    };
 }
 
-function isoIntervalStringToDateLabel(input: string): string {
-    const [start, end] = input.split("/");
-    const startDate = start.split("T")[0];
-    const endDate = end.split("T")[0];
-    return `${startDate}/${endDate}`;
+function generateRealizationOrStatisticalAddress(
+    addressFactory: SurfaceAddressFactory,
+    realizationNum: number,
+    aggregation: SurfaceStatisticFunction_api | null
+): SurfaceAddress {
+    if (aggregation === null) {
+        return addressFactory.createRealizationAddress(realizationNum);
+    } else {
+        return addressFactory.createStatisticalAddress(aggregation);
+    }
 }

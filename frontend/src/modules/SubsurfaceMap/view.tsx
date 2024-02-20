@@ -1,25 +1,32 @@
 import React from "react";
 
-import { PolygonData_api, SurfaceGridDefinition_api, WellBoreTrajectory_api } from "@api";
+import { PolygonData_api, SurfaceData_api, SurfaceGridDefinition_api, WellBoreTrajectory_api } from "@api";
 import { ContinuousLegend } from "@emerson-eps/color-tables";
 import { ModuleFCProps } from "@framework/Module";
 import { SyncSettingKey, SyncSettingsHelper } from "@framework/SyncSettings";
 import { Wellbore } from "@framework/Wellbore";
-import { Button } from "@lib/components/Button";
 import { CircularProgress } from "@lib/components/CircularProgress";
 import { ColorScaleGradientType } from "@lib/utils/ColorScale";
 import { usePolygonsDataQueryByAddress } from "@modules/_shared/Polygons";
-import { useResampledSurfaceDataQueryByAddress } from "@modules/_shared/Surface/queryHooks";
+import { SurfaceData_trans } from "@modules/_shared/Surface/queryDataTransforms";
+import {
+    IndexedSurfaceDatas,
+    useResampledSurfaceDataQueryByAddress,
+    useSurfaceDataSetQueryByAddresses,
+} from "@modules/_shared/Surface/queryHooks";
 import { useFieldWellsTrajectoriesQuery } from "@modules/_shared/WellBore/queryHooks";
 import { useSurfaceDataQueryByAddress } from "@modules_shared/Surface";
+import { ViewportType, ViewsType } from "@webviz/subsurface-viewer";
 import { ViewAnnotation } from "@webviz/subsurface-viewer/dist/components/ViewAnnotation";
+
+import { isEqual } from "lodash";
 
 import {
     SurfaceMeta,
     createAxesLayer,
     createContinuousColorScaleForMap,
+    createMapLayer,
     createNorthArrowLayer,
-    createSurfaceMeshLayer,
     createSurfacePolygonsLayer,
     createWellBoreHeaderLayer,
     createWellboreTrajectoryLayer,
@@ -32,9 +39,12 @@ type Bounds = [number, number, number, number];
 const updateViewPortBounds = (
     existingViewPortBounds: Bounds | undefined,
     resetBounds: boolean,
-    surfaceMeta: SurfaceMeta
+    xMin: number,
+    yMin: number,
+    xMax: number,
+    yMax: number
 ): Bounds => {
-    const updatedBounds: Bounds = [surfaceMeta.x_min, surfaceMeta.y_min, surfaceMeta.x_max, surfaceMeta.y_max];
+    const updatedBounds: Bounds = [xMin, yMin, xMax, yMax];
 
     if (!existingViewPortBounds || resetBounds) {
         console.debug("updateViewPortBounds: no existing bounds, returning updated bounds");
@@ -66,8 +76,7 @@ export function View({ moduleContext, workbenchSettings, workbenchServices }: Mo
         annotation3D: `${myInstanceIdStr} -- annotation3D`,
     };
 
-    const meshSurfAddr = moduleContext.useStoreValue("meshSurfaceAddress");
-    const propertySurfAddr = moduleContext.useStoreValue("propertySurfaceAddress");
+    const surfaceAddresses = moduleContext.useStoreValue("surfaceAddresses");
     const polygonsAddr = moduleContext.useStoreValue("polygonsAddress");
     const selectedWellUuids = moduleContext.useStoreValue("selectedWellUuids");
     const surfaceSettings = moduleContext.useStoreValue("surfaceSettings");
@@ -79,24 +88,25 @@ export function View({ moduleContext, workbenchSettings, workbenchServices }: Mo
     const syncedSettingKeys = moduleContext.useSyncedSettingKeys();
     const syncHelper = new SyncSettingsHelper(syncedSettingKeys, workbenchServices);
 
-    const show3D: boolean = viewSettings?.show3d ?? true;
+    const surfaceDataQueries = useSurfaceDataSetQueryByAddresses(surfaceAddresses ?? []);
 
-    const meshSurfDataQuery = useSurfaceDataQueryByAddress(meshSurfAddr);
-    let meshSurfaceGridSpec: SurfaceGridDefinition_api | null = null;
-    if (meshSurfDataQuery.data) {
-        meshSurfaceGridSpec = {
-            xinc: meshSurfDataQuery.data.x_inc,
-            yinc: meshSurfDataQuery.data.y_inc,
-            xori: meshSurfDataQuery.data.x_ori,
-            yori: meshSurfDataQuery.data.y_ori,
-            rotation: meshSurfDataQuery.data.rot_deg,
-            ncol: meshSurfDataQuery.data.x_count,
-            nrow: meshSurfDataQuery.data.y_count,
-        };
+    const [prevSurfaceDataQueries, setPrevSurfaceDataQueries] = React.useState<IndexedSurfaceDatas | null>(null);
+
+    let surfaceDataSet: Array<{
+        index: number;
+        surfaceData: SurfaceData_trans | null;
+    }> = [];
+
+    if (!surfaceDataQueries.isFetching && !isEqual(prevSurfaceDataQueries, surfaceDataQueries)) {
+        setPrevSurfaceDataQueries(surfaceDataQueries);
+        surfaceDataSet = surfaceDataQueries.data;
+    } else if (prevSurfaceDataQueries) {
+        surfaceDataSet = prevSurfaceDataQueries.data;
     }
-    const propertySurfDataQuery = useResampledSurfaceDataQueryByAddress(propertySurfAddr, meshSurfaceGridSpec);
 
-    const wellTrajectoriesQuery = useFieldWellsTrajectoriesQuery(meshSurfAddr?.case_uuid);
+    const caseUuid = surfaceAddresses?.[0]?.case_uuid;
+
+    const wellTrajectoriesQuery = useFieldWellsTrajectoriesQuery(caseUuid);
     const polygonsQuery = usePolygonsDataQueryByAddress(polygonsAddr);
 
     const newLayers: Record<string, unknown>[] = [createNorthArrowLayer()];
@@ -111,67 +121,107 @@ export function View({ moduleContext, workbenchSettings, workbenchServices }: Mo
     if (surfaceColorScale) {
         colorRange = [surfaceColorScale.getMin(), surfaceColorScale.getMax()];
     }
-    // Mesh data query should only trigger update if the property surface address is not set or if the property surface data is loaded
-    if (meshSurfDataQuery.data && !propertySurfAddr) {
-        // Drop conversion as soon as SubsurfaceViewer accepts typed arrays
-        const newMeshData = Array.from(meshSurfDataQuery.data.valuesFloat32Arr);
-        if (!colorRange) {
-            colorRange = [meshSurfDataQuery.data.val_min, meshSurfDataQuery.data.val_max];
-        }
-        const newSurfaceMetaData: SurfaceMeta = { ...meshSurfDataQuery.data };
-        const surfaceLayer: Record<string, unknown> = createSurfaceMeshLayer(
-            newSurfaceMetaData,
-            colorRange,
-            newMeshData,
-            surfaceSettings
-        );
-        newLayers.push(surfaceLayer);
-    } else if (meshSurfDataQuery.data && propertySurfDataQuery.data) {
-        // Drop conversion as soon as SubsurfaceViewer accepts typed arrays
-        if (!colorRange) {
-            colorRange = [propertySurfDataQuery.data.val_min, propertySurfDataQuery.data.val_max];
-        }
-        const newMeshData = Array.from(meshSurfDataQuery.data.valuesFloat32Arr);
-        const newPropertyData = Array.from(propertySurfDataQuery.data.valuesFloat32Arr);
 
-        const newSurfaceMetaData: SurfaceMeta = { ...meshSurfDataQuery.data };
-        const surfaceLayer: Record<string, unknown> = createSurfaceMeshLayer(
-            newSurfaceMetaData,
-            colorRange,
-            newMeshData,
-            surfaceSettings,
-            newPropertyData
-        );
-        newLayers.push(surfaceLayer);
-    }
+    const views: ViewsType = makeEmptySurfaceViews(surfaceDataSet.length ?? 1);
+
+    const viewAnnotations: JSX.Element[] = [];
+    newLayers.push({
+        "@@type": "Axes2DLayer",
+        id: "axes-layer2D",
+        marginH: 80,
+        marginV: 30,
+        isLeftRuler: true,
+        isRightRuler: false,
+        isBottomRuler: false,
+        isTopRuler: true,
+        backgroundColor: [255, 255, 255, 255],
+    });
+    surfaceDataSet.forEach((surface, index) => {
+        const valueMin = surface?.surfaceData?.val_min ?? 0;
+        const valueMax = surface?.surfaceData?.val_max ?? 0;
+        if (surface.surfaceData) {
+            const newBounds: [number, number, number, number] = [
+                surface.surfaceData.x_min,
+                surface.surfaceData.y_min,
+                surface.surfaceData.x_max,
+                surface.surfaceData.y_max,
+            ];
+            if (!viewportBounds) {
+                setviewPortBounds(newBounds);
+            }
+
+            newLayers.push(
+                createMapLayer({
+                    id: `surface-${index}`,
+                    mesh_data: Array.from(surface.surfaceData.valuesFloat32Arr),
+                    xOri: surface.surfaceData.x_ori,
+                    yOri: surface.surfaceData.y_ori,
+                    xCount: surface.surfaceData.x_count,
+                    yCount: surface.surfaceData.y_count,
+                    xInc: surface.surfaceData.x_inc,
+                    yInc: surface.surfaceData.y_inc,
+                    rotDeg: surface.surfaceData.rot_deg,
+                    contours: surfaceSettings?.contours ? surfaceSettings.contours : null,
+                    colorMapRange: colorRange,
+                    colorMapName: "Continuous",
+                })
+            );
+            views.viewports[index] = {
+                id: `${index}view`,
+                show3D: false,
+                isSync: true,
+                layerIds: ["axes-layer2D", "surf-poly-layer", `surface-${index}`],
+                name: `Surface ${index}`,
+            };
+        }
+        // viewAnnotations.push(
+        //     makeViewAnnotation(
+        //         `${index}view`,
+        //         surfaceSpecifications[index],
+        //         colorTables,
+        //         colorMin || valueMin,
+        //         colorMax || valueMax
+        //     )
+        // );
+    });
 
     // Calculate viewport bounds and axes layer from the surface bounds.
     // TODO: Should be done automatically by the component while considering all layers, with an option to lock the bounds
-
+    const firstSurface = surfaceDataSet[0]?.surfaceData;
     React.useEffect(() => {
-        if (meshSurfDataQuery.data) {
-            const newSurfaceMetaData: SurfaceMeta = { ...meshSurfDataQuery.data };
-
-            setviewPortBounds(updateViewPortBounds(viewportBounds, resetBounds, newSurfaceMetaData));
+        if (firstSurface) {
+            setviewPortBounds(
+                updateViewPortBounds(
+                    viewportBounds,
+                    resetBounds,
+                    firstSurface.x_min,
+                    firstSurface.y_min,
+                    firstSurface.x_max,
+                    firstSurface.y_max
+                )
+            );
             toggleResetBounds(false);
 
             const axesLayer: Record<string, unknown> = createAxesLayer([
-                newSurfaceMetaData.x_min,
-                newSurfaceMetaData.y_min,
+                firstSurface.x_min,
+                firstSurface.y_min,
                 0,
-                newSurfaceMetaData.x_max,
-                newSurfaceMetaData.y_max,
+                firstSurface.x_max,
+                firstSurface.y_max,
                 3500,
             ]);
             setAxesLayer(axesLayer);
         }
-    }, [meshSurfDataQuery.data, propertySurfDataQuery.data, resetBounds, viewportBounds]);
+    }, [prevSurfaceDataQueries, resetBounds, viewportBounds]);
 
     axesLayer && newLayers.push(axesLayer);
 
     if (polygonsQuery.data) {
         const polygonsData: PolygonData_api[] = polygonsQuery.data;
-        const polygonsLayer: Record<string, unknown> = createSurfacePolygonsLayer(polygonsData);
+        const polygonsLayer: Record<string, unknown> = createSurfacePolygonsLayer({
+            id: "surf-poly-layer",
+            data: polygonsData,
+        });
         newLayers.push(polygonsLayer);
     }
     if (wellTrajectoriesQuery.data) {
@@ -213,14 +263,14 @@ export function View({ moduleContext, workbenchSettings, workbenchServices }: Mo
     }
 
     const isLoading =
-        meshSurfDataQuery.isFetching ||
-        propertySurfDataQuery.isFetching ||
-        polygonsQuery.isFetching ||
+        // meshSurfDataQuery.isFetching ||
+        // propertySurfDataQuery.isFetching ||
+        // polygonsQuery.isFetching ||
         wellTrajectoriesQuery.isFetching;
     const isError =
-        meshSurfDataQuery.isError ||
-        propertySurfDataQuery.isError ||
-        polygonsQuery.isError ||
+        // meshSurfDataQuery.isError ||
+        // propertySurfDataQuery.isError ||
+        // polygonsQuery.isError ||
         wellTrajectoriesQuery.isError;
     return (
         <div className="relative w-full h-full flex flex-col">
@@ -243,74 +293,33 @@ export function View({ moduleContext, workbenchSettings, workbenchServices }: Mo
                 </Button>
             </div> */}
             <div className="z-1">
-                {show3D ? (
-                    <SyncedSubsurfaceViewer
-                        moduleContext={moduleContext}
-                        workbenchServices={workbenchServices}
-                        id={viewIds.view3D}
-                        bounds={viewportBounds}
-                        layers={newLayers}
-                        colorTables={colorTables}
-                        toolbar={{ visible: true }}
-                        views={{
-                            layout: [1, 1],
-                            showLabel: false,
-                            viewports: [
-                                {
-                                    id: "view_1",
-                                    isSync: true,
-                                    show3D: show3D,
-                                    layerIds: newLayers.map((layer) => layer.id) as string[],
-                                },
-                            ],
-                        }}
-                        onMouseEvent={onMouseEvent}
-                    >
-                        <ViewAnnotation id={viewIds.annotation3D}>
-                            <ContinuousLegend
-                                colorTables={colorTables}
-                                colorName="Continuous"
-                                min={colorRange ? colorRange[0] : undefined}
-                                max={colorRange ? colorRange[1] : undefined}
-                                cssLegendStyles={{ bottom: "0", right: "0" }}
-                            />
-                        </ViewAnnotation>
-                    </SyncedSubsurfaceViewer>
-                ) : (
-                    <SyncedSubsurfaceViewer
-                        moduleContext={moduleContext}
-                        workbenchServices={workbenchServices}
-                        id={viewIds.view2D}
-                        bounds={viewportBounds}
-                        layers={newLayers}
-                        colorTables={colorTables}
-                        toolbar={{ visible: true }}
-                        views={{
-                            layout: [1, 1],
-                            showLabel: false,
-                            viewports: [
-                                {
-                                    id: "view_2",
-                                    isSync: true,
-                                    show3D: false,
-                                    layerIds: newLayers.map((layer) => layer.id) as string[],
-                                },
-                            ],
-                        }}
-                        onMouseEvent={onMouseEvent}
-                    >
-                        <ViewAnnotation id={viewIds.annotation2D}>
-                            <ContinuousLegend
-                                colorTables={colorTables}
-                                colorName="Continuous"
-                                min={colorRange ? colorRange[0] : undefined}
-                                max={colorRange ? colorRange[1] : undefined}
-                                cssLegendStyles={{ bottom: "0", right: "0" }}
-                            />
-                        </ViewAnnotation>
-                    </SyncedSubsurfaceViewer>
-                )}
+                <SyncedSubsurfaceViewer
+                    moduleContext={moduleContext}
+                    workbenchServices={workbenchServices}
+                    id={viewIds.view2D}
+                    bounds={viewportBounds}
+                    layers={newLayers}
+                    colorTables={colorTables}
+                    views={views}
+                    onMouseEvent={onMouseEvent}
+                ></SyncedSubsurfaceViewer>
             </div>
         </div>
     );
+}
+
+function makeEmptySurfaceViews(numSubplots: number): ViewsType {
+    const numColumns = Math.ceil(Math.sqrt(numSubplots));
+    const numRows = Math.ceil(numSubplots / numColumns);
+    const viewPorts: ViewportType[] = [];
+    for (let index = 0; index < numSubplots; index++) {
+        viewPorts.push({
+            id: `${index}view`,
+            show3D: false,
+            isSync: true,
+            layerIds: [`surface-${index}`],
+            name: `Surface ${index}`,
+        });
+    }
+    return { layout: [numRows, numColumns], showLabel: true, viewports: viewPorts };
 }

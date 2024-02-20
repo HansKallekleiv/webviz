@@ -6,8 +6,7 @@ import { state } from "./state";
 import { View } from "./view";
 
 const defaultState: state = {
-    meshSurfaceAddress: null,
-    propertySurfaceAddress: null,
+    surfaceAddresses: null,
     surfaceColorScale: null,
     polygonsAddress: null,
     selectedWellUuids: [],
@@ -16,8 +15,7 @@ const defaultState: state = {
 };
 
 const module = ModuleRegistry.initModule<state>("SubsurfaceMap", defaultState, {
-    meshSurfaceAddress: { deepCompare: true },
-    propertySurfaceAddress: { deepCompare: true },
+    surfaceAddresses: { deepCompare: true },
     polygonsAddress: { deepCompare: true },
     surfaceSettings: { deepCompare: true },
 });

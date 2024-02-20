@@ -51,37 +51,52 @@ export function createAxesLayer(
         bounds: bounds,
     };
 }
-export function createSurfaceMeshLayer(
-    surfaceMeta: SurfaceMeta,
-    colorRange: [number, number],
-    mesh_data: number[],
-    surfaceSettings?: SurfaceMeshLayerSettings | null,
-    property_data?: number[] | null
-): Record<string, unknown> {
-    surfaceSettings = surfaceSettings || defaultSurfaceSettings;
+type MapLayerProps = {
+    id: string;
+    mesh_data: number[] | undefined;
+    property_data?: number[] | undefined;
+    xOri: number;
+    yOri: number;
+    xCount: number;
+    yCount: number;
+    xInc: number;
+    yInc: number;
+    rotDeg: number;
+    contours: number[] | null | boolean;
+    gridLines?: boolean;
+    material?: boolean;
+    smoothShading?: boolean;
+    colorMapName: string;
+    colorMapRange: number[] | null;
+};
+export function createMapLayer(props: MapLayerProps): Record<string, any> {
     return {
         "@@type": "MapLayer",
-        id: "mesh-layer",
-        meshData: mesh_data,
-        propertiesData: property_data,
+        id: props.id,
+        meshData: props.mesh_data,
+        propertiesData: props.property_data,
         frame: {
-            origin: [surfaceMeta.x_ori, surfaceMeta.y_ori],
-            count: [surfaceMeta.x_count, surfaceMeta.y_count],
-            increment: [surfaceMeta.x_inc, surfaceMeta.y_inc],
-            rotDeg: surfaceMeta.rot_deg,
+            origin: [props.xOri, props.yOri],
+            count: [props.xCount, props.yCount],
+            increment: [props.xInc, props.yInc],
+            rotDeg: props.rotDeg,
         },
-
-        contours: surfaceSettings.contours || false,
+        contours: (props.contours as any) || false,
         isContoursDepth: true,
-        gridLines: surfaceSettings.gridLines,
-        material: surfaceSettings.material,
-        smoothShading: surfaceSettings.smoothShading,
+        gridLines: props.gridLines ?? false,
+        material: props.material ?? false,
+        smoothShading: props.smoothShading ?? false,
         colorMapName: "Continuous",
-        colorMapRange: colorRange,
+        colorMapRange: props.colorMapRange,
     };
 }
-export function createSurfacePolygonsLayer(surfacePolygons: PolygonData_api[]): Record<string, unknown> {
-    const features: Record<string, unknown>[] = surfacePolygons.map((polygon) => {
+type SurfacePolygonsLayerProps = {
+    id: string;
+    data: PolygonData_api[];
+};
+
+export function createSurfacePolygonsLayer(props: SurfacePolygonsLayerProps): Record<string, unknown> {
+    const features: Record<string, unknown>[] = props.data.map((polygon) => {
         return surfacePolygonsToGeojson(polygon);
     });
     const data: Record<string, unknown> = {
@@ -91,7 +106,7 @@ export function createSurfacePolygonsLayer(surfacePolygons: PolygonData_api[]): 
     };
     return {
         "@@type": "GeoJsonLayer",
-        id: "surface-polygons-layer",
+        id: props.id,
         data: data,
         opacity: 0.5,
         parameters: {
