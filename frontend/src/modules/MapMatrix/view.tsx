@@ -31,6 +31,7 @@ import { EnsembleStageType, SurfaceSpecification } from "./types";
 
 export function view({ moduleContext, workbenchServices, workbenchSettings }: ModuleFCProps<State>) {
     const [viewportBounds, setviewPortBounds] = React.useState<[number, number, number, number] | undefined>(undefined);
+
     const surfaceSpecifications = moduleContext.useStoreValue("surfaceSpecifications");
     const wellBoreAddresses = moduleContext.useStoreValue("smdaWellBoreAddresses");
 
@@ -65,6 +66,9 @@ export function view({ moduleContext, workbenchServices, workbenchSettings }: Mo
         index: number;
         surfaceData: SurfaceDataPng_api | null;
     }> = [];
+    const [existingViews, setExistingViews] = React.useState<ViewsType>(
+        makeEmptySurfaceViews(surfaceDataSet.length ?? 1)
+    );
     if (
         !surfaceDataSetQueryByAddresses.isFetching &&
         !isEqual(prevSurfaceDataSetQueryByAddresses, surfaceDataSetQueryByAddresses)
@@ -128,6 +132,9 @@ export function view({ moduleContext, workbenchServices, workbenchSettings }: Mo
             )
         );
     });
+    if (!isEqual(existingViews, views)) {
+        setExistingViews(views);
+    }
 
     return (
         <div className="w-full h-full flex">
@@ -135,7 +142,7 @@ export function view({ moduleContext, workbenchServices, workbenchSettings }: Mo
                 <SyncedSubsurfaceViewer
                     id={"test"}
                     layers={layers}
-                    views={views}
+                    views={existingViews}
                     colorTables={colorTables}
                     bounds={viewportBounds || undefined}
                     workbenchServices={workbenchServices}
