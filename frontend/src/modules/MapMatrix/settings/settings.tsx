@@ -13,6 +13,7 @@ import { ColorScaleGradientType } from "@lib/utils/ColorScale";
 import { isEqual } from "lodash";
 import { v4 as uuidv4 } from "uuid";
 
+import { FaultPolygonsSelect } from "./components/faultPolygonsSelect";
 import { SmdaWellBoreSelect } from "./components/smdaWellBoreSelect";
 import { SurfaceAttributeTypeSelect } from "./components/surfaceAttributeTypeSelect";
 import { SurfaceSelect } from "./components/surfaceSelect";
@@ -21,7 +22,7 @@ import { SyncSettings } from "./components/syncSettings";
 import { useEnsembleSetSurfaceMetaQuery } from "../hooks/useEnsembleSetSurfaceMetaQuery";
 import { useSurfaceReducer } from "../hooks/useSurfaceReducer";
 import { State } from "../state";
-import { EnsembleStageType, SurfaceSpecification, SyncedSettings } from "../types";
+import { EnsembleStageType, SurfaceSpecification, SyncedSettings, ViewSpecification } from "../types";
 
 export function settings({ moduleContext, workbenchSession, workbenchSettings }: ModuleFCProps<State>) {
     const ensembleSet = useEnsembleSet(workbenchSession);
@@ -77,9 +78,20 @@ export function settings({ moduleContext, workbenchSession, workbenchSettings }:
 
     React.useEffect(
         function propogateSurfaceSpecificationsToView() {
-            moduleContext.getStateStore().setValue("surfaceSpecifications", reducer.state.surfaceSpecifications);
+            const viewSpecifications: ViewSpecification[] = [];
+            reducer.state.surfaceSpecifications.forEach((surface) => {
+                viewSpecifications.push({
+                    ...surface,
+                    useFaultPolygons: reducer.state.faultPolygonsSpecification.useFaultPolygons,
+                    useSurfaceName: reducer.state.faultPolygonsSpecification.useSurfaceName,
+                    useDefaultPolygonsName: reducer.state.faultPolygonsSpecification.useDefaultPolygonsName,
+                    defaultPolygonsName: reducer.state.faultPolygonsSpecification.defaultPolygonsName,
+                    polygonsAttribute: reducer.state.faultPolygonsSpecification.polygonsAttribute,
+                });
+            });
+            moduleContext.getStateStore().setValue("viewSpecifications", viewSpecifications);
         },
-        [reducer.state.surfaceSpecifications]
+        [reducer.state.surfaceSpecifications, reducer.state.faultPolygonsSpecification]
     );
     React.useEffect(
         function propagateWellBoreAddressesToView() {
@@ -87,6 +99,7 @@ export function settings({ moduleContext, workbenchSession, workbenchSettings }:
         },
         [reducer.state.wellAddresses]
     );
+
     const ensembleSetSurfaceMetas = useEnsembleSetSurfaceMetaQuery(reducer.state.ensembleIdents);
 
     return (
@@ -106,6 +119,13 @@ export function settings({ moduleContext, workbenchSession, workbenchSettings }:
                     selectedWellAddresses={reducer.state.wellAddresses || []}
                     onWellBoreChange={reducer.setWellBoreAddresses}
                     ensembleIdent={reducer.state.ensembleIdents ? reducer.state.ensembleIdents[0] : null}
+                />
+            </CollapsibleGroup>
+            <CollapsibleGroup expanded={false} title="Polygons">
+                <FaultPolygonsSelect
+                    ensembleIdent={reducer.state.ensembleIdents ? reducer.state.ensembleIdents[0] : null}
+                    onChange={reducer.setFaultPolygonsSpecification}
+                    faultPolygonsSpecification={reducer.state.faultPolygonsSpecification}
                 />
             </CollapsibleGroup>
             <CollapsibleGroup expanded={false} title="Link settings">

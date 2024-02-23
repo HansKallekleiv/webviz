@@ -3,10 +3,10 @@ import React from "react";
 import "animate.css";
 
 import { isoStringToDateOrIntervalLabel } from "../../_utils/isoString";
-import { EnsembleStageType, StatisticFunctionToStringMapping, SurfaceSpecification } from "../../types";
+import { EnsembleStageType, StatisticFunctionToStringMapping, ViewSpecification } from "../../types";
 
-export type SurfaceSpecificationLabelProps = {
-    surfaceSpecification?: SurfaceSpecification;
+export type SubsurfaceMapViewLabelProps = {
+    viewSpecification?: ViewSpecification;
 };
 type Animations = {
     surfaceName?: string;
@@ -15,19 +15,19 @@ type Animations = {
     realizationNum?: string;
     statisticFunction?: string;
 };
-export const SurfaceSpecificationLabel: React.FC<SurfaceSpecificationLabelProps> = ({ surfaceSpecification }) => {
+export const SubsurfaceMapViewLabel: React.FC<SubsurfaceMapViewLabelProps> = ({ viewSpecification }) => {
     const [animations, setAnimations] = React.useState<Animations>({});
-    const prevSurfaceSpecification = React.useRef(surfaceSpecification);
+    const prevViewSpecification = React.useRef(viewSpecification);
 
-    const checkAndAnimate = (key: keyof SurfaceSpecification) => {
-        return !prevSurfaceSpecification.current ||
-            (surfaceSpecification && surfaceSpecification[key] !== prevSurfaceSpecification.current[key])
+    const checkAndAnimate = (key: keyof ViewSpecification) => {
+        return !prevViewSpecification.current ||
+            (viewSpecification && viewSpecification[key] !== prevViewSpecification.current[key])
             ? "bg-green-200 animate__animated animate__fadeIn"
             : " bg-transparent ";
     };
 
     React.useEffect(() => {
-        if (surfaceSpecification) {
+        if (viewSpecification) {
             const newAnimations = {
                 surfaceName: checkAndAnimate("surfaceName"),
                 surfaceAttribute: checkAndAnimate("surfaceAttribute"),
@@ -37,39 +37,37 @@ export const SurfaceSpecificationLabel: React.FC<SurfaceSpecificationLabelProps>
             };
 
             setAnimations(newAnimations);
-            prevSurfaceSpecification.current = surfaceSpecification;
+            prevViewSpecification.current = viewSpecification;
 
             const timer = setTimeout(() => setAnimations({}), 2000);
             return () => clearTimeout(timer);
         }
-    }, [surfaceSpecification]);
+    }, [viewSpecification]);
     const baseClassNames = "m-0 border border-gray-300 p-1 max-w-sm text-gray-800 text-sm";
     return (
         <div className="flex">
-            {surfaceSpecification ? (
+            {viewSpecification ? (
                 <>
-                    <div className={`${baseClassNames} ${animations.surfaceName}`}>
-                        {surfaceSpecification.surfaceName}
-                    </div>
+                    <div className={`${baseClassNames} ${animations.surfaceName}`}>{viewSpecification.surfaceName}</div>
                     <div className={`${baseClassNames} ${animations.surfaceAttribute}`}>
-                        {surfaceSpecification.surfaceAttribute}
+                        {viewSpecification.surfaceAttribute}
                     </div>
-                    {surfaceSpecification.surfaceTimeOrInterval && (
+                    {viewSpecification.surfaceTimeOrInterval && (
                         <div className={`${baseClassNames} ${animations.surfaceTimeOrInterval}`}>
-                            {isoStringToDateOrIntervalLabel(surfaceSpecification.surfaceTimeOrInterval)}
+                            {isoStringToDateOrIntervalLabel(viewSpecification.surfaceTimeOrInterval)}
                         </div>
                     )}
-                    {surfaceSpecification.ensembleStage === EnsembleStageType.Realization && (
+                    {viewSpecification.ensembleStage === EnsembleStageType.Realization && (
                         <div className={`${baseClassNames} ${animations.realizationNum}`}>
-                            {`Real: ${surfaceSpecification.realizationNum}`}
+                            {`Real: ${viewSpecification.realizationNum}`}
                         </div>
                     )}
-                    {surfaceSpecification.ensembleStage === EnsembleStageType.Statistics && (
+                    {viewSpecification.ensembleStage === EnsembleStageType.Statistics && (
                         <div className={`${baseClassNames} ${animations.statisticFunction}`}>
-                            {`${StatisticFunctionToStringMapping[surfaceSpecification.statisticFunction]}`}
+                            {`${StatisticFunctionToStringMapping[viewSpecification.statisticFunction]}`}
                         </div>
                     )}
-                    {surfaceSpecification.ensembleStage === EnsembleStageType.Observation && (
+                    {viewSpecification.ensembleStage === EnsembleStageType.Observation && (
                         <div className={`${baseClassNames} ${animations.statisticFunction}`}>Observation</div>
                     )}
                 </>

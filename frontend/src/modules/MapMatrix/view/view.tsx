@@ -24,7 +24,7 @@ import { ViewFooter } from "@webviz/subsurface-viewer/dist/components/ViewFooter
 
 import { isEqual } from "lodash";
 
-import { SurfaceSpecificationLabel } from "./components/surfaceSpecificationLabel";
+import { SubsurfaceMapViewLabel } from "./components/subsurfaceMapViewLabel";
 
 import {
     IndexedSurfaceData,
@@ -32,15 +32,15 @@ import {
     useSurfaceDataSetQueryByAddresses,
 } from "../hooks/useSurfaceDataAsPngQuery";
 import { State } from "../state";
-import { EnsembleStageType, SurfaceSpecification } from "../types";
+import { EnsembleStageType, SurfaceSpecification, ViewSpecification } from "../types";
 
 export function view({ moduleContext, workbenchServices, workbenchSettings }: ModuleFCProps<State>) {
     const [viewportBounds, setviewPortBounds] = React.useState<[number, number, number, number] | undefined>(undefined);
 
-    const surfaceSpecifications = moduleContext.useStoreValue("surfaceSpecifications");
+    const viewSpecifications = moduleContext.useStoreValue("viewSpecifications");
     const wellBoreAddresses = moduleContext.useStoreValue("smdaWellBoreAddresses");
-    console.log(surfaceSpecifications);
-    const firstCaseUuid = surfaceSpecifications?.[0]?.ensembleIdent?.getCaseUuid() ?? undefined;
+
+    const firstCaseUuid = viewSpecifications?.[0]?.ensembleIdent?.getCaseUuid() ?? undefined;
     const statusWriter = useViewStatusWriter(moduleContext);
 
     const wellTrajectoriesQuery = useFieldWellsTrajectoriesQuery(firstCaseUuid);
@@ -59,6 +59,22 @@ export function view({ moduleContext, workbenchServices, workbenchSettings }: Mo
         layers.push(wellTrajectoryLayer);
         layers.push(wellBoreHeaderLayer);
     }
+
+    const surfaceSpecifications: SurfaceSpecification[] = viewSpecifications.map((viewSpecification) => {
+        return {
+            ensembleIdent: viewSpecification.ensembleIdent,
+            surfaceName: viewSpecification.surfaceName,
+            surfaceAttribute: viewSpecification.surfaceAttribute,
+            surfaceTimeOrInterval: viewSpecification.surfaceTimeOrInterval,
+            realizationNum: viewSpecification.realizationNum,
+            uuid: viewSpecification.uuid,
+            statisticFunction: viewSpecification.statisticFunction,
+            realizationNumsStatistics: viewSpecification.realizationNumsStatistics,
+            ensembleStage: viewSpecification.ensembleStage,
+            colorRange: viewSpecification.colorRange,
+            colorPaletteId: viewSpecification.colorPaletteId,
+        };
+    });
     const surfaceAddresses = createSurfaceAddressesFromSpecifications(surfaceSpecifications);
 
     const surfaceDataSetQueryByAddresses = useSurfaceDataSetQueryByAddresses(surfaceAddresses);
@@ -69,9 +85,6 @@ export function view({ moduleContext, workbenchServices, workbenchSettings }: Mo
 
     let surfaceDataSet: IndexedSurfaceData[] = [];
 
-    const [existingViews, setExistingViews] = React.useState<ViewsType>(
-        makeEmptySurfaceViews(surfaceDataSet.length ?? 1)
-    );
     if (
         !surfaceDataSetQueryByAddresses.isFetching &&
         !isEqual(prevSurfaceDataSetQueryByAddresses, surfaceDataSetQueryByAddresses)
@@ -82,11 +95,16 @@ export function view({ moduleContext, workbenchServices, workbenchSettings }: Mo
         surfaceDataSet = prevSurfaceDataSetQueryByAddresses.data;
     }
 
-    const views: ViewsType = makeEmptySurfaceViews(surfaceDataSet.length ?? 1);
+    // Needed to avoid resetting the viewports on every render
+    const [existingViews, setExistingViews] = React.useState<ViewsType>(makeEmptyViews(viewSpecifications.length ?? 1));
+    const views: ViewsType = makeEmptyViews(viewSpecifications.length ?? 1);
+
     const viewAnnotations: JSX.Element[] = [];
     const colorTables = createSubsurfaceMapColorPalettes();
-    surfaceDataSet.forEach((surface, index) => {
-        const colorRange = surfaceSpecifications[index].colorRange ?? [null, null];
+
+    viewSpecifications.forEach((viewSpec, index) => {
+        const surface = surfaceDataSet[index];
+        const colorRange = viewSpec.colorRange ?? [null, null];
 
         const valueMin = surface?.surfaceData?.val_min ?? 0;
         const valueMax = surface?.surfaceData?.val_max ?? 0;
@@ -114,7 +132,7 @@ export function view({ moduleContext, workbenchServices, workbenchSettings }: Mo
                     valueMax,
                     colorMin: colorRange[0],
                     colorMax: colorRange[1],
-                    colorPaletteId: surfaceSpecifications[index].colorPaletteId ?? "",
+                    colorPaletteId: viewSpec.colorPaletteId ?? "",
                 })
             );
             views.viewports[index] = {
@@ -128,7 +146,7 @@ export function view({ moduleContext, workbenchServices, workbenchSettings }: Mo
         viewAnnotations.push(
             makeViewAnnotation(
                 `${index}view`,
-                surfaceSpecifications[index],
+                viewSpecifications[index],
                 colorTables,
                 colorRange[0] || valueMin,
                 colorRange[1] || valueMax
@@ -164,7 +182,7 @@ export function view({ moduleContext, workbenchServices, workbenchSettings }: Mo
 }
 function makeViewAnnotation(
     id: string,
-    surfaceSpecification: SurfaceSpecification,
+    viewSpecification: ViewSpecification,
     colorTables: colorTablesObj[],
     colorMin: number,
     colorMax: number
@@ -178,21 +196,21 @@ function makeViewAnnotation(
                     id={`legend-${id}`}
                     min={colorMin}
                     max={colorMax}
-                    colorName={surfaceSpecification.colorPaletteId ?? ""}
+                    colorName={viewSpecification.colorPaletteId ?? ""}
                     colorTables={colorTables}
                     cssLegendStyles={{ top: "20px", right: "0px", backgroundColor: "transparent" }}
                     legendScaleSize={0.1}
                     legendFontSize={30}
                 />
                 <ViewFooter>
-                    <SurfaceSpecificationLabel surfaceSpecification={surfaceSpecification} />
+                    <SubsurfaceMapViewLabel viewSpecification={viewSpecification} />
                 </ViewFooter>
             </>
         </View>
     );
 }
 
-function makeEmptySurfaceViews(numSubplots: number): ViewsType {
+function makeEmptyViews(numSubplots: number): ViewsType {
     const numColumns = Math.ceil(Math.sqrt(numSubplots));
     const numRows = Math.ceil(numSubplots / numColumns);
     const viewPorts: ViewportType[] = [];
@@ -210,6 +228,46 @@ function makeEmptySurfaceViews(numSubplots: number): ViewsType {
 
 function createSurfaceAddressesFromSpecifications(
     surfaceSpecifications: SurfaceSpecification[]
+): Array<SurfaceAddress | null> {
+    const surfaceAddresses: Array<SurfaceAddress | null> = [];
+    surfaceSpecifications.forEach((surface) => {
+        if (surface.ensembleIdent && surface.surfaceName && surface.surfaceAttribute) {
+            const factory = new SurfaceAddressFactory(
+                surface.ensembleIdent?.getCaseUuid(),
+                surface.ensembleIdent?.getEnsembleName(),
+                surface.surfaceName,
+                surface.surfaceAttribute,
+                surface.surfaceTimeOrInterval
+            );
+            if (surface.ensembleStage === EnsembleStageType.Realization && surface.realizationNum !== null) {
+                const surfaceAddress = factory.createRealizationAddress(surface.realizationNum);
+                surfaceAddresses.push(surfaceAddress);
+            }
+            if (surface.ensembleStage === EnsembleStageType.Statistics) {
+                const surfaceAddress = factory.createStatisticalAddress(
+                    surface.statisticFunction,
+                    surface.realizationNumsStatistics
+                );
+                surfaceAddresses.push(surfaceAddress);
+            }
+            if (surface.ensembleStage === EnsembleStageType.Observation) {
+                const surfaceAddress = factory.createObservationAddress();
+                surfaceAddresses.push(surfaceAddress);
+            }
+        } else {
+            surfaceAddresses.push(null);
+        }
+    });
+    return surfaceAddresses;
+}
+
+type SurfaceFaultPolygonSpecification = {
+    surfaceName: string | null;
+    defaultPolygonsName: string | null;
+    polygonsAttribute: string | null;
+};
+function createFaultPolygonsAddressesFromSpecifications(
+    surfaceFaultPolygonsSpecifications: Array<SurfaceFaultPolygonSpecification | null>
 ): Array<SurfaceAddress | null> {
     const surfaceAddresses: Array<SurfaceAddress | null> = [];
     surfaceSpecifications.forEach((surface) => {

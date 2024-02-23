@@ -45,6 +45,7 @@ export const StatisticFunctionToStringMapping = {
 export type SurfaceReducerState = {
     ensembleIdents: EnsembleIdent[];
     surfaceSpecifications: SurfaceSpecification[];
+    faultPolygonsSpecification: FaultPolygonsSpecification;
     wellAddresses: WellBoreAddress[];
     syncedSettings: SyncedSettings;
     timeMode: SurfaceTimeType;
@@ -64,6 +65,16 @@ export type SurfaceSpecification = {
     colorRange: [number, number] | null;
     colorPaletteId: string | null;
 };
+// New type expanding on SurfaceSpecification
+
+export type FaultPolygonsSpecification = {
+    useFaultPolygons: boolean;
+    useSurfaceName: boolean;
+    useDefaultPolygonsName: boolean;
+    defaultPolygonsName: string | null;
+    polygonsAttribute: string | null;
+};
+export type ViewSpecification = SurfaceSpecification & FaultPolygonsSpecification;
 export type SyncedSettings = {
     ensemble: boolean;
     name: boolean;

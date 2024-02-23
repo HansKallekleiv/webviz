@@ -5,11 +5,25 @@ import { SurfaceTimeType } from "@modules/_shared/Surface";
 import { WellBoreAddress } from "@modules/_shared/WellBore/wellBoreAddress";
 
 import { SurfaceReducerActionType, surfaceDispatcher } from "../reducers/surfaceReducer";
-import { SurfaceAttributeType, SurfaceReducerState, SurfaceSpecification, SyncedSettings } from "../types";
+import { MapMatrixDefaultState } from "../state";
+import {
+    FaultPolygonsSpecification,
+    SurfaceAttributeType,
+    SurfaceReducerState,
+    SurfaceSpecification,
+    SyncedSettings,
+} from "../types";
 
 export const initialSurfaceReducerState: SurfaceReducerState = {
     ensembleIdents: [],
     surfaceSpecifications: [],
+    faultPolygonsSpecification: {
+        useFaultPolygons: true,
+        useSurfaceName: true,
+        useDefaultPolygonsName: true,
+        polygonsAttribute: null,
+        defaultPolygonsName: null,
+    },
     syncedSettings: {
         ensemble: false,
         name: false,
@@ -21,7 +35,7 @@ export const initialSurfaceReducerState: SurfaceReducerState = {
     },
     timeMode: SurfaceTimeType.None,
     attributeType: SurfaceAttributeType.STATIC_ATTRIBUTE,
-    wellAddresses: [],
+    wellAddresses: MapMatrixDefaultState.smdaWellBoreAddresses,
 };
 
 export const useSurfaceReducer = () => {
@@ -80,6 +94,12 @@ export const useSurfaceReducer = () => {
             payload: { wellAddresses },
         });
     };
+    const setFaultPolygonsSpecification = (faultPolygonsSpecification: FaultPolygonsSpecification) => {
+        dispatch({
+            type: SurfaceReducerActionType.SetFaultPolygonsSpecification,
+            payload: { faultPolygonsSpecification },
+        });
+    };
 
     return {
         state,
@@ -91,5 +111,6 @@ export const useSurfaceReducer = () => {
         setTimeMode,
         setAttributeType,
         setWellBoreAddresses,
+        setFaultPolygonsSpecification,
     };
 };

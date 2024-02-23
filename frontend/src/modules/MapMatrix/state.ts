@@ -1,12 +1,12 @@
 import { SmdaWellBoreAddress } from "@modules/_shared/WellBore/wellBoreAddress";
 
-import { SurfaceSpecification } from "./types";
+import { FaultPolygonsSpecification, SurfaceSpecification, ViewSpecification } from "./types";
 
-export const defaultState: State = {
-    surfaceSpecifications: [],
+export const MapMatrixDefaultState: State = {
+    viewSpecifications: [],
     smdaWellBoreAddresses: [],
 };
 export type State = {
-    surfaceSpecifications: SurfaceSpecification[];
+    viewSpecifications: ViewSpecification[];
     smdaWellBoreAddresses: SmdaWellBoreAddress[];
 };

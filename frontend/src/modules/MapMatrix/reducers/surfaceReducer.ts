@@ -4,7 +4,13 @@ import { ColorScaleGradientType } from "@lib/utils/ColorScale";
 import { SurfaceTimeType } from "@modules/_shared/Surface";
 import { WellBoreAddress } from "@modules/_shared/WellBore/wellBoreAddress";
 
-import { SurfaceAttributeType, SurfaceReducerState, SurfaceSpecification, SyncedSettings } from "../types";
+import {
+    FaultPolygonsSpecification,
+    SurfaceAttributeType,
+    SurfaceReducerState,
+    SurfaceSpecification,
+    SyncedSettings,
+} from "../types";
 
 export enum SurfaceReducerActionType {
     SetEnsembleIdents,
@@ -15,6 +21,7 @@ export enum SurfaceReducerActionType {
     SetTimeMode,
     SetAttributeType,
     SetWellBoreAddresses,
+    SetFaultPolygonsSpecification,
 }
 type SurfaceReducerPayload = {
     [SurfaceReducerActionType.SetEnsembleIdents]: { ensembleIdents: EnsembleIdent[] };
@@ -25,6 +32,9 @@ type SurfaceReducerPayload = {
     [SurfaceReducerActionType.SetTimeMode]: { timeMode: SurfaceTimeType };
     [SurfaceReducerActionType.SetAttributeType]: { attributeType: SurfaceAttributeType };
     [SurfaceReducerActionType.SetWellBoreAddresses]: { wellAddresses: WellBoreAddress[] };
+    [SurfaceReducerActionType.SetFaultPolygonsSpecification]: {
+        faultPolygonsSpecification: FaultPolygonsSpecification;
+    };
 };
 type SurfaceReducerActions = {
     [T in SurfaceReducerActionType]: {
@@ -88,6 +98,12 @@ export function surfaceDispatcher(state: SurfaceReducerState, action: SurfaceRed
         return {
             ...state,
             wellAddresses: action.payload.wellAddresses,
+        };
+    }
+    if (action.type === SurfaceReducerActionType.SetFaultPolygonsSpecification) {
+        return {
+            ...state,
+            faultPolygonsSpecification: action.payload.faultPolygonsSpecification,
         };
     }
 
