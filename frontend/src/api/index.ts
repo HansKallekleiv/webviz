@@ -12,6 +12,7 @@ export type { OpenAPIConfig } from './core/OpenAPI';
 
 export { B64FloatArray as B64FloatArray_api } from './models/B64FloatArray';
 export { B64UintArray as B64UintArray_api } from './models/B64UintArray';
+export type { BlockedWellLog as BlockedWellLog_api } from './models/BlockedWellLog';
 export type { Body_get_realizations_response as Body_get_realizations_response_api } from './models/Body_get_realizations_response';
 export type { Body_post_get_seismic_fence as Body_post_get_seismic_fence_api } from './models/Body_post_get_seismic_fence';
 export type { Body_post_get_surface_intersection as Body_post_get_surface_intersection_api } from './models/Body_post_get_surface_intersection';

@@ -4,6 +4,7 @@ from typing import List, Union
 from fastapi import APIRouter, Depends, Query
 
 from src.services.smda_access import mocked_drogon_smda_access
+from src.services.sumo_access.well_access import WellAccess as SumoWellAccess, BlockedWellLog
 from src.services.smda_access.well_access import WellAccess
 from src.services.smda_access.stratigraphy_access import StratigraphyAccess
 from src.services.utils.authenticated_user import AuthenticatedUser
@@ -18,7 +19,34 @@ LOGGER = logging.getLogger(__name__)
 
 router = APIRouter()
 
+@router.get("/bw_names")
+async def get_blocked_well_log_names(
+    # fmt:off
+    authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user),
+    case_uuid: str = Query(description="Sumo case uuid"),
+    ensemble_name: str = Query(description="Iteration name"),
+    # fmt:on
+) -> List[str]:
+    """Retrieve the available blocked well log names for the case"""
+    sumo_well_access = await SumoWellAccess.from_case_uuid(
+        authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name
+    )
+    return await sumo_well_access.get_blocked_well_log_names()
 
+@router.get("/bw_logs")
+async def get_blocked_well_logs(
+    # fmt:off
+    authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user),
+    case_uuid: str = Query(description="Sumo case uuid"),
+    ensemble_name: str = Query(description="Iteration name"),
+    well_name: str = Query(description="Well name"),
+    # fmt:on
+) -> List[BlockedWellLog]:
+    """Retrieve the available blocked well logs for the case"""
+    sumo_well_access = await SumoWellAccess.from_case_uuid(
+        authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name
+    )
+    return await sumo_well_access.get_blocked_well_logs(well_name)
 @router.get("/well_headers/")
 async def get_well_headers(
     # fmt:off

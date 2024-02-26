@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { BlockedWellLog } from '../models/BlockedWellLog';
 import type { WellBoreHeader } from '../models/WellBoreHeader';
 import type { WellBorePicksAndStratigraphicUnits } from '../models/WellBorePicksAndStratigraphicUnits';
 import type { WellBoreTrajectory } from '../models/WellBoreTrajectory';
@@ -9,6 +10,57 @@ import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class WellService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
+    /**
+     * Get Blocked Well Log Names
+     * Retrieve the available blocked well log names for the case
+     * @param caseUuid Sumo case uuid
+     * @param ensembleName Iteration name
+     * @returns string Successful Response
+     * @throws ApiError
+     */
+    public getBlockedWellLogNames(
+        caseUuid: string,
+        ensembleName: string,
+    ): CancelablePromise<Array<string>> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/well/bw_names',
+            query: {
+                'case_uuid': caseUuid,
+                'ensemble_name': ensembleName,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Blocked Well Logs
+     * Retrieve the available blocked well logs for the case
+     * @param caseUuid Sumo case uuid
+     * @param ensembleName Iteration name
+     * @param wellName Well name
+     * @returns BlockedWellLog Successful Response
+     * @throws ApiError
+     */
+    public getBlockedWellLogs(
+        caseUuid: string,
+        ensembleName: string,
+        wellName: string,
+    ): CancelablePromise<Array<BlockedWellLog>> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/well/bw_logs',
+            query: {
+                'case_uuid': caseUuid,
+                'ensemble_name': ensembleName,
+                'well_name': wellName,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
     /**
      * Get Well Headers
      * Get well headers for all wells in the field

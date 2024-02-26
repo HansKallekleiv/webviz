@@ -6,6 +6,7 @@ import "./Grid3DIntersection/registerModule";
 import "./InplaceVolumetrics/registerModule";
 import "./Map/registerModule";
 import "./ParameterDistributionMatrix/registerModule";
+import "./PemQC/registerModule";
 import "./Pvt/registerModule";
 import "./Rft/registerModule";
 import "./SeismicIntersection/registerModule";
