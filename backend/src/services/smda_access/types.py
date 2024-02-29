@@ -40,6 +40,19 @@ class WellBoreHeader(BaseModel):
     well_easting: float
     well_northing: float
 
+class WellBoreStratigraphy(BaseModel):
+    wellbore_uuid:str
+    entry_md:Optional[float] =None
+    exit_md:Optional[float] =None
+    entry_tvd:Optional[float] =None
+    exit_tvd:Optional[float] =None
+    strat_unit_identifier:Optional[str] =None
+    strat_unit_level:Optional[int] =None
+    strat_unit_type:Optional[str] =None
+    interpreter:Optional[str] =None
+    color_r:Optional[int] =None
+    color_g:Optional[int] =None
+    color_b:Optional[int] =None
 
 class StratigraphicUnit(BaseModel):
     """

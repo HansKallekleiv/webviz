@@ -62,6 +62,30 @@ export class WellService {
         });
     }
     /**
+     * Get Wellbore Stratigraphy
+     * Get stratigraphy for a wellbore
+     * @param caseUuid Sumo case uuid
+     * @param wellboreUuid Wellbore uuid
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public getWellboreStratigraphy(
+        caseUuid: string,
+        wellboreUuid: string,
+    ): CancelablePromise<any> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/well/wellbore_stratigraphy/',
+            query: {
+                'case_uuid': caseUuid,
+                'wellbore_uuid': wellboreUuid,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Get Well Headers
      * Get well headers for all wells in the field
      * @param caseUuid Sumo case uuid

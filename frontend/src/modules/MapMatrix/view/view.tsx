@@ -6,6 +6,7 @@ import { ContinuousLegend } from "@emerson-eps/color-tables";
 import { colorTablesObj } from "@emerson-eps/color-tables";
 import { ModuleFCProps } from "@framework/Module";
 import { useViewStatusWriter } from "@framework/StatusWriter";
+import { SyncSettingKey, SyncSettingsHelper } from "@framework/SyncSettings";
 import { IconButton } from "@lib/components/IconButton";
 import { SurfaceAddress } from "@modules/_shared/Surface";
 import { SurfaceAddressFactory } from "@modules/_shared/Surface";
@@ -15,6 +16,7 @@ import { createSubsurfaceMapColorPalettes } from "@modules/_shared/components/Su
 import { Home } from "@mui/icons-material";
 import { ViewportType, ViewsType } from "@webviz/subsurface-viewer";
 import { ViewFooter } from "@webviz/subsurface-viewer/dist/components/ViewFooter";
+import { PointsLayer } from "@webviz/subsurface-viewer/dist/layers/";
 
 import { isEqual } from "lodash";
 
@@ -82,6 +84,7 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
     viewMatrixBuilder.buildViewMatrix();
 
     const layers = viewMatrixBuilder.getLayers();
+
     const bounds = viewMatrixBuilder.getBounds();
     if (bounds && !viewportBounds) {
         setviewPortBounds(bounds);
@@ -128,10 +131,10 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
                     bounds={viewportBounds || undefined}
                     workbenchServices={workbenchServices}
                     moduleContext={moduleContext}
-                    // getTooltip={tooltipCallback}
-                    // editedData={(editedData:any) => console.log(editedData)}
                     selection={{ well: selectedWell || undefined, selection: undefined }}
                     onMouseEvent={handleMouseEvent}
+                    onRenderingProgress={() => {}}
+                    wellTrajectoriesData={wellTrajectoriesQuery.data || []}
                 >
                     {viewAnnotations}
                 </SyncedSubsurfaceViewer>
@@ -223,4 +226,31 @@ function createSurfaceAddressesFromViewSpecifications(
         }
     });
     return surfaceAddresses;
+}
+
+type WellPathPoint = {
+    x: number;
+    y: number;
+    tvd: number;
+};
+
+function interpolateXY(trajectory: WellBoreTrajectory_api, tvd: number): number[] | null {
+    const points: WellPathPoint[] = trajectory.md_arr.map((md, i) => ({
+        x: trajectory.easting_arr[i],
+        y: trajectory.northing_arr[i],
+        tvd: trajectory.tvd_msl_arr[i],
+    }));
+    for (let i = 0; i < points.length - 1; i++) {
+        if (tvd >= points[i].tvd && tvd <= points[i + 1].tvd) {
+            const { x: x1, y: y1, tvd: tvd1 } = points[i];
+            const { x: x2, y: y2, tvd: tvd2 } = points[i + 1];
+
+            const x = x1 + ((x2 - x1) * (tvd - tvd1)) / (tvd2 - tvd1);
+            const y = y1 + ((y2 - y1) * (tvd - tvd1)) / (tvd2 - tvd1);
+
+            return [x, y, -tvd];
+        }
+    }
+
+    return null;
 }

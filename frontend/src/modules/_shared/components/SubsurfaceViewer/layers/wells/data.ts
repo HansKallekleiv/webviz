@@ -1,6 +1,7 @@
 import { WellBoreTrajectory_api } from "@api";
 
 import { Feature, FeatureCollection, LineString, Point } from "geojson";
+import { isEqual } from "lodash";
 
 import { filterAndInterpolateWellPath } from "./interpolation";
 
@@ -32,7 +33,7 @@ function createWellGeoJSONFeature(
     filterTvdBelow: number | null,
     selectedWell?: string
 ): Feature {
-    const wellPoints: WellPoint[] = wellTrajectory.easting_arr.map((easting, index) => {
+    let wellPoints: WellPoint[] = wellTrajectory.easting_arr.map((easting, index) => {
         return {
             x: easting,
             y: wellTrajectory.northing_arr[index],
@@ -40,29 +41,29 @@ function createWellGeoJSONFeature(
             md: wellTrajectory.md_arr[index],
         };
     });
+    if (filterTvdAbove === null || filterTvdBelow === null) {
+        const minZ = Math.min(...wellPoints.map((point) => point.z));
+        const maxZ = Math.max(...wellPoints.map((point) => point.z));
 
-    const minZ = Math.min(...wellPoints.map((point) => point.z));
-    const maxZ = Math.max(...wellPoints.map((point) => point.z));
+        let topZ = minZ;
+        let baseZ = maxZ;
 
-    let topZ = minZ;
-    let baseZ = maxZ;
-
-    if (filterTvdAbove !== null) {
-        topZ = Math.max(minZ, filterTvdAbove);
+        if (filterTvdAbove !== null) {
+            topZ = Math.max(minZ, filterTvdAbove);
+        }
+        if (filterTvdBelow !== null) {
+            baseZ = Math.min(maxZ, filterTvdBelow);
+        }
+        if (topZ > baseZ) {
+            topZ = minZ;
+        }
+        if (baseZ < topZ) {
+            baseZ = maxZ;
+            wellPoints = filterAndInterpolateWellPath(wellPoints, topZ, baseZ);
+        }
     }
-    if (filterTvdBelow !== null) {
-        baseZ = Math.min(maxZ, filterTvdBelow);
-    }
-    if (topZ > baseZ) {
-        topZ = minZ;
-    }
-    if (baseZ < topZ) {
-        baseZ = maxZ;
-    }
-
-    const updatedWellPoints = filterAndInterpolateWellPath(wellPoints, topZ, baseZ);
-
-    const wellPath: { x: number; y: number; z: number; md: number }[] = updatedWellPoints.map((point) => {
+    // console.log(isEqual(wellPoints, updatedWellPoints));
+    const wellPath: { x: number; y: number; z: number; md: number }[] = wellPoints.map((point) => {
         return { x: point.x, y: point.y, z: point.z, md: point.md };
     });
 
@@ -88,7 +89,7 @@ function createWellGeoJSONFeature(
             color:
                 selectedWell && wellTrajectory.unique_wellbore_identifier === selectedWell
                     ? [0, 0, 0, 100]
-                    : [128, 128, 128],
+                    : [255, 255, 255],
             md: [wellPath.map((point) => point.md)],
         },
     };

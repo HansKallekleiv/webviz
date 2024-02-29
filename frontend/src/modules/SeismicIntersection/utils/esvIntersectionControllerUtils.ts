@@ -4,6 +4,7 @@ import {
     Controller,
     GeomodelCanvasLayer,
     GeomodelLabelsLayer,
+    HTMLLayer,
     OverlayMouseExitEvent,
     OverlayMouseMoveEvent,
     SeismicCanvasLayer,
@@ -14,6 +15,7 @@ import {
     getSeismicOptions,
     transformFormationData,
 } from "@equinor/esv-intersection";
+import { HighlightLayer } from "@modules/StructuralUncertaintyIntersection/components/highlightLayer";
 
 import { makeReferenceSystemFromTrajectoryXyzPoints } from "./esvIntersectionDataConversion";
 import { Pick, Unit } from "./esvIntersectionTypes";
@@ -68,14 +70,16 @@ export function addMDOverlay(controller: Controller) {
  */
 export function addWellborePathLayer(controller: Controller, wellboreTrajectoryXyzPoints: number[][]): void {
     const referenceSystem = makeReferenceSystemFromTrajectoryXyzPoints(wellboreTrajectoryXyzPoints);
-    controller.addLayer(
-        new WellborepathLayer("wellborepath", {
-            order: 3,
-            strokeWidth: "4px",
-            stroke: "black",
-            referenceSystem: referenceSystem,
-        })
-    );
+    controller.getLayer("wellborepath") ||
+        controller.addLayer(
+            new WellborepathLayer("wellborepath", {
+                order: 3,
+                strokeWidth: "4px",
+                stroke: "black",
+
+                referenceSystem: referenceSystem,
+            })
+        );
 }
 
 export type SeismicLayerOptions = {
@@ -98,14 +102,30 @@ export function addSeismicLayer(
         info.minX = info.minX - xAxisOffset;
         info.maxX = info.maxX - xAxisOffset;
     }
-    const layer = new SeismicCanvasLayer("seismic", {
-        order: 1,
-        layerOpacity: 1,
-    });
+    const layer =
+        controller.getLayer("seismic") ||
+        new SeismicCanvasLayer("seismic", {
+            order: 1,
+            layerOpacity: 1,
+        });
     layer.data = { image: image, options: getSeismicOptions(info) };
     controller.addLayer(layer);
 }
-
+export function addHighlightLayer(controller: Controller) {
+    controller.addLayer(new HighlightLayer("highlightLayer", { order: 12 }));
+}
+export function setHighlightPosition(controller: Controller, md: number | null) {
+    const highlightLayer = controller.getLayer("highlightLayer") as HighlightLayer<any> | undefined;
+    if (highlightLayer) {
+        if (md) {
+            // !highlightLayer.isVisible && highlightLayer.setVisibility(true);
+            highlightLayer.onRescaleMD(controller.currentStateAsEvent, md);
+            console.log("highlightLayer", highlightLayer);
+        } else {
+            highlightLayer.setVisibility(false);
+        }
+    }
+}
 export type SurfaceIntersectionData = {
     name: string;
     xyPoints: number[][]; // [x, y] points for surface intersection line in reference system
@@ -142,17 +162,21 @@ export function addSurfacesLayer(
         }),
     };
 
-    const geomodelLayer = new GeomodelCanvasLayer(`${layerName}`, {
-        order: 3,
-        layerOpacity: 0.6,
-        data: surfaceIntersectionLines,
-    });
-    const geomodelLabelsLayer = new GeomodelLabelsLayer<SurfaceData>(`${layerName}labels`, {
-        order: 3,
-        data: surfaceIntersectionLines,
-        maxFontSize: 16,
-        minFontSize: 10,
-    });
+    const geomodelLayer =
+        controller.getLayer(`${layerName}`) ||
+        new GeomodelCanvasLayer(`${layerName}`, {
+            order: 3,
+            layerOpacity: 0.6,
+            data: surfaceIntersectionLines,
+        });
+    const geomodelLabelsLayer =
+        controller.getLayer(`${layerName}`) ||
+        new GeomodelLabelsLayer<SurfaceData>(`${layerName}labels`, {
+            order: 3,
+            data: surfaceIntersectionLines,
+            maxFontSize: 16,
+            minFontSize: 10,
+        });
     controller.addLayer(geomodelLayer);
     controller.addLayer(geomodelLabelsLayer);
 }
@@ -160,12 +184,14 @@ export function addSurfacesLayer(
 export function addWellborePicksLayer(controller: Controller, wellborePicks: Pick[], stratigraphicUnits: Unit[]) {
     const picksData = transformFormationData(wellborePicks, stratigraphicUnits);
 
-    const layer = new CalloutCanvasLayer<Annotation[]>("callout", {
-        order: 100,
-        data: getPicksData(picksData),
-        referenceSystem: controller.referenceSystem,
-        minFontSize: 12,
-        maxFontSize: 16,
-    });
+    const layer =
+        controller.getLayer("callout") ||
+        new CalloutCanvasLayer<Annotation[]>("callout", {
+            order: 100,
+            data: getPicksData(picksData),
+            referenceSystem: controller.referenceSystem,
+            minFontSize: 12,
+            maxFontSize: 16,
+        });
     controller.addLayer(layer);
 }

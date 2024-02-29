@@ -77,3 +77,8 @@ class StratigraphyAccess:
     # pylint: disable=unused-argument
     async def get_stratigraphic_surfaces(self, stratigraphic_column_identifier: str) -> List[StratigraphicSurface]:
         return sort_stratigraphic_names_by_hierarchy(DROGON_STRAT_UNITS)
+
+    async def get_stratigraphic_units_for_wellbore(
+        self, wellbore_uuid: str, stratigraphic_column_identifier: str
+    ) -> None:
+        ...

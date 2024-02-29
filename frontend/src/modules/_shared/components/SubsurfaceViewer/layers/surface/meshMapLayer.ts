@@ -63,13 +63,14 @@ export class MeshMapLayer {
             meshData: this.meshData,
             propertiesData: this.propertyData || undefined,
             frame: this.frame,
-            contours: this.contours || [-1.0, -1.0],
+            contours: this.contours || [-1, -1],
             isContoursDepth: true,
             gridLines: this.gridLines,
             material: this.material,
             smoothShading: this.smoothShading,
             colorMapName: this.colorPaletteId,
             colorMapRange: this.colorMin && this.colorMax ? [this.colorMin, this.colorMax] : undefined,
+            pickable: false,
         });
     }
 }

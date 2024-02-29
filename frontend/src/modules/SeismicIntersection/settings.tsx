@@ -138,7 +138,7 @@ export function Settings({ moduleContext, workbenchSession, workbenchServices }:
             uuid: wellbore.wellbore_uuid,
         })) || [];
     const computedWellboreAddress = fixupSyncedOrSelectedOrFirstWellbore(
-        syncedWellBore || null,
+        null,
         selectedWellboreAddress || null,
         availableWellboreList
     );
@@ -341,7 +341,7 @@ export function Settings({ moduleContext, workbenchSession, workbenchServices }:
 
         const newWellboreAddress: Wellbore = { type: WELLBORE_TYPE, uuid: wellboreUuid, uwi: wellUwi };
         setSelectedWellboreAddress(newWellboreAddress);
-        syncHelper.publishValue(SyncSettingKey.WELLBORE, "global.syncValue.wellBore", newWellboreAddress);
+        // syncHelper.publishValue(SyncSettingKey.WELLBORE, "global.syncValue.wellBore", newWellboreAddress);
     }
 
     function handleExtensionChange(event: React.ChangeEvent<HTMLInputElement>) {

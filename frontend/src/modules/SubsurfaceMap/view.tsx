@@ -7,6 +7,8 @@ import { SyncSettingKey, SyncSettingsHelper } from "@framework/SyncSettings";
 import { Wellbore } from "@framework/Wellbore";
 import { Button } from "@lib/components/Button";
 import { CircularProgress } from "@lib/components/CircularProgress";
+import { IconButton } from "@lib/components/IconButton";
+import { ToggleButton } from "@lib/components/ToggleButton";
 import { ColorScaleGradientType } from "@lib/utils/ColorScale";
 import { usePolygonsDataQueryByAddress } from "@modules/_shared/Polygons";
 import { useFieldWellsTrajectoriesQuery } from "@modules/_shared/WellBore/queryHooks";
@@ -19,7 +21,12 @@ import {
 } from "@modules/_shared/components/SubsurfaceViewer/layers";
 import { useSurfaceDataQueryByAddress } from "@modules_shared/Surface";
 import { createContinuousColorScaleForMap } from "@modules_shared/components/SubsurfaceViewer/utils";
+import { GpsFixed, GpsNotFixed, Home } from "@mui/icons-material";
+import { ViewStateType, ViewsType } from "@webviz/subsurface-viewer";
 import { ViewAnnotation } from "@webviz/subsurface-viewer/dist/components/ViewAnnotation";
+import { PointsLayer } from "@webviz/subsurface-viewer/dist/layers/";
+
+import { isEqual } from "lodash";
 
 import { usePropertySurfaceDataByQueryAddress } from "./queryHooks";
 import { state } from "./state";
@@ -48,6 +55,7 @@ export function View({ moduleContext, workbenchSettings, workbenchServices }: Mo
     const [viewportBounds, setviewPortBounds] = React.useState<[number, number, number, number] | undefined>(undefined);
     const syncedSettingKeys = moduleContext.useSyncedSettingKeys();
     const syncHelper = new SyncSettingsHelper(syncedSettingKeys, workbenchServices);
+
     const surfaceColorScale = workbenchSettings.useContinuousColorScale({
         gradientType: ColorScaleGradientType.Sequential,
     });
@@ -131,10 +139,13 @@ export function View({ moduleContext, workbenchSettings, workbenchServices }: Mo
     }
     const wellsLayer = new WellsLayer({ render2D: !show3D });
 
+    const [usePos, setUsePos] = React.useState(false);
+
     if (wellTrajectoriesQuery.data) {
         const wellTrajectories: WellBoreTrajectory_api[] = wellTrajectoriesQuery.data.filter((well) =>
             selectedWellUuids.includes(well.wellbore_uuid)
         );
+
         wellsLayer.setData(wellTrajectories, null, null);
 
         newLayers.push(wellsLayer.getLayer());
@@ -153,10 +164,10 @@ export function View({ moduleContext, workbenchSettings, workbenchServices }: Mo
                         });
                     }
                 });
-                if (clickedUWIs.length > 0) {
-                    // Publish the first selected well bore
-                    syncHelper.publishValue(SyncSettingKey.WELLBORE, "global.syncValue.wellBore", clickedUWIs[0]);
-                }
+                // if (clickedUWIs.length > 0) {
+                //     // Publish the first selected well bore
+                //     syncHelper.publishValue(SyncSettingKey.WELLBORE, "global.syncValue.wellBore", clickedUWIs[0]);
+                // }
             }
         }
     }
@@ -171,6 +182,22 @@ export function View({ moduleContext, workbenchSettings, workbenchServices }: Mo
         propertySurfDataQuery.isError ||
         polygonsQuery.isError ||
         wellTrajectoriesQuery.isError;
+    const newViews = {
+        layout: [1, 1],
+        showLabel: false,
+        viewports: [
+            {
+                id: "view_1",
+                isSync: true,
+                show3D: show3D,
+                layerIds: newLayers.map((layer) => layer.id) as string[],
+            },
+        ],
+    };
+    const [views, setViews] = React.useState<any>(null);
+    if (!isEqual(views, newViews)) {
+        setViews(newViews);
+    }
     return (
         <div className="relative w-full h-full flex flex-col">
             <div>
@@ -186,10 +213,18 @@ export function View({ moduleContext, workbenchSettings, workbenchServices }: Mo
                 )}
             </div>
 
-            <div className="absolute top-0 right-0 z-10">
-                <Button variant="contained" onClick={() => toggleResetBounds(!resetBounds)}>
-                    Reset viewport bounds
-                </Button>
+            <div className="absolute top-0 right-0 z-10 ">
+                <IconButton size="large" onClick={() => toggleResetBounds(!resetBounds)}>
+                    <Home />
+                </IconButton>
+                <IconButton
+                    className="m-0 hover:bg-white hover:text-blue-600"
+                    size="large"
+                    title="Follow well bore path"
+                    onClick={() => setUsePos(!usePos)}
+                >
+                    {usePos ? <GpsFixed /> : <GpsNotFixed />}
+                </IconButton>
             </div>
             <div className="z-1">
                 {show3D ? (
@@ -200,19 +235,14 @@ export function View({ moduleContext, workbenchSettings, workbenchServices }: Mo
                         bounds={viewportBounds}
                         layers={newLayers}
                         colorTables={colorTables}
-                        views={{
-                            layout: [1, 1],
-                            showLabel: false,
-                            viewports: [
-                                {
-                                    id: "view_1",
-                                    isSync: true,
-                                    show3D: show3D,
-                                    layerIds: newLayers.map((layer) => layer.id) as string[],
-                                },
-                            ],
-                        }}
+                        views={views}
                         onMouseEvent={onMouseEvent}
+                        // getCameraPosition={(e) => console.log(e)}
+                        // cameraPosition={cameraPosition || undefined}
+                        // // Do nothing with rendering process
+                        usePos={usePos}
+                        onRenderingProgress={() => {}}
+                        wellTrajectoriesData={wellTrajectoriesQuery.data || []}
                     >
                         <ViewAnnotation id={viewIds.annotation3D}>
                             <ContinuousLegend

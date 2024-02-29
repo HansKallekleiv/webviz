@@ -9,8 +9,10 @@ import {
 import { Controller, IntersectionReferenceSystem, Trajectory } from "@equinor/esv-intersection";
 import { ModuleFCProps } from "@framework/Module";
 import { useViewStatusWriter } from "@framework/StatusWriter";
+import { SyncSettingKey, SyncSettingsHelper } from "@framework/SyncSettings";
 import { useElementSize } from "@lib/hooks/useElementSize";
 import { ColorScaleGradientType } from "@lib/utils/ColorScale";
+import { HighlightLayer } from "@modules/StructuralUncertaintyIntersection/components/highlightLayer";
 import {
     useWellTrajectoriesQuery,
     useWellborePicksAndStratigraphicUnitsQuery,
@@ -21,12 +23,15 @@ import { isEqual } from "lodash";
 
 import { useSeismicFenceDataQuery, useSurfaceIntersectionQueries } from "./queryHooks";
 import { State, WellborePickSelectionType } from "./state";
+import { SeismicAddress } from "./types";
 import {
+    addHighlightLayer,
     addMDOverlay,
     addSeismicLayer,
     addSurfacesLayer,
     addWellborePathLayer,
     addWellborePicksLayer,
+    setHighlightPosition,
 } from "./utils/esvIntersectionControllerUtils";
 import {
     createEsvSurfaceIntersectionDataArrayFromSurfaceIntersectionDataApiArray,
@@ -43,7 +48,7 @@ import {
     useGenerateSeismicSliceImageData,
 } from "./utils/esvIntersectionHooks";
 
-export const View = ({ moduleContext, workbenchSettings }: ModuleFCProps<State>) => {
+export const View = ({ moduleContext, workbenchSettings, workbenchServices }: ModuleFCProps<State>) => {
     const wrapperDivRef = React.useRef<HTMLDivElement | null>(null);
     const wrapperDivSize = useElementSize(wrapperDivRef);
     const esvIntersectionContainerRef = React.useRef<HTMLDivElement | null>(null);
@@ -58,7 +63,11 @@ export const View = ({ moduleContext, workbenchSettings }: ModuleFCProps<State>)
     const wellborePickSelection = moduleContext.useStoreValue("wellborePickSelection");
     const extension = moduleContext.useStoreValue("extension");
     const zScale = moduleContext.useStoreValue("zScale");
+    const syncedSettingKeys = moduleContext.useSyncedSettingKeys();
 
+    const syncHelper = new SyncSettingsHelper(syncedSettingKeys, workbenchServices);
+    const syncedWellBore = syncHelper.useValue(SyncSettingKey.WELLBORE, "global.syncValue.wellBore");
+    const md = syncedWellBore ? syncedWellBore.md : null;
     const seismicColorScale = workbenchSettings.useDiscreteColorScale({
         gradientType: ColorScaleGradientType.Diverging,
     });
@@ -96,6 +105,8 @@ export const View = ({ moduleContext, workbenchSettings }: ModuleFCProps<State>)
 
             // Initialize/configure controller
             addMDOverlay(esvIntersectionControllerRef.current);
+            const highlightLayer = new HighlightLayer("highlightLayer", { order: 12 });
+            esvIntersectionControllerRef.current.addLayer(highlightLayer);
             esvIntersectionControllerRef.current.setBounds([10, 1000], [0, 3000]);
             esvIntersectionControllerRef.current.setViewport(1000, 1650, 6000);
         }
@@ -249,11 +260,11 @@ export const View = ({ moduleContext, workbenchSettings }: ModuleFCProps<State>)
             setGenerateSeismicSliceImageOptions(newGenerateSeismicSliceImageOptions);
         }
     }
-
+    const [surfaceIntersections, setSurfaceIntersections] = React.useState<SurfaceIntersectionData_api[]>([]);
     // Update esv-intersection controller when data is ready - keep old data to prevent blank view when fetching new data
     if (esvIntersectionControllerRef.current && renderWellboreTrajectoryXyzPoints) {
-        esvIntersectionControllerRef.current.removeAllLayers();
-        esvIntersectionControllerRef.current.clearAllData();
+        // esvIntersectionControllerRef.current.removeAllLayers();
+        // esvIntersectionControllerRef.current.clearAllData();
 
         addWellborePathLayer(esvIntersectionControllerRef.current, renderWellboreTrajectoryXyzPoints);
 
@@ -279,15 +290,20 @@ export const View = ({ moduleContext, workbenchSettings }: ModuleFCProps<State>)
 
             fetchedSurfaceIntersections.push(surfaceIntersectionDataQuery.data);
         }
-        if (fetchedSurfaceIntersections.length !== 0) {
-            const convertedSurfaceIntersectionDataList =
-                createEsvSurfaceIntersectionDataArrayFromSurfaceIntersectionDataApiArray(fetchedSurfaceIntersections);
-            addSurfacesLayer(esvIntersectionControllerRef.current, {
-                surfaceIntersectionDataList: convertedSurfaceIntersectionDataList,
-                layerName: "Surface intersection",
-                surfaceColor: "red",
-                surfaceWidth: 10,
-            });
+        if (!isEqual(fetchedSurfaceIntersections, surfaceIntersections)) {
+            if (fetchedSurfaceIntersections.length !== 0) {
+                const convertedSurfaceIntersectionDataList =
+                    createEsvSurfaceIntersectionDataArrayFromSurfaceIntersectionDataApiArray(
+                        fetchedSurfaceIntersections
+                    );
+                addSurfacesLayer(esvIntersectionControllerRef.current, {
+                    surfaceIntersectionDataList: convertedSurfaceIntersectionDataList,
+                    layerName: "Surface intersection",
+                    surfaceColor: "red",
+                    surfaceWidth: 10,
+                });
+            }
+            setSurfaceIntersections(fetchedSurfaceIntersections);
         }
 
         if (selectedWellborePicksAndStratigraphicUnits) {
@@ -301,7 +317,7 @@ export const View = ({ moduleContext, workbenchSettings }: ModuleFCProps<State>)
         esvIntersectionControllerRef.current.zoomPanHandler.zFactor = Math.max(1.0, zScale); // Prevent scaling to zero
         esvIntersectionControllerRef.current.adjustToSize(
             Math.max(0, wrapperDivSize.width),
-            Math.max(0, wrapperDivSize.height - 100)
+            Math.max(0, wrapperDivSize.height)
         );
     }
 
@@ -313,7 +329,9 @@ export const View = ({ moduleContext, workbenchSettings }: ModuleFCProps<State>)
 
     const hasErrorForEverySurfaceIntersectionQuery =
         surfaceIntersectionDataQueries.length > 0 && surfaceIntersectionDataQueries.every((query) => query.isError);
-
+    if (esvIntersectionControllerRef.current && md) {
+        setHighlightPosition(esvIntersectionControllerRef.current, md);
+    }
     return (
         <div ref={wrapperDivRef} className="relative w-full h-full">
             {seismicFenceDataQuery.isError && wellTrajectoriesQuery.isError ? (

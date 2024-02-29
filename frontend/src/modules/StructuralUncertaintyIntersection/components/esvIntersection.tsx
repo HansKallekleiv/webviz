@@ -12,10 +12,13 @@ import {
     SurfaceData,
     WellborepathLayer,
 } from "@equinor/esv-intersection";
+import { SyncSettingKey, SyncSettingsHelper } from "@framework/SyncSettings";
 import { addMDOverlay } from "@modules/SeismicIntersection/utils/esvIntersectionControllerUtils";
 import { makeReferenceSystemFromTrajectoryXyzPoints } from "@modules/SeismicIntersection/utils/esvIntersectionDataConversion";
 
 import { isEqual } from "lodash";
+
+import { HighlightLayer } from "./highlightLayer";
 
 import { SurfaceRealizationSampleValuesData } from "../queryHooks";
 import { StratigraphyColorMap, VisualizationMode } from "../types";
@@ -31,6 +34,8 @@ type EsvIntersectionProps = {
     visualizationMode: VisualizationMode;
     statisticFunctions: StatisticFunction_api[];
     stratigraphyColorMap: StratigraphyColorMap;
+    moduleContext: any;
+    workbenchServices: any;
 };
 
 export const EsvIntersection: React.FC<EsvIntersectionProps> = (props) => {
@@ -46,7 +51,11 @@ export const EsvIntersection: React.FC<EsvIntersectionProps> = (props) => {
         { text: "Seabed", lineType: "solid", color: "slategray", depth: 91.1, lineWidth: 2 },
     ];
     const seaAndRKBLayer = new ReferenceLineLayer("sea-and-rkb-layer", { data: seaAndRKBLayerData });
+    const syncedSettingKeys = props.moduleContext.useSyncedSettingKeys();
 
+    const syncHelper = new SyncSettingsHelper(syncedSettingKeys, props.workbenchServices);
+    const syncedWellBore = syncHelper.useValue(SyncSettingKey.WELLBORE, "global.syncValue.wellBore");
+    const md = syncedWellBore ? syncedWellBore.md : null;
     React.useEffect(function initializeEsvIntersectionController() {
         if (containerDiv.current) {
             const axisOptions = { xLabel: "x", yLabel: "y", unitOfMeasure: "m" };
@@ -61,13 +70,16 @@ export const EsvIntersection: React.FC<EsvIntersectionProps> = (props) => {
             // Initialize/configure controller
             addMDOverlay(controller.current);
             controller.current.addLayer(new GridLayer("gridLayer"));
-            controller.current.addLayer(new WellborepathLayer("wellBorePathLayer"));
+            controller.current.addLayer(
+                new WellborepathLayer("wellBorePathLayer", { strokeWidth: "4px", stroke: "black" })
+            );
             controller.current.addLayer(
                 new GeomodelCanvasLayer("statisticalSurfaceLayer", { order: 3, layerOpacity: 0.6 })
             );
             controller.current.addLayer(
                 new GeomodelLayerV2(pixiContent.current, "realizationsSurfaceLayer", { order: 4, layerOpacity: 0.6 })
             );
+            controller.current.addLayer(new HighlightLayer("highlightLayer", { order: 12 }));
             controller.current.addLayer(seaAndRKBLayer);
             controller.current.setBounds([10, 1000], [0, 3000]);
             controller.current.setViewport(1000, 1650, 6000);
@@ -85,7 +97,10 @@ export const EsvIntersection: React.FC<EsvIntersectionProps> = (props) => {
         controller.current.adjustToSize(Math.max(0, width), Math.max(0, height));
         const referenceSystem = makeReferenceSystemFromTrajectoryXyzPoints(props.wellborePath);
         controller.current.setReferenceSystem(referenceSystem);
-
+        const layer = controller.current.getLayer("highlightLayer") as HighlightLayer<any> | undefined;
+        if (layer) {
+            layer.onRescaleMD(controller.current.currentStateAsEvent, md || 0);
+        }
         controller.current?.getLayer("statisticalSurfaceLayer")?.clearData();
         controller.current?.getLayer("realizationsSurfaceLayer")?.clearData();
         if (props.surfaceRealizationSampleValuesData) {

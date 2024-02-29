@@ -48,3 +48,7 @@ export function useWellborePicksAndStratigraphicUnitsQuery(
         enabled: !!(allowEnable && caseUuid && wellboreUuid),
     });
 }
+
+// export function useWellBoreStratigraphyQuery(
+//     wellboreUuid: string | undefined):
+// )

@@ -75,7 +75,7 @@ export function Settings({
         : null;
     const [selectedReals, setSelectedReals] = React.useState<number[] | null>(null);
     if (!selectedReals && availableReals) {
-        setSelectedReals(availableReals.map((real) => real));
+        setSelectedReals([availableReals[0]]);
     }
     // Queries
     const wellHeadersQuery = useWellHeadersQuery(computedEnsembleIdent?.getCaseUuid());
@@ -99,7 +99,7 @@ export function Settings({
             uuid: wellbore.wellbore_uuid,
         })) || [];
     const computedWellboreAddress = fixupSyncedOrSelectedOrFirstWellbore(
-        syncedWellBore || null,
+        syncedWellBore?.wellbore || null,
         selectedWellboreAddress || null,
         availableWellboreList
     );
@@ -205,7 +205,7 @@ export function Settings({
 
         const newWellboreAddress: Wellbore = { type: wellboreType, uuid: wellboreUuid, uwi: wellUwi };
         setSelectedWellboreAddress(newWellboreAddress);
-        syncHelper.publishValue(SyncSettingKey.WELLBORE, "global.syncValue.wellBore", newWellboreAddress);
+        syncHelper.publishValue(SyncSettingKey.WELLBORE, "global.syncValue.wellBore", { wellbore: newWellboreAddress });
     }
     function makeStatisticCheckboxes() {
         return Object.values(StatisticFunction_api).map((value: StatisticFunction_api) => {

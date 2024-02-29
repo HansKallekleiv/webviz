@@ -6,6 +6,6 @@ import { State } from "./state";
 ModuleRegistry.registerModule<State>({
     moduleName: "StructuralUncertaintyIntersection",
     defaultTitle: "Structural Uncertainty Intersection",
-    syncableSettingKeys: [SyncSettingKey.ENSEMBLE],
+    syncableSettingKeys: [SyncSettingKey.ENSEMBLE, SyncSettingKey.WELLBORE],
     description: "Visualization of structural uncertainty in an intersection",
 });

@@ -22,23 +22,25 @@ LOGGER = logging.getLogger(__name__)
 
 
 class BlockedWellLog(BaseModel):
-    well_name:str
+    well_name: str
     well_log_name: str
     values: List[Union[str, int, float]]
+
+
 class WellAccess(SumoEnsemble):
     async def get_blocked_well_log_names(self) -> List[str]:
         """Retrieve the available volumetric tables names and corresponding metadata for the case"""
         table_collection: TableCollection = self._case.tables.filter(
-             tagname="bw_pem_qc", iteration=self._iteration_name
+            tagname="bw_pem_qc", iteration=self._iteration_name
         )
 
         well_names = await table_collection.names_async
         return well_names
-    
+
     async def get_blocked_well_logs(self, well_name: str) -> List[BlockedWellLog]:
         """Retrieve the available volumetric tables names and corresponding metadata for the case"""
         table_collection: TableCollection = self._case.tables.filter(
-             tagname="bw_pem_qc", iteration=self._iteration_name, name=well_name
+            tagname="bw_pem_qc", iteration=self._iteration_name, name=well_name
         )
         count = await table_collection.length_async()
 

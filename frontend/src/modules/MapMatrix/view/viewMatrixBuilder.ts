@@ -132,6 +132,7 @@ export class ViewMatrixBuilder {
 
             this.addLayerIdToViewPort(index, "well-layer");
             this.addLayerIdToViewPort(index, "axes-layer");
+            this.addLayerIdToViewPort(index, "small_points_layer");
         });
         this.addWellLayer("well-layer");
         this.addAxesLayer("axes-layer");

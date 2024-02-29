@@ -10,6 +10,7 @@ import {
 } from "@modules/SeismicIntersection/utils/esvIntersectionDataConversion";
 import { useWellTrajectoriesQuery } from "@modules/_shared/WellBore/queryHooks";
 import { ContentError } from "@modules/_shared/components/ContentMessage";
+import { PropaneSharp } from "@mui/icons-material";
 
 import { isEqual } from "lodash";
 
@@ -18,7 +19,7 @@ import { EsvIntersection } from "./components/esvIntersection";
 import { useSampleSurfaceInPointsQueries } from "./queryHooks";
 import { State } from "./state";
 
-export const View = ({ moduleContext }: ModuleFCProps<State>) => {
+export const View = ({ moduleContext, workbenchServices }: ModuleFCProps<State>) => {
     const wrapperDivRef = React.useRef<HTMLDivElement | null>(null);
     const wrapperDivSize = useElementSize(wrapperDivRef);
 
@@ -38,7 +39,7 @@ export const View = ({ moduleContext }: ModuleFCProps<State>) => {
         null
     );
     const width = wrapperDivSize.width;
-    const height = wrapperDivSize.height - 100;
+    const height = wrapperDivSize.height;
 
     // Get well trajectories query
     const getWellTrajectoriesQuery = useWellTrajectoriesQuery(wellboreAddress ? [wellboreAddress.uuid] : undefined);
@@ -124,6 +125,8 @@ export const View = ({ moduleContext }: ModuleFCProps<State>) => {
                         statisticFunctions={statisticFunctions}
                         cumLength={cum_length}
                         stratigraphyColorMap={stratigraphyColorMap}
+                        moduleContext={moduleContext}
+                        workbenchServices={workbenchServices}
                     />
                     <div className="absolute bottom-0 left-0 right-0">
                         <Legend items={stratigraphyColorLegendItems} />

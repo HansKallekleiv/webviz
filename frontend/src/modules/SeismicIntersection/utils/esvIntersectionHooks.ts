@@ -44,8 +44,11 @@ export function useGenerateSeismicSliceImageData(imageOptions: SeismicSliceImage
             { datapoints: imageOptions.dataValues, yAxisValues: imageOptions.yAxisValues },
             imageOptions.trajectoryXyPoints,
             imageOptions.colormap,
+
             {
                 isLeftToRight: true,
+                seismicMin: -0.01,
+                seismicMax: 0.01,
             }
         )
             .then((result) => {
