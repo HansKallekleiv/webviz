@@ -12,8 +12,10 @@ export type SyncedSubsurfaceViewerProps = {
 export function SyncedSubsurfaceViewer(props: SyncedSubsurfaceViewerProps): JSX.Element {
     const { moduleContext, workbenchServices, ...rest } = props;
     const syncedSettingKeys = moduleContext.useSyncedSettingKeys();
-    const syncHelper = new SyncSettingsHelper(syncedSettingKeys, workbenchServices);
 
+    const syncHelper = new SyncSettingsHelper(syncedSettingKeys, workbenchServices);
+    const syncedWellBore = syncHelper.useValue(SyncSettingKey.WELLBORE, "global.syncValue.wellBore");
+    console.log(syncedWellBore ? syncedWellBore.tvd : null);
     function onCameraChange(viewport: ViewStateType) {
         syncHelper.publishValue(SyncSettingKey.CAMERA_POSITION_MAP, "global.syncValue.cameraPositionMap", {
             target: viewport.target,

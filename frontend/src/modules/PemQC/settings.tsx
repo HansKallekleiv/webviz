@@ -22,6 +22,7 @@ export const settings = (props: ModuleFCProps<State>) => {
 
     const computedEnsembleIdent = fixupEnsembleIdent(selectedEnsembleIdent, ensembleSet);
     if (computedEnsembleIdent && !computedEnsembleIdent.equals(selectedEnsembleIdent)) {
+        console.log("fixing ensemble ident", selectedEnsembleIdent, computedEnsembleIdent);
         setSelectedEnsembleIdent(computedEnsembleIdent);
     }
     function handleEnsembleSelectionChange(newEnsembleIdent: EnsembleIdent | null) {

@@ -25,7 +25,7 @@ export type GlobalTopicDefinitions = {
         rotationX: number;
         rotationOrbit: number;
     };
-    "global.syncValue.wellBore": Wellbore;
+    "global.syncValue.wellBore": { wellbore: Wellbore; tvd: number | null };
 };
 
 export type AllTopicDefinitions = NavigatorTopicDefinitions & GlobalTopicDefinitions;
