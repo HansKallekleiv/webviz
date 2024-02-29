@@ -125,6 +125,7 @@ export function createWellboreTrajectoryLayer(wellTrajectories: WellBoreTrajecto
         refine: false,
         lineStyle: { width: 2 },
         wellHeadStyle: { size: 1 },
+        ZIncreasingDownwards: false,
         pickable: true,
     };
 }

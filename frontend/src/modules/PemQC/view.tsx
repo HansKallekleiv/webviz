@@ -67,6 +67,12 @@ export const View = (props: ModuleFCProps<State>) => {
                     viewTitle={true}
                     axisTitles={{}}
                     onCreateController={onCreateController}
+                    onTrackMouseEvent={(e: any) => console.log(e)}
+                    onContentSelection={(e) => console.log(e)}
+                    onInfo={(x: number, logController: any, iFrom: number, iTo: number) =>
+                        console.log(x, logController, iFrom, iTo)
+                    }
+                    onContentRescale={() => console.log("rescale")}
                 />
             </div>
         </div>
