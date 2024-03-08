@@ -1,20 +1,22 @@
 import React from "react";
 import Plot from "react-plotly.js";
 
-import { Body_get_realizations_response_api } from "@api";
+import { InplaceVolumetricData_api, InplaceVolumetricResponseNames_api } from "@api";
 import { DataElement, KeyType } from "@framework/DataChannelTypes";
 import { ModuleFCProps } from "@framework/Module";
 import { useSubscribedValue } from "@framework/WorkbenchServices";
+import { useEnsembleSet } from "@framework/WorkbenchSession";
 import { CircularProgress } from "@lib/components/CircularProgress";
 import { QueryStateWrapper } from "@lib/components/QueryStateWrapper";
 import { useElementSize } from "@lib/hooks/useElementSize";
+import { computeQuantile } from "@modules/_shared/statistics";
 
-import { Layout, PlotData, PlotHoverEvent } from "plotly.js";
+import { Layout, PlotData, PlotHoverEvent, Shape } from "plotly.js";
 
 import { ChannelIds } from "./channelDefs";
 import { useRealizationsResponseQuery } from "./queryHooks";
-import { VolumetricResponseAbbreviations } from "./settings";
 import { State } from "./state";
+import { VolumetricResponseNamesMapping } from "./types";
 
 export const View = (props: ModuleFCProps<State>) => {
     const wrapperDivRef = React.useRef<HTMLDivElement>(null);
@@ -23,42 +25,28 @@ export const View = (props: ModuleFCProps<State>) => {
     const tableName = props.moduleContext.useStoreValue("tableName");
     const responseName = props.moduleContext.useStoreValue("responseName");
     const categoryFilter = props.moduleContext.useStoreValue("categoricalFilter");
-    const responseBody: Body_get_realizations_response_api = { categorical_filter: categoryFilter || undefined };
+    const ensembleSet = useEnsembleSet(props.workbenchSession);
+    const subscribedPlotlyRealization = useSubscribedValue("global.hoverRealization", props.workbenchServices);
+    const realizations = ensembleIdent ? ensembleSet.findEnsemble(ensembleIdent)?.getRealizations() : null;
+
     const realizationsResponseQuery = useRealizationsResponseQuery(
         ensembleIdent?.getCaseUuid() ?? "",
         ensembleIdent?.getEnsembleName() ?? "",
         tableName,
-        responseName,
-        responseBody,
+        responseName as InplaceVolumetricResponseNames_api,
+        realizations?.map((realization) => realization) ?? null,
+        categoryFilter,
         true
     );
-    const subscribedPlotlyRealization = useSubscribedValue("global.hoverRealization", props.workbenchServices);
+    const resultValues: number[] =
+        realizationsResponseQuery.data?.result_per_realization.map((realData) => realData[1]) || [];
     const tracesDataArr: Partial<PlotData>[] = [];
-    if (realizationsResponseQuery.data && realizationsResponseQuery.data.realizations.length > 0) {
-        const x: number[] = [];
-        const y: number[] = [];
-        const color: string[] = [];
-        for (let i = 0; i < realizationsResponseQuery.data.realizations.length; i++) {
-            const realization = realizationsResponseQuery.data.realizations[i];
-            const curveColor = realization === subscribedPlotlyRealization?.realization ? "red" : "green";
-            x.push(realization);
-            y.push(realizationsResponseQuery.data.values[i]);
-            color.push(curveColor);
-        }
-        const trace: Partial<PlotData> = {
-            x: x,
-            y: y,
-            type: "bar",
-            marker: {
-                color: color,
-            },
-        };
-        tracesDataArr.push(trace);
-    }
+
+    tracesDataArr.push(addHistogramTrace(resultValues));
 
     React.useEffect(() => {
         props.moduleContext.setInstanceTitle(
-            VolumetricResponseAbbreviations[responseName as keyof typeof VolumetricResponseAbbreviations] || ""
+            VolumetricResponseNamesMapping[responseName as keyof typeof VolumetricResponseNamesMapping] || ""
         );
     }, [props.moduleContext, responseName]);
 
@@ -80,29 +68,29 @@ export const View = (props: ModuleFCProps<State>) => {
     function dataGenerator() {
         const data: DataElement<KeyType.NUMBER>[] = [];
         if (realizationsResponseQuery.data) {
-            realizationsResponseQuery.data.realizations.forEach((realization, index) => {
+            realizationsResponseQuery.data.result_per_realization.forEach((realizationData) => {
                 data.push({
-                    key: realization,
-                    value: realizationsResponseQuery.data.values[index],
+                    key: realizationData[0],
+                    value: realizationData[1],
                 });
             });
         }
         return { data: data, metaData: { ensembleIdentString: ensembleIdent?.toString() ?? "" } };
     }
 
-    if (ensemble && tableName && responseName) {
-        props.moduleContext.usePublishChannelContents({
-            channelIdString: ChannelIds.RESPONSE,
-            dependencies: [realizationsResponseQuery.data, ensemble, tableName, responseName],
-            contents: [{ contentIdString: responseName, displayName: responseName, dataGenerator }],
-        });
-    }
-
+    props.moduleContext.usePublishChannelContents({
+        channelIdString: ChannelIds.RESPONSE,
+        enabled: ensemble && tableName && responseName ? true : false,
+        dependencies: [realizationsResponseQuery.data, ensemble, tableName, responseName],
+        contents: [{ contentIdString: responseName ?? "", displayName: responseName ?? "", dataGenerator }],
+    });
+    const shapes: Partial<Shape>[] = resultValues.length > 0 ? addStatisticallines(resultValues) : [];
     const layout: Partial<Layout> = {
         width: wrapperDivSize.width,
         height: wrapperDivSize.height,
         margin: { t: 0, r: 0, l: 40, b: 40 },
-        xaxis: { title: "Realization" },
+        xaxis: { title: "Realization", range: [Math.min(...resultValues), Math.max(...resultValues)] },
+        shapes: shapes,
     };
     return (
         <div className="w-full h-full" ref={wrapperDivRef}>
@@ -122,3 +110,56 @@ export const View = (props: ModuleFCProps<State>) => {
         </div>
     );
 };
+interface HistogramPlotData extends Partial<PlotData> {
+    nbinsx: number;
+}
+
+function addHistogramTrace(values: number[]): Partial<HistogramPlotData> {
+    return {
+        x: values,
+        type: "histogram",
+        histnorm: "percent",
+        opacity: 0.7,
+        nbinsx: 15,
+        marker: {
+            color: "green",
+            line: { width: 1, color: "black" },
+        },
+    };
+}
+function addStatisticallines(values: number[]): Partial<Shape>[] {
+    const meanVal = values.reduce((a, b) => a + b, 0) / values.length;
+    const p10Val = computeQuantile(values, 0.1);
+    const p90Val = computeQuantile(values, 0.9);
+
+    return [
+        addVerticalLine(p10Val, "red", "P90"),
+        addVerticalLine(meanVal, "red", "Mean"),
+        addVerticalLine(p90Val, "red", "P10"),
+    ];
+}
+
+function addVerticalLine(x: number, color: string, text: string): Partial<Shape> {
+    return {
+        label: {
+            textposition: "end",
+            textangle: 35,
+            font: { size: 14, color: "red" },
+            yanchor: "bottom",
+            xanchor: "right",
+            text: text,
+        },
+        type: "line",
+        x0: x,
+        x1: x,
+        y0: 0,
+        y1: 0.95,
+        xref: "x",
+        yref: "paper",
+        line: {
+            color: color,
+            width: 3,
+            dash: "dash",
+        },
+    };
+}

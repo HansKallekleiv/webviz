@@ -1,8 +1,10 @@
 import {
-    Body_get_realizations_response_api,
+    Body_get_result_data_per_realization_api,
     EnsembleInfo_api,
-    EnsembleScalarResponse_api,
-    InplaceVolumetricsTableMetaData_api,
+    InplaceVolumetricData_api,
+    InplaceVolumetricResponseNames_api,
+    InplaceVolumetricTableDefinition_api,
+    InplaceVolumetricsCategoryValues_api,
 } from "@api";
 import { apiService } from "@framework/ApiService";
 import { EnsembleIdent } from "@framework/EnsembleIdent";
@@ -24,11 +26,11 @@ export function useEnsemblesQuery(caseUuid: string | null): UseQueryResult<Array
 export function useTableDescriptionsQuery(
     ensemble: EnsembleIdent | null,
     allowEnable: boolean
-): UseQueryResult<Array<InplaceVolumetricsTableMetaData_api>> {
+): UseQueryResult<Array<InplaceVolumetricTableDefinition_api>> {
     return useQuery({
         queryKey: ["getTableNamesAndDescriptions", ensemble],
         queryFn: () =>
-            apiService.inplaceVolumetrics.getTableNamesAndDescriptions(
+            apiService.inplaceVolumetrics.getTableDefinitions(
                 ensemble?.getCaseUuid() ?? "",
                 ensemble?.getEnsembleName() ?? ""
             ),
@@ -42,22 +44,46 @@ export function useRealizationsResponseQuery(
     caseUuid: string | null,
     ensembleName: string | null,
     tableName: string | null,
-    responseName: string | null,
-    requestBody: Body_get_realizations_response_api | null,
+    responseName: InplaceVolumetricResponseNames_api | null,
+    realizations: Array<number> | null,
+    categoriesFilter: InplaceVolumetricsCategoryValues_api[] | null,
     allowEnable: boolean
-): UseQueryResult<EnsembleScalarResponse_api> {
+): UseQueryResult<InplaceVolumetricData_api> {
+    const responseBody: Body_get_result_data_per_realization_api = {
+        categorical_filter: categoriesFilter || [],
+    };
+
+    const isQueryEnabled = [
+        caseUuid,
+        ensembleName,
+        tableName,
+        responseName,
+        realizations,
+        categoriesFilter,
+        allowEnable,
+    ].every(Boolean);
+
     return useQuery({
-        queryKey: ["getRealizationResponse", caseUuid, ensembleName, tableName, responseName, requestBody],
+        queryKey: [
+            "getVolumetricDataResultDataPerRealization",
+            caseUuid,
+            ensembleName,
+            tableName,
+            responseName,
+            realizations,
+            JSON.stringify(categoriesFilter),
+        ],
         queryFn: () =>
-            apiService.inplaceVolumetrics.getRealizationsResponse(
+            apiService.inplaceVolumetrics.getResultDataPerRealization(
                 caseUuid ?? "",
                 ensembleName ?? "",
                 tableName ?? "",
-                responseName ?? "",
-                requestBody ?? {}
+                responseName ?? InplaceVolumetricResponseNames_api.STOIIP_OIL,
+                realizations ?? [],
+                responseBody
             ),
         staleTime: STALE_TIME,
         gcTime: CACHE_TIME,
-        enabled: allowEnable && caseUuid && ensembleName && tableName && responseName ? true : false,
+        enabled: isQueryEnabled,
     });
 }

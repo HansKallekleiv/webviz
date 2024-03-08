@@ -1,6 +1,6 @@
 import React from "react";
 
-import { InplaceVolumetricsCategoricalMetaData_api, InplaceVolumetricsTableMetaData_api } from "@api";
+import { InplaceVolumetricTableDefinition_api, InplaceVolumetricsCategoryValues_api } from "@api";
 import { EnsembleIdent } from "@framework/EnsembleIdent";
 import { ModuleFCProps } from "@framework/Module";
 import { useEnsembleSet } from "@framework/WorkbenchSession";
@@ -13,86 +13,49 @@ import { QueryStateWrapper } from "@lib/components/QueryStateWrapper";
 import { Select } from "@lib/components/Select";
 import { UseQueryResult } from "@tanstack/react-query";
 
+import { table } from "console";
+import { isEqual } from "lodash";
+
 import { useTableDescriptionsQuery } from "./queryHooks";
 import { State } from "./state";
+import { VolumetricResponseNamesMapping } from "./types";
 
 //-----------------------------------------------------------------------------------------------------------
 
-export enum VolumetricResponseAbbreviations {
-    //a bit future proff
-    STOIIP_OIL = "Stock tank oil initially in place (oil zone)",
-    GIIP_GAS = "Gas initially in place (gas zone)",
-    BULK_OIL = "Bulk volume (oil zone)",
-    BULK_GAS = "Bulk volume (gas zone)",
-    BULK_TOTAL = "Bulk volume (total)",
-    NET_OIL = "Net volume (oil zone)",
-    NET_GAS = "Net volume (gas zone)",
-    NET_TOTAL = "Net volume (total)",
-    // PORV_OIL = "Pore volume (oil zone)",
-    // PORV_GAS = "Pore volume (gas zone)",
-    // PORV_TOTAL = "Pore volume (total)",
-    PORE_OIL = "Pore volume (oil zone)",
-    PORE_GAS = "Pore volume (gas zone)",
-    PORE_TOTAL = "Pore volume (total)",
-    HCPV_OIL = "Hydro carbon pore volume (oil zone)",
-    HCPV_GAS = "Hydro carbon pore volume (gas zone)",
-    HCPV_TOTAL = "Hydro carbon pore volume (total zone)",
-    STOIIP_GAS = "Stock tank oil initially in place (gas zone)",
-    STOIIP_TOTAL = "Stock tank oil initially in place (total)",
-    GIIP_OIL = "Gas initially in place (oil zone)",
-    GIIP_TOTAL = "Gas initially in place (total)",
-    RECOVERABLE_OIL = "Recoverable volume (oil zone)",
-    RECOVERABLE_GAS = "Recoverable volume (gas zone)",
-    RECOVERABLE_TOTAL = "Recoverable volume (total)",
-    BULK = "Bulk volume",
-    NET = "Net volume",
-    PORV = "Pore volume",
-    HCPV = "Hydro carbon pore volume",
-    STOIIP = "Stock tank oil initially in place",
-    GIIP = "Gas initially in place",
-    RECOVERABLE = "Recoverable volume",
-    ASSOCIATEDGAS = "Associated gas",
-    ASSOCIATEDOIL = "Associated oil",
-    PORO = "Porosity",
-    SW = "Water saturation",
-    NTG = "Net to gross",
-    BO = "Oil formation volume factor",
-    BG = "Gas formation volume factor",
-}
 function sortedResponses(responses: string[]): string[] {
-    return Object.keys(VolumetricResponseAbbreviations).filter((response) => responses.includes(response));
+    return Object.keys(VolumetricResponseNamesMapping).filter((response) => responses.includes(response));
 }
 function responsesToSelectOptions(responses: string[]): { value: string; label: string }[] {
     return (
         responses.map((response: string) => ({
             value: response,
-            label: VolumetricResponseAbbreviations[response as keyof typeof VolumetricResponseAbbreviations],
+            label: VolumetricResponseNamesMapping[response as keyof typeof VolumetricResponseNamesMapping],
         })) ?? []
     );
 }
 function getTableNameOptions(
-    tableDescriptionsQuery: UseQueryResult<InplaceVolumetricsTableMetaData_api[]>
+    tableDescriptionsQuery: UseQueryResult<InplaceVolumetricTableDefinition_api[]>
 ): { value: string; label: string }[] {
     return (
-        tableDescriptionsQuery.data?.map((table: InplaceVolumetricsTableMetaData_api) => ({
+        tableDescriptionsQuery.data?.map((table: InplaceVolumetricTableDefinition_api) => ({
             value: table.name,
             label: table.name,
         })) ?? []
     );
 }
 function getTableCategoricalOptions(
-    tableDescriptionsQuery: UseQueryResult<InplaceVolumetricsTableMetaData_api[]>,
+    tableDescriptionsQuery: UseQueryResult<InplaceVolumetricTableDefinition_api[]>,
     tableName: string | null
-): InplaceVolumetricsCategoricalMetaData_api[] {
+): InplaceVolumetricsCategoryValues_api[] {
     const tableDescription = tableDescriptionsQuery.data?.find((table) => table.name === tableName);
-    return tableDescription?.categorical_column_metadata ?? [];
+    return tableDescription?.categories ?? [];
 }
 function getTableResponseOptions(
-    tableDescriptionsQuery: UseQueryResult<InplaceVolumetricsTableMetaData_api[]>,
+    tableDescriptionsQuery: UseQueryResult<InplaceVolumetricTableDefinition_api[]>,
     tableName: string | null
 ): { value: string; label: string }[] {
     const tableDescription = tableDescriptionsQuery.data?.find((table) => table.name === tableName);
-    const responses = sortedResponses(tableDescription?.numerical_column_names ?? []);
+    const responses = sortedResponses(tableDescription?.result_names ?? []);
     return responsesToSelectOptions(responses);
 }
 
@@ -119,7 +82,7 @@ export function Settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
         function selectDefaultTable() {
             if (tableDescriptionsQuery.data) {
                 setTableName(tableDescriptionsQuery.data[0].name);
-                const responses = tableDescriptionsQuery.data[0].numerical_column_names;
+                const responses = tableDescriptionsQuery.data[0].result_names;
                 setResponseName(sortedResponses(responses)[0]);
             } else {
                 setTableName(null);
@@ -143,15 +106,17 @@ export function Settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
         function handleSelectionChange(categoryName: string, categoryValues: string[]) {
             let currentCategoryFilter = categoricalFilter;
             if (currentCategoryFilter) {
-                const categoryIndex = currentCategoryFilter.findIndex((category) => category.name === categoryName);
+                const categoryIndex = currentCategoryFilter.findIndex(
+                    (category) => category.category_name === categoryName
+                );
                 if (categoryIndex > -1) {
                     currentCategoryFilter[categoryIndex].unique_values = categoryValues;
                 } else {
-                    currentCategoryFilter.push({ name: categoryName, unique_values: categoryValues });
+                    currentCategoryFilter.push({ category_name: categoryName, unique_values: categoryValues });
                 }
             } else {
                 currentCategoryFilter = [];
-                currentCategoryFilter.push({ name: categoryName, unique_values: categoryValues });
+                currentCategoryFilter.push({ category_name: categoryName, unique_values: categoryValues });
             }
 
             setCategoricalFilter(currentCategoryFilter);
@@ -161,6 +126,18 @@ export function Settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
 
     const tableNameOptions = getTableNameOptions(tableDescriptionsQuery);
     const tableCategoricalOptions = getTableCategoricalOptions(tableDescriptionsQuery, tableName);
+    if (!categoricalFilter && tableCategoricalOptions) {
+        setCategoricalFilter(tableCategoricalOptions);
+    } else if (categoricalFilter && tableCategoricalOptions) {
+        let newCategories = categoricalFilter;
+
+        // Check if there are new categories
+        if (newCategories.length !== tableCategoricalOptions.length) {
+            setCategoricalFilter(tableCategoricalOptions);
+        }
+
+        // Check if there are changes in category values
+    }
     const responseOptions = getTableResponseOptions(tableDescriptionsQuery, tableName);
 
     return (
@@ -195,16 +172,16 @@ export function Settings({ moduleContext, workbenchSession }: ModuleFCProps<Stat
                 <h6>Filters</h6>
                 {tableCategoricalOptions?.map((category) => {
                     return (
-                        <Label key={category.name} text={category.name}>
+                        <Label key={category.category_name} text={category.category_name}>
                             <Select
-                                key={category.name}
+                                key={category.category_name}
                                 options={category.unique_values.map((value) => ({
                                     value: value as string,
                                     label: value as string,
                                 }))}
                                 value={category.unique_values as string[]}
                                 onChange={(unique_values) =>
-                                    handleSelectionChange(category.name, unique_values as string[])
+                                    handleSelectionChange(category.category_name, unique_values as string[])
                                 }
                                 size={5}
                                 multiple={true}
