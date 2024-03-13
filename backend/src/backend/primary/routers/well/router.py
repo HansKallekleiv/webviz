@@ -10,7 +10,7 @@ from src.services.utils.authenticated_user import AuthenticatedUser
 from src.backend.auth.auth_helper import AuthHelper
 from src.services.sumo_access._helpers import SumoCase
 from src.services.smda_access.types import WellBoreHeader, WellBoreTrajectory
-
+from src.services.ssdl_access.ssdl_access import SsdlAccess
 from . import schemas
 from . import converters
 
@@ -37,8 +37,13 @@ async def get_well_headers(
         well_access = mocked_drogon_smda_access.WellAccess(authenticated_user.get_smda_access_token())
     else:
         well_access = WellAccess(authenticated_user.get_smda_access_token())
-
-    return await well_access.get_well_headers(field_identifier=field_identifier)
+    print(authenticated_user.get_ssdl_access_token())
+    ssdl_access = SsdlAccess(authenticated_user.get_ssdl_access_token())
+    well_headers = await well_access.get_well_headers(field_identifier=field_identifier)
+    completions = await ssdl_access.get_completions_for_wellbore("c1042da6-8edc-59f0-e053-c818a488e3a4")
+    # print(well_headers)
+    print(completions)
+    return well_headers
 
 
 @router.get("/field_well_trajectories/")

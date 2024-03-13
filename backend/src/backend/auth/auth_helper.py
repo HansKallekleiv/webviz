@@ -177,6 +177,16 @@ class AuthHelper:
             # print("-------------------------------------------------")
             smda_token = token_dict.get("access_token") if token_dict else None
 
+        ssdl_token = None
+        if config.RESOURCE_SCOPES_DICT.get("ssdl"):
+            token_dict = cca.acquire_token_silent(scopes=config.RESOURCE_SCOPES_DICT["ssdl"], account=accounts[0])
+            # print("---------------------SMDA------------------------")
+            # print(token_dict)
+            # print("------")
+            # print(_decode_jwt(token_dict["access_token"]))
+            # print("-------------------------------------------------")
+            ssdl_token = token_dict.get("access_token") if token_dict else None
+
         token_dict = cca.acquire_token_silent(scopes=config.GRAPH_SCOPES, account=accounts[0])
         graph_token = token_dict.get("access_token") if token_dict else None
 
@@ -198,6 +208,7 @@ class AuthHelper:
                 "graph_access_token": graph_token,
                 "sumo_access_token": sumo_token,
                 "smda_access_token": smda_token,
+                "ssdl_access_token": ssdl_token,
             },
         )
 
