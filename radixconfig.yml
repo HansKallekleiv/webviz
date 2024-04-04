@@ -180,6 +180,17 @@ spec:
           port: 8002
       variables:
         UVICORN_PORT: 8002
+      payload:
+        path: /compute/args
+
+    - name: user-grid3d-vtk
+      dockerFileName: ./backend_py/user_grid3d_vtk/Dockerfile
+      schedulerPort: 8003
+      ports:
+        - name: http
+          port: 8003
+      variables:
+        UVICORN_PORT: 8003
 
   dnsAppAlias:
     environment: prod

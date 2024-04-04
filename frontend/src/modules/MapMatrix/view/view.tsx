@@ -4,7 +4,7 @@ import { WellBoreTrajectory_api } from "@api";
 import { View } from "@deck.gl/core/typed";
 import { ContinuousLegend } from "@emerson-eps/color-tables";
 import { colorTablesObj } from "@emerson-eps/color-tables";
-import { ModuleFCProps } from "@framework/Module";
+import { ModuleViewProps } from "@framework/Module";
 import { useViewStatusWriter } from "@framework/StatusWriter";
 import { IconButton } from "@lib/components/IconButton";
 import { SurfaceAddress } from "@modules/_shared/Surface";
@@ -29,12 +29,12 @@ import {
 import { State } from "../state";
 import { EnsembleStageType, ViewSpecification } from "../types";
 
-export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>) {
+export function view({ viewContext, workbenchServices }: ModuleViewProps<State>) {
     const [viewportBounds, setviewPortBounds] = React.useState<[number, number, number, number] | undefined>(undefined);
 
-    const viewSpecifications = moduleContext.useStoreValue("viewSpecifications");
+    const viewSpecifications = viewContext.useStoreValue("viewSpecifications");
 
-    const wellsSpecification = moduleContext.useStoreValue("wellsSpecification");
+    const wellsSpecification = viewContext.useStoreValue("wellsSpecification");
     const wellBoreAddresses = wellsSpecification.smdaWellBoreAddresses;
     const surfaceAddresses = createSurfaceAddressesFromViewSpecifications(viewSpecifications);
     const firstCaseUuid = viewSpecifications?.[0]?.ensembleIdent?.getCaseUuid() ?? undefined;
@@ -42,7 +42,7 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
     const wellTrajectoriesQuery = useFieldWellsTrajectoriesQuery(firstCaseUuid);
     const surfaceDataSetQueryByAddresses = useSurfaceDataSetQueryByAddresses(surfaceAddresses);
 
-    const statusWriter = useViewStatusWriter(moduleContext);
+    const statusWriter = useViewStatusWriter(viewContext);
     statusWriter.setLoading(wellTrajectoriesQuery.isFetching);
     statusWriter.setLoading(surfaceDataSetQueryByAddresses.isFetching);
 
@@ -127,7 +127,7 @@ export function view({ moduleContext, workbenchServices }: ModuleFCProps<State>)
                     colorTables={colorTables}
                     bounds={viewportBounds || undefined}
                     workbenchServices={workbenchServices}
-                    moduleContext={moduleContext}
+                    viewContext={viewContext}
                     // getTooltip={tooltipCallback}
                     // editedData={(editedData:any) => console.log(editedData)}
                     selection={{ well: selectedWell || undefined, selection: undefined }}

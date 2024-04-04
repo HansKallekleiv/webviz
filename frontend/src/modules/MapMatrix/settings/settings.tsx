@@ -1,7 +1,7 @@
 import React from "react";
 
 import { SurfaceStatisticFunction_api } from "@api";
-import { ModuleFCProps } from "@framework/Module";
+import { ModuleSettingsProps } from "@framework/Module";
 import { useEnsembleSet } from "@framework/WorkbenchSession";
 import { MultiEnsembleSelect } from "@framework/components/MultiEnsembleSelect";
 import { Button } from "@lib/components/Button";
@@ -23,7 +23,7 @@ import { useSurfaceReducer } from "../hooks/useSurfaceReducer";
 import { State } from "../state";
 import { EnsembleStageType, SyncedSettings, ViewSpecification } from "../types";
 
-export function settings({ moduleContext, workbenchSession, workbenchSettings }: ModuleFCProps<State>) {
+export function settings({ settingsContext, workbenchSession, workbenchSettings }: ModuleSettingsProps<State>) {
     const ensembleSet = useEnsembleSet(workbenchSession);
     const reducer = useSurfaceReducer();
 
@@ -77,13 +77,13 @@ export function settings({ moduleContext, workbenchSession, workbenchSettings }:
 
     React.useEffect(
         function propogateViewSpecificationsToView() {
-            moduleContext.getStateStore().setValue("viewSpecifications", reducer.state.viewSpecifications);
+            settingsContext.getStateStore().setValue("viewSpecifications", reducer.state.viewSpecifications);
         },
         [reducer.state.viewSpecifications]
     );
     React.useEffect(
         function propogateWellsSpecificationToView() {
-            moduleContext.getStateStore().setValue("wellsSpecification", reducer.state.wellsSpecification);
+            settingsContext.getStateStore().setValue("wellsSpecification", reducer.state.wellsSpecification);
         },
         [reducer.state.wellsSpecification]
     );
