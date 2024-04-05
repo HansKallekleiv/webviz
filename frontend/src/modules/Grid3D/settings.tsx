@@ -8,6 +8,7 @@ import { fixupEnsembleIdent, maybeAssignFirstSyncedEnsemble } from "@framework/u
 import { Button } from "@lib/components/Button";
 import { CircularProgress } from "@lib/components/CircularProgress";
 import { CollapsibleGroup } from "@lib/components/CollapsibleGroup";
+import { Dropdown } from "@lib/components/Dropdown";
 import { Input } from "@lib/components/Input";
 import { Label } from "@lib/components/Label";
 import { QueryStateWrapper } from "@lib/components/QueryStateWrapper";
@@ -32,6 +33,7 @@ export function Settings({ settingsContext, workbenchServices, workbenchSession 
 
     const [singleKLayer, setSingleKLayer] = settingsContext.useStoreState("singleKLayer");
     const [selectedWellUuids, setSelectedWellUuids] = settingsContext.useStoreState("selectedWellUuids");
+    const [intersectWellUuid, setIntersectWellUuid] = settingsContext.useStoreState("intersectWellUuid");
     const syncedSettingKeys = settingsContext.useSyncedSettingKeys();
     const syncHelper = new SyncSettingsHelper(syncedSettingKeys, workbenchServices);
     const syncedValueEnsembles = syncHelper.useValue(SyncSettingKey.ENSEMBLE, "global.syncValue.ensembles");
@@ -61,7 +63,9 @@ export function Settings({ settingsContext, workbenchServices, workbenchSession 
     const [parameterName, setParameterName] = settingsContext.useStoreState("parameterName");
     const [boundingBox, setBoundingBox] = settingsContext.useStoreState("boundingBox");
     const [showGridLines, setShowGridLines] = settingsContext.useStoreState("showGridLines");
-
+    const [zScale, setZScale] = settingsContext.useStoreState("zScale");
+    let computedGridName = gridName;
+    let computedGridParameterName = parameterName;
     const gridModelNames: string[] = [];
     const parameterNames: string[] = [];
     let computedBoundingBox = boundingBox;
@@ -71,22 +75,32 @@ export function Settings({ settingsContext, workbenchServices, workbenchSession 
         });
 
         if (gridModelNames.length > 0 && (!gridName || !gridModelNames.includes(gridName))) {
-            setGridName(gridModelNames[0]);
+            computedGridName = gridModelNames[0];
         }
 
-        const gridModelInfo = gridName
-            ? gridModelInfosQuery.data.find((gridModelInfo) => gridModelInfo.grid_name === gridName)
+        const gridModelInfo = computedGridName
+            ? gridModelInfosQuery.data.find((gridModelInfo) => gridModelInfo.grid_name === computedGridName)
             : null;
         if (gridModelInfo) {
             computedBoundingBox = gridModelInfo.bbox;
 
             gridModelInfo.property_info_arr.forEach((propInfo) => {
-                parameterNames.push(propInfo.property_name);
+                if (propInfo.iso_date_or_interval) {
+                    parameterNames.push(`${propInfo.property_name}--${propInfo.iso_date_or_interval}`);
+                } else {
+                    parameterNames.push(propInfo.property_name);
+                }
             });
         }
         if (parameterNames.length > 0 && (!parameterName || !parameterNames.includes(parameterName))) {
-            setParameterName(parameterNames[0]);
+            computedGridParameterName = parameterNames[0];
         }
+    }
+    if (computedGridName !== gridName) {
+        setGridName(computedGridName);
+    }
+    if (computedGridParameterName !== parameterName) {
+        setParameterName(computedGridParameterName);
     }
     if (!isEqual(boundingBox, computedBoundingBox)) {
         setBoundingBox(computedBoundingBox);
@@ -118,6 +132,9 @@ export function Settings({ settingsContext, workbenchServices, workbenchSession 
             allWellUuidsOptions.some((wellHeader) => wellHeader.value === wellUuid)
         );
         setSelectedWellUuids(newSelectedWellUuids);
+    }
+    function handleIntersectWellChange(intersectWellUuid: string) {
+        setIntersectWellUuid(intersectWellUuid);
     }
     function showAllWells(allWellUuidsOptions: SelectOption[]) {
         const newSelectedWellUuids = allWellUuidsOptions.map((wellHeader) => wellHeader.value);
@@ -156,7 +173,7 @@ export function Settings({ settingsContext, workbenchServices, workbenchSession 
                     <Label text="Grid model">
                         <Select
                             options={stringToOptions(gridModelNames)}
-                            value={[gridName || gridModelNames[0]]}
+                            value={[computedGridName || gridModelNames[0]]}
                             onChange={(gridnames) => setGridName(gridnames[0])}
                             filter={true}
                             size={5}
@@ -166,7 +183,7 @@ export function Settings({ settingsContext, workbenchServices, workbenchSession 
                     <Label text="Grid parameter">
                         <Select
                             options={stringToOptions(parameterNames || [])}
-                            value={[parameterName || parameterNames[0]]}
+                            value={[computedGridParameterName || parameterNames[0]]}
                             onChange={(pnames) => setParameterName(pnames[0])}
                             filter={true}
                             size={5}
@@ -178,6 +195,7 @@ export function Settings({ settingsContext, workbenchServices, workbenchSession 
                             type={"number"}
                             min={-1}
                             max={100}
+                            value={singleKLayer}
                             onChange={(e) => setSingleKLayer(parseInt(e.target.value))}
                         />
                     </Label>
@@ -214,6 +232,15 @@ export function Settings({ settingsContext, workbenchServices, workbenchSession 
                             />
                         </>
                     </Label>
+                    <Label text="Intersection well">
+                        <>
+                            <Dropdown
+                                options={wellHeaderOptions}
+                                value={intersectWellUuid || ""}
+                                onChange={handleIntersectWellChange}
+                            />
+                        </>
+                    </Label>
                 </QueryStateWrapper>
             </CollapsibleGroup>
 
@@ -239,6 +266,14 @@ export function Settings({ settingsContext, workbenchServices, workbenchSession 
             <div className="flex mt-2">
                 <Label position="left" text="Show grid lines">
                     <Switch checked={showGridLines} onChange={(e) => setShowGridLines(e.target.checked)} />
+                </Label>
+                <Label text="Z scale">
+                    <Input
+                        type="number"
+                        min={0.1}
+                        value={zScale}
+                        onChange={(e) => setZScale(parseFloat(e.target.value))}
+                    />
                 </Label>
             </div>
         </div>

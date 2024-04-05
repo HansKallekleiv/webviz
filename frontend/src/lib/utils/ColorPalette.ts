@@ -110,7 +110,11 @@ export class ColorPalette {
             return interpolatedHexColor;
         }
 
-        throw new Error(`Invalid position: ${position}`);
+        // throw new Error(`Invalid position: ${position}`);
+
+        // return white
+
+        return "#ffffff";
     }
 
     getGradient(): string {

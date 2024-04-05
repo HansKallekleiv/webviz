@@ -97,7 +97,10 @@ export class ColorScale {
             const colorIndex = Math.min(Math.floor(normalizedValue * this._steps), colors.length - 1);
             color = colors[colorIndex];
         } else {
-            const normalizedValue = this.calcNormalizedValue(value, this._min, this._max);
+            let normalizedValue = this.calcNormalizedValue(value, this._min, this._max);
+            if (normalizedValue < 0) {
+                normalizedValue = 0;
+            }
             color = this._colorPalette.getInterpolatedColor(normalizedValue);
         }
 

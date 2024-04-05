@@ -11,8 +11,10 @@ const defaultState: state = {
     selectedWellUuids: [],
     showGridLines: false,
     realization: 0,
-    singleKLayer: -1,
+    singleKLayer: 20,
     polyLine: [],
+    zScale: 10,
+    intersectWellUuid: null,
 };
 
 const module = ModuleRegistry.initModule<state>("Grid3D", defaultState, {});

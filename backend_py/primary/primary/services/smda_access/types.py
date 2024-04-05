@@ -1,6 +1,8 @@
 from enum import Enum
 from typing import List, Optional
-from pydantic import BaseModel
+from datetime import datetime
+
+from pydantic import BaseModel, NonNegativeFloat
 
 
 class WellBorePick(BaseModel):
@@ -39,6 +41,26 @@ class WellBoreHeader(BaseModel):
     unique_well_identifier: str
     well_easting: float
     well_northing: float
+    depth_reference_datum: str
+    depth_reference_elevation: float
+    depth_reference_elevation_unit: str
+    depth_reference_point: str
+    tvd_unit: str
+    md_unit: str
+
+
+class WellBoreCompletion(BaseModel):
+    wellbore_uuid: str
+    unique_wellbore_identifier: str
+    wellbore_status: str
+    wellbore_purpose: str
+    completion_type: str
+    completion_open_flag: bool
+    top_depth_md: NonNegativeFloat
+    base_depth_md: NonNegativeFloat
+    md_unit: str
+    date_opened: datetime
+    date_closed: Optional[datetime] = None
 
 
 class StratigraphicUnit(BaseModel):

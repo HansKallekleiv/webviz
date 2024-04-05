@@ -1,5 +1,5 @@
 import { ModuleRegistry } from "@framework/ModuleRegistry";
 
-import { Interface, State } from "./state";
+import { State } from "./state";
 
-ModuleRegistry.registerModule<State, Interface>({ moduleName: "MyModule2", defaultTitle: "My Module 2" });
+ModuleRegistry.registerModule<State>({ moduleName: "MyModule2", defaultTitle: "My Module 2" });

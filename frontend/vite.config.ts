@@ -65,5 +65,8 @@ export default defineConfig(({ mode }) => {
                 },
             },
         },
+        optimizeDeps: {
+            exclude: ["@equinor/esv-intersection"],
+        },
     };
 });

@@ -10,4 +10,6 @@ export default interface state {
     realization: number;
     singleKLayer: number;
     polyLine: Point[];
+    zScale: number;
+    intersectWellUuid: string | null;
 }

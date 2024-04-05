@@ -1,0 +1,124 @@
+import {
+    LayerOptions,
+    OnRescaleEvent,
+    OnUpdateEvent,
+    PixiLayer,
+    PixiRenderApplication,
+} from "@equinor/esv-intersection";
+import { ColorScale } from "@lib/utils/ColorScale";
+import { pointDistance } from "@lib/utils/geometry";
+
+import { Graphics } from "pixi.js";
+
+export type FenceMeshSection = {
+    verticesUzArr: Float32Array; // [u, z]
+    polysArr: Uint32Array;
+    polySourceCellIndicesArr: Uint32Array;
+    polyPropsArr: Float32Array;
+    startUtmX: number;
+    startUtmY: number;
+    endUtmX: number;
+    endUtmY: number;
+    minZ: number;
+    maxZ: number;
+};
+
+export type PolylineIntersectionData = {
+    fenceMeshSections: FenceMeshSection[];
+    minGridPropValue: number;
+    maxGridPropValue: number;
+    hideGridlines?: boolean;
+};
+
+export type PolylineIntersectionLayerOptions = LayerOptions<PolylineIntersectionData> & {
+    colorScale: ColorScale;
+};
+
+export class PolylineIntersectionLayer extends PixiLayer<PolylineIntersectionData> {
+    private _isPreRendered = false;
+    private _colorScale: ColorScale;
+
+    constructor(ctx: PixiRenderApplication, id: string, options: PolylineIntersectionLayerOptions) {
+        super(ctx, id, options);
+        this._colorScale = options.colorScale;
+        this._colorScale.setRange(options.data?.minGridPropValue ?? 0, options.data?.maxGridPropValue ?? 1000);
+    }
+
+    override onRescale(event: OnRescaleEvent): void {
+        super.onRescale(event);
+
+        if (!this._isPreRendered) {
+            this.clearLayer();
+            this.preRender();
+        }
+
+        this.render();
+    }
+
+    override onUpdate(event: OnUpdateEvent<PolylineIntersectionData>): void {
+        super.onUpdate(event);
+
+        this._colorScale.setRange(event.data?.minGridPropValue ?? 0, event.data?.maxGridPropValue ?? 1000);
+
+        this._isPreRendered = false;
+        this.clearLayer();
+        this.preRender();
+        this.render();
+    }
+
+    preRender(): void {
+        if (!this.data) {
+            return;
+        }
+
+        const showGridlines = !(this.data?.hideGridlines ?? false);
+        let startU = 0;
+        this.data.fenceMeshSections.forEach((section) => {
+            this.createFenceMeshSection(startU, section, showGridlines);
+            const uVectorLength = pointDistance(
+                {
+                    x: section.startUtmX,
+                    y: section.startUtmY,
+                },
+                {
+                    x: section.endUtmX,
+                    y: section.endUtmY,
+                }
+            );
+            startU += uVectorLength;
+        });
+    }
+
+    createFenceMeshSection(offsetU: number, section: FenceMeshSection, showGridlines: boolean): void {
+        const graphics = new Graphics();
+
+        let idx = 0;
+        let polygonIndex = 0;
+        while (idx < section.polysArr.length) {
+            const color = this._colorScale.getColorForValue(section.polyPropsArr[polygonIndex]);
+
+            if (showGridlines) {
+                graphics.lineStyle(0.2, "#000", 1);
+            } else {
+                graphics.lineStyle(0);
+            }
+            graphics.beginFill(color, 1.0);
+            const polySize = section.polysArr[idx];
+            const polyVertices: number[] = [];
+            for (let i = 0; i < polySize; i++) {
+                const verticeIndex = section.polysArr[idx + 1 + i] * 2;
+                const verticeU = section.verticesUzArr[verticeIndex];
+                const verticeZ = section.verticesUzArr[verticeIndex + 1];
+                polyVertices.push(offsetU + verticeU, verticeZ);
+            }
+
+            graphics.drawPolygon(polyVertices);
+            graphics.endFill();
+
+            idx += polySize + 1;
+            polygonIndex++;
+        }
+
+        this.addChild(graphics);
+    }
+}
