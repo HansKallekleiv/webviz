@@ -8,7 +8,7 @@ const CACHE_TIME = 60 * 1000;
 export function useWellHeadersQuery(caseUuid: string | undefined): UseQueryResult<WellBoreHeader_api[]> {
     return useQuery({
         queryKey: ["getWellHeaders", caseUuid],
-        queryFn: () => apiService.well.getWellHeaders(caseUuid ?? ""),
+        queryFn: () => apiService.well.getDrilledWellboreHeaders(caseUuid ?? ""),
         staleTime: STALE_TIME,
         gcTime: CACHE_TIME,
         enabled: caseUuid ? true : false,
