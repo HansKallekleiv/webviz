@@ -1,17 +1,18 @@
 import { InterfaceInitialization } from "@framework/UniDirectionalSettingsToViewInterface";
 
-import { selectedDrilledWellboreAtom } from "./settings/atoms/derivedAtoms";
+import { wellboreLogCurvesDataQueryAtom } from "./settings/atoms/queryAtoms";
+import { CombinedLogCurvesResult, LogCurveResult } from "./typesAndEnums";
 
 export type SettingsToViewInterface = {
     baseStates: {};
-    derivedStates: { wellboreUuid: string | null };
+    derivedStates: { logCurvesDataQueries: CombinedLogCurvesResult };
 };
 
 export const interfaceInitialization: InterfaceInitialization<SettingsToViewInterface> = {
     baseStates: {},
     derivedStates: {
-        wellboreUuid: (get) => {
-            return get(selectedDrilledWellboreAtom);
+        logCurvesDataQueries: (get) => {
+            return get(wellboreLogCurvesDataQueryAtom);
         },
     },
 };

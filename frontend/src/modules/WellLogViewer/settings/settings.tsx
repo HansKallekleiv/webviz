@@ -13,10 +13,20 @@ import { useAtomValue, useSetAtom } from "jotai";
 import {
     userSelectedDrilledWellboreUuidAtom,
     userSelectedEnsembleIdentAtom,
-    userSelectedLogrunAtom,
+    userSelectedLogCurveNamesAtom,
+    userSelectedLogRunNameAtom,
 } from "./atoms/baseAtoms";
-import { selectedDrilledWellboreAtom, selectedEnsembleIdentAtom, selectedLogRunAtom } from "./atoms/derivedAtoms";
-import { drilledWellboreHeadersQueryAtom, wellboreLogCurveHeadersQueryAtom } from "./atoms/queryAtoms";
+import {
+    selectedDrilledWellboreAtom,
+    selectedEnsembleIdentAtom,
+    selectedLogCurveNamesAtom,
+    selectedLogRunNameAtom,
+} from "./atoms/derivedAtoms";
+import {
+    drilledWellboreHeadersQueryAtom,
+    wellboreLogCurveHeadersQueryAtom,
+    wellboreLogCurvesDataQueryAtom,
+} from "./atoms/queryAtoms";
 
 import { SettingsToViewInterface } from "../settingsToViewInterface";
 import { State } from "../state";
@@ -41,14 +51,15 @@ export function Settings(props: ModuleSettingsProps<State, SettingsToViewInterfa
     }
 
     const wellboreLogCurveHeaders = useAtomValue(wellboreLogCurveHeadersQueryAtom);
-    const selectedLogRunName = useAtomValue(selectedLogRunAtom);
-    const setSelectedLogRunName = useSetAtom(userSelectedLogrunAtom);
-
-    let logRunErrorMessage = "";
+    const selectedLogRunName = useAtomValue(selectedLogRunNameAtom);
+    const setSelectedLogRunName = useSetAtom(userSelectedLogRunNameAtom);
+    const selectedLogCurveNames = useAtomValue(selectedLogCurveNamesAtom);
+    const setSelectedLogCurveNames = useSetAtom(userSelectedLogCurveNamesAtom);
+    let logCurveHeadersErrorMessage = "";
 
     if (wellboreLogCurveHeaders.isError) {
         statusWriter.addError("Failed to load wellbore log curve headers");
-        logRunErrorMessage = wellboreLogCurveHeaders.error.message;
+        logCurveHeadersErrorMessage = wellboreLogCurveHeaders.error.message;
     }
 
     function handleEnsembleSelectionChange(ensembleIdent: EnsembleIdent | null) {
@@ -61,6 +72,9 @@ export function Settings(props: ModuleSettingsProps<State, SettingsToViewInterfa
 
     function handleLogRunSelectionChange(logRunName: string[] | null) {
         setSelectedLogRunName(logRunName?.at(0) ?? null);
+    }
+    function handleLogCurvesSelectionChange(logCurveNames: string[] | null) {
+        setSelectedLogCurveNames(logCurveNames ?? []);
     }
     return (
         <>
@@ -85,13 +99,31 @@ export function Settings(props: ModuleSettingsProps<State, SettingsToViewInterfa
                 </PendingWrapper>
             </CollapsibleGroup>
             <CollapsibleGroup title="Log Run" expanded>
-                <PendingWrapper isPending={wellboreLogCurveHeaders.isFetching} errorMessage={logRunErrorMessage}>
+                <PendingWrapper
+                    isPending={wellboreLogCurveHeaders.isFetching}
+                    errorMessage={logCurveHeadersErrorMessage}
+                >
                     <Select
                         options={makeLogRunOptions(wellboreLogCurveHeaders.data ?? [])}
                         value={selectedLogRunName ? [selectedLogRunName] : []}
                         onChange={handleLogRunSelectionChange}
                         size={5}
                         filter
+                    />
+                </PendingWrapper>
+            </CollapsibleGroup>
+            <CollapsibleGroup title="Log Curves" expanded>
+                <PendingWrapper
+                    isPending={wellboreLogCurveHeaders.isFetching}
+                    errorMessage={logCurveHeadersErrorMessage}
+                >
+                    <Select
+                        options={makeLogCurveOptions(wellboreLogCurveHeaders.data ?? [], selectedLogRunName)}
+                        value={selectedLogCurveNames}
+                        onChange={handleLogCurvesSelectionChange}
+                        size={5}
+                        filter
+                        multiple
                     />
                 </PendingWrapper>
             </CollapsibleGroup>
@@ -114,5 +146,16 @@ function makeLogRunOptions(logCurveHeaders: WellboreLogCurveInfo_api[]): SelectO
     return uniqueLogRunNames.map((logRunName) => ({
         value: logRunName,
         label: logRunName,
+    }));
+}
+
+function makeLogCurveOptions(
+    logCurveHeaders: WellboreLogCurveInfo_api[],
+    selectedLogRun: string | null
+): SelectOption[] {
+    const validLogCurveHeaders = logCurveHeaders.filter((header) => header.log_name === selectedLogRun);
+    return validLogCurveHeaders.map((header) => ({
+        value: header.curve_name,
+        label: header.curve_name,
     }));
 }

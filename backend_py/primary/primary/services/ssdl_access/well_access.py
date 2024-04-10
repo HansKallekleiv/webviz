@@ -75,6 +75,6 @@ class WellAccess:
             result = schemas.WellboreLogCurveData.model_validate(result)
         except ValidationError as e:
             raise InvalidDataError(
-                f"Invalid log curve data for wellbore {wellbore_uuid} and curve {curve_name}", Service.SSDL
+                f"Invalid log curve data for wellbore {wellbore_uuid} and curve {curve_name} {e}", Service.SSDL
             ) from e
         return result
