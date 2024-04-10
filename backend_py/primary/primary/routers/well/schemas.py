@@ -81,7 +81,7 @@ class WellborePerforation(BaseModel):
 
 
 class WellboreLogCurveInfo(BaseModel):
-    log_name: str
+    log_name: str | None
     curve_name: str
     curve_unit: str
 

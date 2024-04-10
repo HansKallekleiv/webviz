@@ -24,8 +24,8 @@ LOGGER = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("/well_headers/")
-async def get_well_headers(
+@router.get("/drilled_wellbore_headers/")
+async def get_drilled_wellbore_headers(
     # fmt:off
     authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user),
     case_uuid: str = Query(description="Sumo case uuid"),
@@ -196,9 +196,9 @@ async def get_wellbore_log_curve_headers(
     else:
         well_access = SsdlWellAccess(authenticated_user.get_ssdl_access_token())
 
-    wellbore_casing = await well_access.get_log_curve_headers_for_wellbore(wellbore_uuid=wellbore_uuid)
+    log_curve_headers = await well_access.get_log_curve_headers_for_wellbore(wellbore_uuid=wellbore_uuid)
 
-    return wellbore_casing
+    return log_curve_headers
 
 
 @router.get("/log_curve_data/")

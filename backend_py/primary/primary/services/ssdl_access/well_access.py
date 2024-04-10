@@ -55,7 +55,7 @@ class WellAccess:
         try:
             result = [schemas.WellboreLogCurveInfo.model_validate(log_curve) for log_curve in result]
         except ValidationError as e:
-            raise InvalidDataError(f"Invalid log curve headers for wellbore {wellbore_uuid}", Service.SSDL) from e
+            raise InvalidDataError(f"Invalid log curve headers for wellbore {wellbore_uuid} {e}", Service.SSDL) from e
         return result
 
     async def get_log_curve_headers_for_field(self, field_uuid: str) -> List[schemas.WellboreLogCurveInfo]:
