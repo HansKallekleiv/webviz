@@ -7,7 +7,8 @@ export type WellboreLogCurveData = {
     index_max: number;
     min_curve_value: number;
     max_curve_value: number;
-    DataPoints: Array<Array<(number | null)>>;
+    md_arr: Array<number>;
+    value_arr: Array<(number | null)>;
     curve_alias: string;
     curve_description: string;
     index_unit: string;

@@ -218,5 +218,5 @@ async def get_log_curve_data(
         well_access = SsdlWellAccess(authenticated_user.get_ssdl_access_token())
 
     log_curve = await well_access.get_log_curve_data(wellbore_uuid=wellbore_uuid, curve_name=log_curve_name)
-
-    return log_curve
+    return converters.convert_log_curve_to_schema(log_curve)
+    

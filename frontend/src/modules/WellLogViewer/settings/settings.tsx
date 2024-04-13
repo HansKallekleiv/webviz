@@ -134,13 +134,13 @@ export function Settings(props: ModuleSettingsProps<State, SettingsToViewInterfa
 function makeDrilledWellHeaderOptions(drilledWellHeaders: WellBoreHeader_api[]): SelectOption[] {
     return drilledWellHeaders.map((header) => ({
         value: header.wellbore_uuid,
-        label: header.unique_well_identifier,
+        label: header.unique_wellbore_identifier,
     }));
 }
 
 function makeLogRunOptions(logCurveHeaders: WellboreLogCurveInfo_api[]): SelectOption[] {
     const validLogCurveHeaders = logCurveHeaders.filter((header) => header.log_name !== null);
-    const allLogRunNames: string[] = validLogCurveHeaders.map((header) => header.log_name);
+    const allLogRunNames: string[] = validLogCurveHeaders.map((header) => header.log_name || "");
     // To set
     const uniqueLogRunNames = Array.from(new Set(allLogRunNames));
     return uniqueLogRunNames.map((logRunName) => ({

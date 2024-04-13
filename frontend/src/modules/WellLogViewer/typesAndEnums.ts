@@ -2,7 +2,7 @@ import { WellboreLogCurveData_api } from "@api";
 
 export type LogCurveResult = {
     logCurveName: string;
-    data: WellboreLogCurveData_api[];
+    data: WellboreLogCurveData_api | null;
 };
 export type CombinedLogCurvesResult = {
     curvesData: LogCurveResult[];

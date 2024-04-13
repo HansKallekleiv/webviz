@@ -91,7 +91,8 @@ class WellboreLogCurveData(BaseModel):
     index_max: float
     min_curve_value: float
     max_curve_value: float
-    DataPoints: list[list[float | None]]
+    md_arr: list[float]
+    value_arr: list[float|int|None]
     curve_alias: str
     curve_description: str
     index_unit: str

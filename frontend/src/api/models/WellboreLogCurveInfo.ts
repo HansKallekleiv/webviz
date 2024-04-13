@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type WellboreLogCurveInfo = {
-    log_name: string;
+    log_name: (string | null);
     curve_name: string;
     curve_unit: string;
 };

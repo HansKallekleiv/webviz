@@ -1,6 +1,7 @@
 from typing import List
 
 from primary.services.smda_access.types import WellBorePick, StratigraphicUnit
+from primary.services.ssdl_access.schemas import WellboreLogCurveData
 
 from . import schemas
 
@@ -44,3 +45,19 @@ def convert_stratigraphic_units_to_schema(
         )
         for unit in stratigraphic_units
     ]
+
+def convert_log_curve_to_schema(log_curve: WellboreLogCurveData) -> schemas.WellboreLogCurveData:
+    md_arr = [datapoint[0] for datapoint in log_curve.DataPoints]
+    value_arr = [datapoint[1] for datapoint in log_curve.DataPoints]
+    return schemas.WellboreLogCurveData(
+        index_min=log_curve.index_min,
+        index_max=log_curve.index_max,
+        min_curve_value=log_curve.min_curve_value,
+        max_curve_value=log_curve.max_curve_value,
+        md_arr=md_arr,
+        value_arr=value_arr,
+        curve_alias=log_curve.curve_alias,
+        curve_description=log_curve.curve_description,
+        index_unit=log_curve.index_unit,
+        no_data_value=log_curve.no_data_value
+    )

@@ -52,12 +52,12 @@ export const wellboreLogCurvesDataQueryAtom = atomWithQueries((get) => {
             enabled: Boolean(drilledWellboreUuid),
         });
     });
-    const combine = (results: UseQueryResult<WellboreLogCurveData_api[], Error>[]): CombinedLogCurvesResult => {
+    const combine = (results: UseQueryResult<WellboreLogCurveData_api, Error>[]): CombinedLogCurvesResult => {
         return {
             curvesData: logCurveNames.map((logCurveName, idx) => {
                 return {
                     logCurveName: logCurveName,
-                    data: results[idx]?.data ?? [],
+                    data: results[idx]?.data ?? null,
                 };
             }),
             isFetching: results.some((result) => result.isFetching),
