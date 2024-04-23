@@ -25,6 +25,7 @@ ALLOWED_INDEX_COLUMN_NAMES = ["ZONE", "REGION", "FACIES"]  # , "LICENSE"]
 # Index column values to ignore, i.e. remove from the volumetric tables
 IGNORED_INDEX_COLUMN_VALUES = ["Totals"]
 
+
 class InplaceVolumetricsIndexNames(str, Enum):
     ZONE = "ZONE"
     REGION = "REGION"
@@ -143,8 +144,8 @@ class InplaceVolumetricsAccess(SumoEnsemble):
                 #     Service.SUMO,
                 # )
             index_names = [col for col in vol_table_column_names if col in ALLOWED_INDEX_COLUMN_NAMES]
-            
-            if len(index_names) == 0:
+
+            if len(index_names) == 0 or "GRID" in vol_table_column_names:
                 raise InvalidDataError(
                     f"No index columns found in the volumetric table {self._case_uuid}, {vol_table_name}",
                     Service.SUMO,
@@ -163,7 +164,7 @@ class InplaceVolumetricsAccess(SumoEnsemble):
             # Picking a random result column to get the table
             sumo_table_obj = await self._get_sumo_table_async(vol_table_name, result_column_names[0])
             arrow_table = await _fetch_arrow_table_async(sumo_table_obj)
-            
+
             for index_column_name in index_names:
                 unique_values = arrow_table[index_column_name].unique().to_pylist()
                 # Check for invalid data
@@ -196,16 +197,16 @@ class InplaceVolumetricsAccess(SumoEnsemble):
         sumo_table_obj = await self._get_sumo_table_async(table_name, result_name)
         arrow_table = await _fetch_arrow_table_async(sumo_table_obj)
 
-        
+        print(arrow_table)
         if realizations is not None:
             arrow_table = _filter_arrow_table_by_inclusion(arrow_table, "REAL", realizations)
 
         # Get the index columns
         index_columns = [col for col in arrow_table.column_names if col in ALLOWED_INDEX_COLUMN_NAMES]
-     
+
         # Filter invalid data. Hopefully TMP
         for index_column in index_columns:
-            arrow_table = _filter_arrow_table_by_exclusion(arrow_table,index_column,IGNORED_INDEX_COLUMN_VALUES)
+            arrow_table = _filter_arrow_table_by_exclusion(arrow_table, index_column, IGNORED_INDEX_COLUMN_VALUES)
         grouped_table = arrow_table.group_by(index_columns + ["REAL"]).aggregate([(result_name, "sum")]).sort_by("REAL")
 
         arrow_table = grouped_table.group_by(index_columns).aggregate(
@@ -230,7 +231,6 @@ class InplaceVolumetricsAccess(SumoEnsemble):
             )
             entries.append(entry)
 
-    
         volumetric_data = InplaceVolumetricData(
             vol_table_name=table_name,
             result_name=result_name,
@@ -274,18 +274,24 @@ async def _fetch_arrow_table_async(sumo_table_obj: Table) -> pa.Table:
     return arrow_table
 
 
-def _filter_arrow_table_by_inclusion(arrow_table: pa.Table, column_name: str, column_values: List[Union[str, float]]) -> pa.Table:
+def _filter_arrow_table_by_inclusion(
+    arrow_table: pa.Table, column_name: str, column_values: List[Union[str, float]]
+) -> pa.Table:
     """Filter arrow table to only include specific values."""
     mask = pc.is_in(arrow_table[column_name], value_set=pa.array(column_values))
     arrow_table = arrow_table.filter(mask)
     return arrow_table
 
-def _filter_arrow_table_by_exclusion(arrow_table: pa.Table, column_name: str, column_values: List[Union[str, float]]) -> pa.Table:
+
+def _filter_arrow_table_by_exclusion(
+    arrow_table: pa.Table, column_name: str, column_values: List[Union[str, float]]
+) -> pa.Table:
     """Filter arrow table to exclude specific values."""
     mask = pc.is_in(arrow_table[column_name], value_set=pa.array(column_values))
     mask = pc.invert(mask)
     arrow_table = arrow_table.filter(mask)
     return arrow_table
+
 
 def group_and_aggregate(
     arrow_table: pa.Table,
@@ -322,4 +328,3 @@ def group_and_aggregate(
             entries.append(entry)
 
     return entries
-

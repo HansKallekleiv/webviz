@@ -50,6 +50,7 @@ export const inplaceTableInfosQueryAtom = atomWithQueries((get) => {
             isFetching: results.some((result) => result.isFetching),
             someQueriesFailed: results.some((result) => result.isError),
             allQueriesFailed: results.every((result) => result.isError),
+            errors: results.map((result) => result.error),
         };
     }
 

@@ -11,6 +11,7 @@ import { Label } from "@lib/components/Label";
 import { PendingWrapper } from "@lib/components/PendingWrapper";
 import { Select } from "@lib/components/Select";
 
+import { error } from "console";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { max } from "lodash";
 
@@ -97,10 +98,9 @@ export function Settings(props: ModuleSettingsProps<State, Interface>) {
 
     let tableInfosErrorMessage = "";
     if (inplaceTableInfosQuery.allQueriesFailed) {
-        tableInfosErrorMessage =
-            "Failed to fetch inplace volumetrics info. Make sure the selected ensembles has inplace volumetrics data.";
+        tableInfosErrorMessage = `${inplaceTableInfosQuery.errors?.map((error) => error?.message).join(", ")}`;
     }
-    console.log("availableInplaceCategories settings", availableInplaceCategories);
+
     return (
         <div className="flex flex-col gap-2">
             <CollapsibleGroup title="Ensembles" expanded>

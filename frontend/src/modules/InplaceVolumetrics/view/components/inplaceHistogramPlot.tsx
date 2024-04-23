@@ -51,9 +51,17 @@ export function InplaceHistogramPlot(props: InplaceHistogramPlotProps): React.Re
             });
         });
 
-        const binSize = (globalMax - globalMin) / 20;
         props.resultValues.groupedValues.forEach((subPlot) => {
+            let subGroupValueMin = Number.POSITIVE_INFINITY;
+            let subGroupValueMax = Number.NEGATIVE_INFINITY;
             if (subPlot) {
+                subPlot.subgroups.forEach((subgroup) => {
+                    const min = Math.min(...subgroup.resultValues);
+                    const max = Math.max(...subgroup.resultValues);
+                    subGroupValueMin = Math.min(subGroupValueMin, min);
+                    subGroupValueMax = Math.max(subGroupValueMax, max);
+                });
+                const binSize = (subGroupValueMax - subGroupValueMin) / 20;
                 subPlot.subgroups.forEach((subgroup) => {
                     const shouldShowLegend = !addedLegendNames.has(subgroup.subgroupName.toString());
                     if (shouldShowLegend) {
@@ -73,8 +81,8 @@ export function InplaceHistogramPlot(props: InplaceHistogramPlotProps): React.Re
                         xaxis: `x${subplotIndex}`,
                         yaxis: `y${subplotIndex}`,
                         xbins: {
-                            start: globalMin,
-                            end: globalMax,
+                            start: subGroupValueMin,
+                            end: subGroupValueMax,
                             size: binSize,
                         },
                     };

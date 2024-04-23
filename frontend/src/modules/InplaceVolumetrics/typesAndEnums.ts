@@ -11,6 +11,7 @@ export type CombinedInplaceVolTableInfoResults = {
     isFetching: boolean;
     someQueriesFailed: boolean;
     allQueriesFailed: boolean;
+    errors: (Error | null)[];
 };
 
 export enum PlotGroupingEnum {
