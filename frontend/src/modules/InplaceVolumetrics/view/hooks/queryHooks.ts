@@ -7,6 +7,8 @@ import {
 } from "@modules/InplaceVolumetrics/typesAndEnums";
 import { useQueries } from "@tanstack/react-query";
 
+import { transformTableData } from "./queryDataTransforms";
+
 const STALE_TIME = 60 * 1000;
 const CACHE_TIME = 60 * 1000;
 export function useInplaceDataResultsQuery(
@@ -16,7 +18,7 @@ export function useInplaceDataResultsQuery(
 ): CombinedInplaceVolDataEnsembleSetResults {
     return useQueries({
         queries: ensembleIdentsWithRealizations.map((ensembleIdentWithReals) =>
-            createQueryForInplaceDataResults(ensembleIdentWithReals, tableName, responseName)
+            createQueryForInplaceDataTable(ensembleIdentWithReals, tableName, responseName)
         ),
         combine: (results) => {
             const combinedResult: InplaceVolDataEnsembleSet[] = [];
@@ -60,6 +62,34 @@ export function createQueryForInplaceDataResults(
             ),
         staleTime: STALE_TIME,
         gcTime: CACHE_TIME,
+        enabled: Boolean(ensIdentWithReals && tableName && responseName),
+    };
+}
+
+export function createQueryForInplaceDataTable(
+    ensIdentWithReals: EnsembleIdentWithRealizations,
+    tableName: string | null,
+    responseName: InplaceVolumetricResponseNames_api | null
+) {
+    return {
+        queryKey: [
+            "getInplaceDataResults",
+            ensIdentWithReals.ensembleIdent.toString(),
+            tableName,
+            responseName,
+            JSON.stringify(ensIdentWithReals.realizations),
+        ],
+        queryFn: () =>
+            apiService.inplaceVolumetrics.getArrowTable(
+                ensIdentWithReals.ensembleIdent.getCaseUuid(),
+                ensIdentWithReals.ensembleIdent.getEnsembleName(),
+                tableName ?? "",
+                responseName ?? InplaceVolumetricResponseNames_api.STOIIP_OIL,
+                ensIdentWithReals.realizations ?? []
+            ),
+        staleTime: STALE_TIME,
+        gcTime: CACHE_TIME,
+        select: transformTableData,
         enabled: Boolean(ensIdentWithReals && tableName && responseName),
     };
 }

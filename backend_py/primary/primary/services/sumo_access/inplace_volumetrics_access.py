@@ -145,7 +145,7 @@ class InplaceVolumetricsAccess(SumoEnsemble):
                 # )
             index_names = [col for col in vol_table_column_names if col in ALLOWED_INDEX_COLUMN_NAMES]
 
-            if len(index_names) == 0 or "GRID" in vol_table_column_names:
+            if len(index_names) == 0:
                 raise InvalidDataError(
                     f"No index columns found in the volumetric table {self._case_uuid}, {vol_table_name}",
                     Service.SUMO,
@@ -164,6 +164,7 @@ class InplaceVolumetricsAccess(SumoEnsemble):
             # Picking a random result column to get the table
             sumo_table_obj = await self._get_sumo_table_async(vol_table_name, result_column_names[0])
             arrow_table = await _fetch_arrow_table_async(sumo_table_obj)
+            print("*******************************", arrow_table)
 
             for index_column_name in index_names:
                 unique_values = arrow_table[index_column_name].unique().to_pylist()
@@ -240,11 +241,44 @@ class InplaceVolumetricsAccess(SumoEnsemble):
         )
         return volumetric_data
 
+    async def get_arrow_table_async(
+        self,
+        table_name: str,
+        result_name: str,
+    ) -> pa.Table:
+        """Retrieve the volumetric data for a single result (e.g. STOIIP_OIL), optionally filtered by realizations and index values."""
+        if result_name not in ALLOWED_RESULT_COLUMN_NAMES:
+            raise InvalidDataError(
+                f"Invalid result name {result_name} for the volumetric table {self._case_uuid}, {table_name}",
+                Service.SUMO,
+            )
+        vol_table_as_collection: TableCollection = self._case.tables.filter(
+            aggregation="collection",
+            name=table_name,
+            tagname=["vol", "volumes", "inplace"],
+            iteration=self._iteration_name,
+        )
+        vol_table_name_as_arr = await vol_table_as_collection.names_async
+        if len(vol_table_name_as_arr) > 1:
+            raise MultipleDataMatchesError(
+                f"Multiple inplace volumetrics tables found in case={self._case_uuid}, iteration={self._iteration_name}, table_name={vol_table_name}",
+                Service.SUMO,
+            )
+        vol_table_column_names = await vol_table_as_collection.columns_async
+        result_column_names = [col for col in vol_table_column_names if col in ALLOWED_RESULT_COLUMN_NAMES]
+        arrow_tables = []
+        for col in result_column_names:
+            sumo_table_obj = await self._get_sumo_table_async(table_name, col)
+            arrow_table = await _fetch_arrow_table_async(sumo_table_obj)
+            arrow_tables.append(arrow_table)
+        aligned_tables = align_schemas(arrow_tables)
+        return pa.concat_tables(aligned_tables)
+
     async def _get_sumo_table_async(self, table_name: str, result_name: Optional[str] = None) -> Table:
         """Get a sumo table object. Expecting only one table to be found.
         A result_name(column) is optional. If provided, the table will be filtered based on the result_name.
         If not provided apparently a table with a random (first found?) column will be returned"""
-
+        # result_name = [result_name, "BULK_OIL", "STOIIP_OIL"]
         vol_table_as_collection: TableCollection = self._case.tables.filter(
             aggregation="collection",
             name=table_name,
@@ -328,3 +362,29 @@ def group_and_aggregate(
             entries.append(entry)
 
     return entries
+
+
+# Function to add missing columns to each table with None values
+def align_schemas(tables):
+    # Find union of all column names and types
+    all_columns = {}
+    for table in tables:
+        for name in table.schema.names:
+            if name not in all_columns:
+                all_columns[name] = table.schema.field(name).type
+
+    # Adjust each table to have all columns
+    adjusted_tables = []
+    for table in tables:
+        table_dict = {
+            name: (
+                table.column(name)
+                if name in table.schema.names
+                else pa.array([None] * table.num_rows, type=all_columns[name])
+            )
+            for name, type in all_columns.items()
+        }
+        adjusted_table = pa.Table.from_pydict(table_dict)
+        adjusted_tables.append(adjusted_table)
+
+    return adjusted_tables

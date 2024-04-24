@@ -66,4 +66,37 @@ export class InplaceVolumetricsService {
             },
         });
     }
+    /**
+     * Get Arrow Table
+     * Get volumetric data summed per realization for a given table, result and categories/index filter.
+     * @param caseUuid Sumo case uuid
+     * @param ensembleName Ensemble name
+     * @param tableName Table name
+     * @param resultName The name of the volumetric result/response
+     * @param realizations Realizations
+     * @returns InplaceVolumetricData Successful Response
+     * @throws ApiError
+     */
+    public getArrowTable(
+        caseUuid: string,
+        ensembleName: string,
+        tableName: string,
+        resultName: InplaceVolumetricResponseNames,
+        realizations: Array<number>,
+    ): CancelablePromise<InplaceVolumetricData> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/inplace_volumetrics/arrow_table/',
+            query: {
+                'case_uuid': caseUuid,
+                'ensemble_name': ensembleName,
+                'table_name': tableName,
+                'result_name': resultName,
+                'realizations': realizations,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
 }
