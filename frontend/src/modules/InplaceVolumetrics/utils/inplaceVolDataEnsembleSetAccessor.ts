@@ -31,10 +31,8 @@ export function getGroupedInplaceVolResults(
     }
 
     const table = createTable(tableCollections);
-    console.log(table);
+
     const filteredTable = filterOnIndexValues(table, indexFilters);
-    console.log(indexFilters);
-    console.log(filteredTable);
     const groupedRows = getTableGroupingValues(filteredTable, groupBy);
     const subgroups = groupedRows.map((group) => ({
         groupName: group.key,
@@ -113,23 +111,47 @@ function sumResultValues(rows: InplaceVolTableRow[]): number[] {
 
 function createTable(tableCollections: InplaceVolDataEnsembleSet[]): InplaceVolTableRow[] {
     const table: InplaceVolTableRow[] = [];
+    const rows: InplaceVolTableRow[] = [];
     tableCollections.forEach((tableCollection) => {
-        if (tableCollection.data) {
-            const indexNames = tableCollection.data.index_names;
-
-            tableCollection.data.entries.forEach((entry) => {
-                const row: InplaceVolTableRow = {
-                    Ensemble: tableCollection.ensembleIdentString,
-                    realizations: tableCollection.data?.realizations || [],
-                };
-                entry.index_values.forEach((value, index) => {
-                    row[indexNames[index]] = value;
+        let indexNames: string[] = [];
+        // Use indix_names from the first response set that has data then break out of the loop
+        tableCollection.responseSetData.some((responseSet) => {
+            // Check if responseSet has data and indexNames is empty
+            if (responseSet.data && !indexNames.length) {
+                indexNames = responseSet.data.index_names;
+                responseSet.data.entries.forEach((entry) => {
+                    const row: InplaceVolTableRow = {
+                        Ensemble: tableCollection.ensembleIdentString,
+                        realizations: responseSet.data?.realizations || [],
+                    };
+                    entry.index_values.forEach((value, index) => {
+                        row[indexNames[index]] = value;
+                    });
+                    table.push(row);
                 });
-                row["result_values"] = entry.result_values;
+            }
+            return indexNames.length > 0;
+        });
 
-                table.push(row);
-            });
+        if (indexNames.length === 0) {
+            return [];
         }
+
+        tableCollection.responseSetData.forEach((responseSet) => {
+            if (responseSet.data) {
+                responseSet.data.entries.forEach((entry, index) => {
+                    const row: InplaceVolTableRow = {
+                        Ensemble: tableCollection.ensembleIdentString,
+                        realizations: responseSet.data?.realizations || [],
+                    };
+                    entry.index_values.forEach((value, index) => {
+                        row[indexNames[index]] = value;
+                    });
+                    table[index][responseSet.responseName] = entry.result_values;
+                });
+            }
+        });
     });
+
     return table;
 }

@@ -38,9 +38,8 @@ async def get_result_data_per_realization(
     result_name: schemas.InplaceVolumetricResponseNames = Query(
         description="The name of the volumetric result/response"
     ),
-    realizations: List[int] = Query(description="Realizations"),
 ) -> schemas.InplaceVolumetricData:
-    """Get volumetric data summed per realization for a given table, result and categories/index filter."""
+    """Get volumetric data summed per realization for a given table and result column."""
     access = await InplaceVolumetricsAccess.from_case_uuid(
         authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name
     )
@@ -48,6 +47,5 @@ async def get_result_data_per_realization(
     data = await access.get_volumetric_data_async(
         table_name=table_name,
         result_name=result_name.value,
-        realizations=realizations,
     )
     return data

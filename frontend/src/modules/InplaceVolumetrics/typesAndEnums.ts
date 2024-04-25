@@ -21,13 +21,12 @@ export enum PlotGroupingEnum {
     FACIES = "FACIES",
 }
 
-export type EnsembleIdentWithRealizations = {
-    ensembleIdent: EnsembleIdent;
-    realizations: number[];
-};
-
 export type InplaceVolDataEnsembleSet = {
     ensembleIdentString: string;
+    responseSetData: InplaceVolDataResultSet[];
+};
+export type InplaceVolDataResultSet = {
+    responseName: string;
     data: InplaceVolumetricData_api | null;
 };
 export type CombinedInplaceVolDataEnsembleSetResults = {

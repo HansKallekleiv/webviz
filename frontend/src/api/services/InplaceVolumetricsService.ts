@@ -35,12 +35,11 @@ export class InplaceVolumetricsService {
     }
     /**
      * Get Result Data Per Realization
-     * Get volumetric data summed per realization for a given table, result and categories/index filter.
+     * Get volumetric data summed per realization for a given table and result column.
      * @param caseUuid Sumo case uuid
      * @param ensembleName Ensemble name
      * @param tableName Table name
      * @param resultName The name of the volumetric result/response
-     * @param realizations Realizations
      * @returns InplaceVolumetricData Successful Response
      * @throws ApiError
      */
@@ -49,7 +48,6 @@ export class InplaceVolumetricsService {
         ensembleName: string,
         tableName: string,
         resultName: InplaceVolumetricResponseNames,
-        realizations: Array<number>,
     ): CancelablePromise<InplaceVolumetricData> {
         return this.httpRequest.request({
             method: 'GET',
@@ -59,7 +57,6 @@ export class InplaceVolumetricsService {
                 'ensemble_name': ensembleName,
                 'table_name': tableName,
                 'result_name': resultName,
-                'realizations': realizations,
             },
             errors: {
                 422: `Validation Error`,

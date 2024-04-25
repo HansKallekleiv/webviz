@@ -121,42 +121,7 @@ class InplaceVolumetricsAccess(SumoEnsemble):
                 tagname=["vol", "volumes", "inplace"],
                 iteration=self._iteration_name,
             )
-            vol_table_name_as_arr = await vol_table_as_collection.names_async
-            if len(vol_table_name_as_arr) > 1:
-                raise MultipleDataMatchesError(
-                    f"Multiple inplace volumetrics tables found in case={self._case_uuid}, iteration={self._iteration_name}, table_name={vol_table_name}",
-                    Service.SUMO,
-                )
-            vol_table_column_names = await vol_table_as_collection.columns_async
-
-            invalid_column_names = []
-            for col in vol_table_column_names:
-                if col in IGNORED_COLUMN_NAMES:
-                    continue
-                if col not in ALLOWED_INDEX_COLUMN_NAMES + ALLOWED_RESULT_COLUMN_NAMES:
-                    invalid_column_names.append(col)
-            if invalid_column_names:
-                LOGGER.warning(
-                    f"Invalid column names found in the volumetric table case={self._case_uuid}, iteration={self._iteration_name}, {invalid_column_names}"
-                )
-                # raise InvalidDataError(
-                #     f"Invalid column names found in the volumetric table case={self._case_uuid}, iteration={self._iteration_name}, {invalid_column_names}",
-                #     Service.SUMO,
-                # )
-            index_names = [col for col in vol_table_column_names if col in ALLOWED_INDEX_COLUMN_NAMES]
-
-            if len(index_names) == 0 or "GRID" in vol_table_column_names:
-                raise InvalidDataError(
-                    f"No index columns found in the volumetric table {self._case_uuid}, {vol_table_name}",
-                    Service.SUMO,
-                )
-
-            result_column_names = [col for col in vol_table_column_names if col in ALLOWED_RESULT_COLUMN_NAMES]
-            if len(result_column_names) == 0:
-                raise InvalidDataError(
-                    f"No result columns found in the volumetric table {self._case_uuid}, {vol_table_name}",
-                    Service.SUMO,
-                )
+            index_column_names, result_column_names = await self._get_index_and_result_column_names(vol_table_name)
 
             indexes = []
 
@@ -165,7 +130,7 @@ class InplaceVolumetricsAccess(SumoEnsemble):
             sumo_table_obj = await self._get_sumo_table_async(vol_table_name, result_column_names[0])
             arrow_table = await _fetch_arrow_table_async(sumo_table_obj)
 
-            for index_column_name in index_names:
+            for index_column_name in index_column_names:
                 unique_values = arrow_table[index_column_name].unique().to_pylist()
                 # Check for invalid data
                 if any([val in IGNORED_INDEX_COLUMN_VALUES for val in unique_values]):
@@ -182,11 +147,51 @@ class InplaceVolumetricsAccess(SumoEnsemble):
             )
         return table_definitions
 
+    async def _get_index_and_result_column_names(self, table_name: str) -> Tuple[List[str], List[str]]:
+        vol_table_as_collection: TableCollection = self._case.tables.filter(
+            aggregation="collection",
+            name=table_name,
+            tagname=["vol", "volumes", "inplace"],
+            iteration=self._iteration_name,
+        )
+        vol_table_name_as_arr = await vol_table_as_collection.names_async
+        if len(vol_table_name_as_arr) > 1:
+            raise MultipleDataMatchesError(
+                f"Multiple inplace volumetrics tables found in case={self._case_uuid}, iteration={self._iteration_name}, table_name={table_name}",
+                Service.SUMO,
+            )
+        vol_table_column_names = await vol_table_as_collection.columns_async
+
+        invalid_column_names = []
+        for col in vol_table_column_names:
+            if col in IGNORED_COLUMN_NAMES:
+                continue
+            if col not in ALLOWED_INDEX_COLUMN_NAMES + ALLOWED_RESULT_COLUMN_NAMES:
+                invalid_column_names.append(col)
+        if invalid_column_names:
+            LOGGER.warning(
+                f"Invalid column names found in the volumetric table case={self._case_uuid}, iteration={self._iteration_name}, {invalid_column_names}"
+            )
+        index_column_names = [col for col in vol_table_column_names if col in ALLOWED_INDEX_COLUMN_NAMES]
+
+        if len(index_column_names) == 0:
+            raise InvalidDataError(
+                f"No index columns found in the volumetric table {self._case_uuid}, {table_name}",
+                Service.SUMO,
+            )
+
+        result_column_names = [col for col in vol_table_column_names if col in ALLOWED_RESULT_COLUMN_NAMES]
+        if len(result_column_names) == 0:
+            raise InvalidDataError(
+                f"No result columns found in the volumetric table {self._case_uuid}, {table_name}",
+                Service.SUMO,
+            )
+        return index_column_names, result_column_names
+
     async def get_volumetric_data_async(
         self,
         table_name: str,
         result_name: str,
-        realizations: Sequence[int],
     ) -> InplaceVolumetricData:
         """Retrieve the volumetric data for a single result (e.g. STOIIP_OIL), optionally filtered by realizations and index values."""
         if result_name not in ALLOWED_RESULT_COLUMN_NAMES:
@@ -196,10 +201,6 @@ class InplaceVolumetricsAccess(SumoEnsemble):
             )
         sumo_table_obj = await self._get_sumo_table_async(table_name, result_name)
         arrow_table = await _fetch_arrow_table_async(sumo_table_obj)
-
-        print(arrow_table)
-        if realizations is not None:
-            arrow_table = _filter_arrow_table_by_inclusion(arrow_table, "REAL", realizations)
 
         # Get the index columns
         index_columns = [col for col in arrow_table.column_names if col in ALLOWED_INDEX_COLUMN_NAMES]

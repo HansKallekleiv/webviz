@@ -33,24 +33,28 @@ export function View(props: ModuleViewProps<State, Interface>) {
 
     const selectedEnsembleIdents = props.viewContext.useSettingsToViewInterfaceValue("selectedEnsembleIdents");
     const realizationFilterFunc = useEnsembleRealizationFilterFunc(props.workbenchSession);
-    const ensembleIdentsWithRealizations = selectedEnsembleIdents.map((ensembleIdent) => {
-        const realizations = realizationFilterFunc(ensembleIdent).map((realization) => realization);
-        return { ensembleIdent, realizations };
-    });
+
     const selectedInplaceTableName = props.viewContext.useSettingsToViewInterfaceValue("selectedInplaceTableName");
     const selectedInplaceResponseName =
         props.viewContext.useSettingsToViewInterfaceValue("selectedInplaceResponseName");
-
+    const availableInplaceResponseNames = props.viewContext.useSettingsToViewInterfaceValue(
+        "availableInplaceResponseNames"
+    );
     const inplaceDataSetResultQuery = useInplaceDataResultsQuery(
-        ensembleIdentsWithRealizations,
+        selectedEnsembleIdents,
         selectedInplaceTableName,
-        selectedInplaceResponseName as InplaceVolumetricResponseNames_api
+        availableInplaceResponseNames as InplaceVolumetricResponseNames_api[]
     );
 
     const colorBy = props.viewContext.useSettingsToViewInterfaceValue("colorBy");
     const groupBy = props.viewContext.useSettingsToViewInterfaceValue("groupBy");
 
     const selectedInplaceIndexesValues = props.viewContext.useSettingsToViewInterfaceValue("selectedInplaceCategories");
+
+    const ensembleIdentsWithRealizations = selectedEnsembleIdents.map((ensembleIdent) => {
+        const realizations = realizationFilterFunc(ensembleIdent).map((realization) => realization);
+        return { ensembleIdent, realizations };
+    });
 
     const data: InplaceVolGroupedResultValues[] = inplaceDataSetResultQuery.someQueriesFailed
         ? []

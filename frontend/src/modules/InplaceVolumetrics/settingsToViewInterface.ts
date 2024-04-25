@@ -4,6 +4,7 @@ import { InterfaceInitialization } from "@framework/UniDirectionalSettingsToView
 
 import { colorByAtom, groupByAtom } from "./settings/atoms/baseAtoms";
 import {
+    availableInplaceResponsesAtom,
     selectedEnsembleIdentsAtom,
     selectedInplaceCategoriesAtom,
     selectedInplaceResponseAtom,
@@ -19,6 +20,7 @@ export type Interface = {
         selectedEnsembleIdents: EnsembleIdent[];
         selectedInplaceTableName: string | null;
         selectedInplaceResponseName: string | null;
+        availableInplaceResponseNames: string[];
         selectedInplaceCategories: InplaceVolumetricsIndex_api[];
     };
 };
@@ -40,6 +42,9 @@ export const interfaceInitialization: InterfaceInitialization<Interface> = {
         },
         selectedInplaceResponseName: (get) => {
             return get(selectedInplaceResponseAtom);
+        },
+        availableInplaceResponseNames: (get) => {
+            return get(availableInplaceResponsesAtom);
         },
         selectedInplaceCategories: (get) => {
             return get(selectedInplaceCategoriesAtom);

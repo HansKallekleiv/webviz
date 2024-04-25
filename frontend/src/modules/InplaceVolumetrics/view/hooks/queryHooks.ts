@@ -1,29 +1,42 @@
 import { InplaceVolumetricResponseNames_api } from "@api";
 import { apiService } from "@framework/ApiService";
+import { EnsembleIdent } from "@framework/EnsembleIdent";
 import {
     CombinedInplaceVolDataEnsembleSetResults,
-    EnsembleIdentWithRealizations,
     InplaceVolDataEnsembleSet,
+    InplaceVolDataResultSet,
 } from "@modules/InplaceVolumetrics/typesAndEnums";
 import { useQueries } from "@tanstack/react-query";
 
 const STALE_TIME = 60 * 1000;
 const CACHE_TIME = 60 * 1000;
 export function useInplaceDataResultsQuery(
-    ensembleIdentsWithRealizations: EnsembleIdentWithRealizations[],
+    ensembleIdents: EnsembleIdent[],
     tableName: string | null,
-    responseName: InplaceVolumetricResponseNames_api | null
+    responseNames: InplaceVolumetricResponseNames_api[]
 ): CombinedInplaceVolDataEnsembleSetResults {
     return useQueries({
-        queries: ensembleIdentsWithRealizations.map((ensembleIdentWithReals) =>
-            createQueryForInplaceDataResults(ensembleIdentWithReals, tableName, responseName)
+        queries: ensembleIdents.flatMap((ensembleIdent) =>
+            responseNames.map((responseName) =>
+                createQueryForInplaceDataResults(ensembleIdent, tableName, responseName)
+            )
         ),
         combine: (results) => {
-            const combinedResult: InplaceVolDataEnsembleSet[] = [];
-            results.forEach((result, index) => {
-                combinedResult.push({
-                    ensembleIdentString: ensembleIdentsWithRealizations[index]?.ensembleIdent.toString() || "",
-                    data: result.data ? result.data : null,
+            const ensembleSetData: InplaceVolDataEnsembleSet[] = [];
+
+            ensembleIdents.forEach((ensembleIdent, ensembleIndex) => {
+                const responseSetData: InplaceVolDataResultSet[] = [];
+                responseNames.forEach((responseName, responseIndex) => {
+                    const result = results[ensembleIndex * responseNames.length + responseIndex];
+                    responseSetData.push({
+                        responseName: responseName.toString(), // Assuming .toString() is suitable for your use case
+                        data: result.data || null,
+                    });
+                });
+
+                ensembleSetData.push({
+                    ensembleIdentString: ensembleIdent?.toString() || "",
+                    responseSetData: responseSetData,
                 });
             });
 
@@ -31,35 +44,28 @@ export function useInplaceDataResultsQuery(
                 someQueriesFailed: results.some((result) => result.isError),
                 allQueriesFailed: results.every((result) => result.isError),
                 isFetching: results.some((result) => result.isFetching),
-                ensembleSetData: combinedResult,
+                ensembleSetData: ensembleSetData,
             };
         },
     });
 }
 
 export function createQueryForInplaceDataResults(
-    ensIdentWithReals: EnsembleIdentWithRealizations,
+    ensembleIdent: EnsembleIdent,
     tableName: string | null,
     responseName: InplaceVolumetricResponseNames_api | null
 ) {
     return {
-        queryKey: [
-            "getInplaceDataResults",
-            ensIdentWithReals.ensembleIdent.toString(),
-            tableName,
-            responseName,
-            JSON.stringify(ensIdentWithReals.realizations),
-        ],
+        queryKey: ["getInplaceDataResults", ensembleIdent.toString(), tableName, responseName],
         queryFn: () =>
             apiService.inplaceVolumetrics.getResultDataPerRealization(
-                ensIdentWithReals.ensembleIdent.getCaseUuid(),
-                ensIdentWithReals.ensembleIdent.getEnsembleName(),
+                ensembleIdent.getCaseUuid(),
+                ensembleIdent.getEnsembleName(),
                 tableName ?? "",
-                responseName ?? InplaceVolumetricResponseNames_api.STOIIP_OIL,
-                ensIdentWithReals.realizations ?? []
+                responseName ?? InplaceVolumetricResponseNames_api.STOIIP_OIL
             ),
         staleTime: STALE_TIME,
         gcTime: CACHE_TIME,
-        enabled: Boolean(ensIdentWithReals && tableName && responseName),
+        enabled: Boolean(ensembleIdent && tableName && responseName),
     };
 }
