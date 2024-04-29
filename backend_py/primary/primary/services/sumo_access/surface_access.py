@@ -24,6 +24,7 @@ class SurfaceAccess(SumoEnsemble):
         surface_collection: SurfaceCollection = self._case.surfaces.filter(
             iteration=self._iteration_name,
             aggregation=False,
+            dataformat="irap_binary",
             realization=self._case.get_realizations(iteration=self._iteration_name)[0],
         )
 
@@ -42,15 +43,16 @@ class SurfaceAccess(SumoEnsemble):
             # Remove this once Sumo enforces content (content-unset)
             # https://github.com/equinor/webviz/issues/433
 
-            if content == "unset":
-                LOGGER.info(
-                    f"Surface {surf['data']['name']} has unset content. Defaulting temporarily to depth until enforced by dataio."
-                )
-                content = SumoContent.DEPTH
+            # if content == "unset":
+            #     LOGGER.info(
+            #         f"Surface {surf['data']['name']} has unset content. Defaulting temporarily to depth until enforced by dataio."
+            #     )
+            #     content = SumoContent.DEPTH
 
             # Remove this once Sumo enforces tagname (tagname-unset)
             # https://github.com/equinor/webviz/issues/433
             tagname = surf["data"].get("tagname", "")
+            print("*************************", surf["data"])
             if tagname == "":
                 LOGGER.info(
                     f"Surface {surf['data']['name']} has empty tagname. Defaulting temporarily to Unknown until enforced by dataio."
@@ -139,6 +141,7 @@ class SurfaceAccess(SumoEnsemble):
             name=name,
             tagname=tagname,
             time=time_filter,
+            dataformat="irap_binary",
         )
 
         surf_count = await surface_collection.length_async()
@@ -210,6 +213,7 @@ class SurfaceAccess(SumoEnsemble):
             name=name,
             tagname=attribute,
             time=time_filter,
+            dataformat="irap_binary",
         )
 
         surf_count = await surface_collection.length_async()
