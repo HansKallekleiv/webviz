@@ -30,7 +30,7 @@ export function useInplaceDataResultsQuery(
                     const result = results[ensembleIndex * responseNames.length + responseIndex];
                     responseSetData.push({
                         responseName: responseName.toString(), // Assuming .toString() is suitable for your use case
-                        data: result.data || null,
+                        data: result?.data || null,
                     });
                 });
 

@@ -25,7 +25,12 @@ import { useInplaceDataResultsQuery } from "./hooks/queryHooks";
 import { Interface } from "../settingsToViewInterface";
 import { State } from "../state";
 import { PlotGroupingEnum } from "../typesAndEnums";
-import { InplaceVolGroupedResultValues, getGroupedInplaceVolResults } from "../utils/inplaceVolDataEnsembleSetAccessor";
+import {
+    InplaceVolGroupedResultValues,
+    createInplaceVolTable,
+    filterInplaceVolTableOnIndex,
+    getGroupedInplaceVolResult,
+} from "../utils/inplaceVolDataEnsembleSetAccessor";
 
 export function View(props: ModuleViewProps<State, Interface>) {
     const wrapperDivRef = React.useRef<HTMLDivElement>(null);
@@ -56,14 +61,13 @@ export function View(props: ModuleViewProps<State, Interface>) {
         return { ensembleIdent, realizations };
     });
 
-    const data: InplaceVolGroupedResultValues[] = inplaceDataSetResultQuery.someQueriesFailed
-        ? []
-        : getGroupedInplaceVolResults(
-              inplaceDataSetResultQuery.ensembleSetData,
-              selectedInplaceIndexesValues,
-              groupBy,
-              colorBy
-          );
+    let data: InplaceVolGroupedResultValues[] = [];
+    if (!inplaceDataSetResultQuery.someQueriesFailed) {
+        const table = createInplaceVolTable(inplaceDataSetResultQuery.ensembleSetData);
+        console.log(table);
+        const filteredTable = filterInplaceVolTableOnIndex(table, selectedInplaceIndexesValues);
+        data = getGroupedInplaceVolResult(filteredTable, selectedInplaceResponseName || "", groupBy, colorBy);
+    }
 
     const resultValues: InplaceResultValues = {
         groupByName: groupBy,
