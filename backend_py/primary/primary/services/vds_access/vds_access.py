@@ -4,6 +4,8 @@ import json
 
 import numpy as np
 from numpy.typing import NDArray
+from xtgeo import RegularSurface as XtgeoRegularSurface
+
 from requests_toolbelt.multipart.decoder import MultipartDecoder, BodyPart
 import httpx
 
@@ -17,6 +19,8 @@ from .request_types import (
     VdsFenceRequest,
     VdsRequestedResource,
     VdsMetadataRequest,
+    VdsRegularSurface,
+    VdsAttributeAlongSurfaceRequest,
 )
 
 
@@ -186,3 +190,65 @@ class VdsAccess:
         flattened_fence_traces_float32_array[flattened_fence_traces_float32_array == hard_coded_fill_value] = np.nan
 
         return (flattened_fence_traces_float32_array, num_traces, num_samples_per_trace)
+
+    async def get_attribute_along_surface_as_xtgeo_surface(
+        self, xtgeo_surface: XtgeoRegularSurface, above: float, below: float
+    ) -> XtgeoRegularSurface:
+        """ """
+
+        endpoint = "attributes/surface/along"
+
+        # Temporary hard coded fill value for points outside of the seismic cube.
+        # If no fill value is provided in the request is rejected with error if list of coordinates
+        # contain points outside of the seismic cube.
+        hard_coded_fill_value = -999.25
+        vds_surface = VdsRegularSurface.from_xtgeo_surface(xtgeo_surface, hard_coded_fill_value)
+
+        surface_attribute_request = VdsAttributeAlongSurfaceRequest(
+            vds=self.vds_url,
+            sas=self.sas,
+            surface=vds_surface,
+            above=above,
+            below=below,
+        )
+
+        # Fence query returns two parts - metadata and data
+        response = await self._query_async(endpoint, surface_attribute_request)
+
+        # Use MultipartDecoder with httpx's Response content and headers
+        decoder = MultipartDecoder(content=response.content, content_type=response.headers["Content-Type"])
+        parts = decoder.parts
+
+        # Validate parts from decoded response
+        if len(parts) != 2 or not parts[0].content or not parts[1].content:
+            raise ValueError(f"Expected two parts, got {len(parts)}")
+
+        # Expect each part in parts tuple to be BodyPart
+        if not isinstance(parts[0], BodyPart) or not isinstance(parts[1], BodyPart):
+            raise ValueError(f"Expected parts to be BodyPart, got {type(parts[0])}, {type(parts[1])}")
+
+        metadata = VdsFenceMetadata(**json.loads(parts[0].content))
+        byte_array = parts[1].content
+
+        if metadata.format != "<f4":
+            raise ValueError(f"Expected float32, got {metadata.format}")
+
+        if len(metadata.shape) != 2:
+            raise ValueError(f"Expected shape to be 2D, got {metadata.shape}")
+
+        # fence array data: [[t11, t12, ..., t1n], [t21, t22, ..., t2n], ..., [tm1, tm2, ..., tmn]]
+        # m = num_traces, n = num_samples_per_trace
+        num_traces = metadata.shape[0]
+        num_samples_per_trace = metadata.shape[1]
+
+        # Flattened array with row major order, i.e. C-order in numpy
+        flattened_fence_traces_float32_array = bytes_to_flatten_ndarray_float32(byte_array, shape=metadata.shape)
+
+        # Convert every value of `hard_coded_fill_value` to np.nan
+        flattened_fence_traces_float32_array[flattened_fence_traces_float32_array == hard_coded_fill_value] = np.nan
+        values = bytes_to_ndarray_float32(byte_array, metadata.shape)
+        # Mask with fill value
+        values = np.ma.masked_equal(values, hard_coded_fill_value)
+        xtgeo_surface.values = values
+
+        return xtgeo_surface

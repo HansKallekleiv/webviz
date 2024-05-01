@@ -1,6 +1,9 @@
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import List
+from typing import List, Union
+
+import numpy as np
+import xtgeo
 
 ######################################################################################################
 #
@@ -73,6 +76,43 @@ class VdsCoordinates:
 
 
 @dataclass
+class VdsRegularSurface:
+    def __init__(
+        self, values: np.ndarray, xori: float, yori: float, xinc: int, yinc: int, rot: float, fillvalue: float = -999.55
+    ) -> None:
+        self.values = values
+        self.xori = xori
+        self.yori = yori
+        self.xinc = xinc
+        self.yinc = yinc
+        self.rot = rot
+        self.fillvalue = fillvalue
+
+    @classmethod
+    def from_xtgeo_surface(cls, surface: xtgeo.RegularSurface, fillvalue: float = -999.55) -> "VdsRegularSurface":
+        return cls(
+            values=surface.values,
+            xori=surface.xori,
+            yori=surface.yori,
+            xinc=surface.xinc,
+            yinc=surface.yinc,
+            rot=surface.rotation,
+            fillvalue=fillvalue,
+        )
+
+    def to_dict(self) -> dict[str, Union[List[float], Union[float, int]]]:
+        return {
+            "values": self.values.tolist(),
+            "xori": self.xori,
+            "yori": self.yori,
+            "xinc": self.xinc,
+            "yinc": self.yinc,
+            "rotation": self.rot,
+            "fillValue": self.fillvalue,
+        }
+
+
+@dataclass
 class VdsRequestedResource:
     """
     Definition of requested vds resource for vds-slice
@@ -118,4 +158,27 @@ class VdsFenceRequest(VdsRequestedResource):
             "coordinates": self.coordinates.to_list(),
             "interpolation": self.interpolation.value,
             "fillValue": self.fill_value,
+        }
+
+
+@dataclass
+class VdsAttributeAlongSurfaceRequest(VdsRequestedResource):
+    """
+    Definition of a fence request struct for vds-slice
+
+    See: https://github.com/equinor/vds-slice/blob/ab6f39789bf3d3b59a8df14f1c4682d340dc0bf3/api/request.go#L76-L105
+    """
+
+    surface: VdsRegularSurface
+    above: float
+    below: float
+
+    def request_parameters(self) -> dict:
+        return {
+            "vds": self.vds,
+            "sas": self.sas,
+            "surface": self.surface.to_dict(),
+            "above": self.above,
+            "below": self.below,
+            "attributes": ["mean"],
         }
