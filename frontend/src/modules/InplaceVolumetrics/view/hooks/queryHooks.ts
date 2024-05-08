@@ -22,7 +22,7 @@ export function useInplaceDataResultsQuery(
             const combinedResult: InplaceVolDataEnsembleSet[] = [];
             results.forEach((result, index) => {
                 combinedResult.push({
-                    ensembleIdentString: ensembleIdentsWithRealizations[index]?.ensembleIdent.toString() || "",
+                    ensembleIdentString: ensembleIdentsWithRealizations[index]?.ensembleIdent.getEnsembleName() || "",
                     data: result.data ? result.data : null,
                 });
             });
@@ -45,7 +45,7 @@ export function createQueryForInplaceDataResults(
     return {
         queryKey: [
             "getInplaceDataResults",
-            ensIdentWithReals.ensembleIdent.toString(),
+            ensIdentWithReals.ensembleIdent.getEnsembleName(),
             tableName,
             responseName,
             JSON.stringify(ensIdentWithReals.realizations),

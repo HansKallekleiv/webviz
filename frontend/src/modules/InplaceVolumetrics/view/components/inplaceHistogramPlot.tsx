@@ -1,5 +1,6 @@
 import Plot from "react-plotly.js";
 
+import { InplaceVolumetricResponseNames_api } from "@api";
 import { InplaceVolGroupedResultValues } from "@modules/InplaceVolumetrics/utils/inplaceVolDataEnsembleSetAccessor";
 import { computeQuantile } from "@modules/_shared/statistics";
 
@@ -26,6 +27,7 @@ export type InplaceResultValues = {
 };
 export type InplaceHistogramPlotProps = {
     resultValues: InplaceResultValues;
+    resultName: string | null;
     width: number;
     height: number;
 };
@@ -50,7 +52,7 @@ export function InplaceHistogramPlot(props: InplaceHistogramPlotProps): React.Re
                 minGroupValue = Math.min(minGroupValue, min);
                 maxGroupValue = Math.max(maxGroupValue, max);
             });
-            const binSize = (maxGroupValue - minGroupValue) / 20;
+            const binSize = (maxGroupValue - minGroupValue) / 40;
 
             subPlot.subgroups.forEach((subgroup) => {
                 const shouldShowLegend = !addedLegendNames.has(subgroup.subgroupName.toString());
@@ -85,6 +87,7 @@ export function InplaceHistogramPlot(props: InplaceHistogramPlotProps): React.Re
         const layout: any = {
             height: props.height,
             width: props.width,
+            title: props.resultName,
             showlegend: true,
             margin: { l: 50, r: 0, b: 50, t: 50 },
             grid: { rows: numRows, columns: numColumns, pattern: "independent" },

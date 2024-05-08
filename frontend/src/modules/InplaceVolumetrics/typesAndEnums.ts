@@ -14,6 +14,7 @@ export type CombinedInplaceVolTableInfoResults = {
 };
 
 export enum PlotGroupingEnum {
+    NONE = "No grouping",
     ENSEMBLE = "Ensemble",
     ZONE = "ZONE",
     REGION = "REGION",

@@ -24,17 +24,20 @@ export function getGroupedInplaceVolResults(
     subgroupBy: string
 ): InplaceVolGroupedResultValues[] {
     console.time("getInplaceDataResults");
-    if (groupBy !== PlotGroupingEnum.ENSEMBLE && subgroupBy !== PlotGroupingEnum.ENSEMBLE) {
+    if (
+        groupBy !== PlotGroupingEnum.ENSEMBLE &&
+        subgroupBy !== PlotGroupingEnum.ENSEMBLE &&
+        groupBy !== PlotGroupingEnum.NONE &&
+        subgroupBy !== PlotGroupingEnum.NONE
+    ) {
         if (tableCollections.length > 1) {
             throw new Error("Only one table collection is allowed when groupBy and subgroupBy are not ENSEMBLE");
         }
     }
 
     const table = createTable(tableCollections);
-    console.log(table);
     const filteredTable = filterOnIndexValues(table, indexFilters);
-    console.log(indexFilters);
-    console.log(filteredTable);
+
     const groupedRows = getTableGroupingValues(filteredTable, groupBy);
     const subgroups = groupedRows.map((group) => ({
         groupName: group.key,
@@ -49,6 +52,9 @@ function getTableGroupingValues(
     groupByIndexName: keyof InplaceVolTableRow
 ): { key: string | number; rows: InplaceVolTableRow[] }[] {
     const acc: Record<string | number, InplaceVolTableRow[]> = {};
+    if (groupByIndexName === PlotGroupingEnum.NONE) {
+        return [{ key: "All", rows: table }];
+    }
     table.forEach((row) => {
         const groupByValue = row[groupByIndexName];
         if (groupByValue !== undefined) {

@@ -64,6 +64,7 @@ export function View(props: ModuleViewProps<State, Interface>) {
         <div className="w-full h-full" ref={wrapperDivRef}>
             <InplaceHistogramPlot
                 resultValues={resultValues}
+                resultName={selectedInplaceResponseName}
                 width={wrapperDivSize.width}
                 height={wrapperDivSize.height}
             />
