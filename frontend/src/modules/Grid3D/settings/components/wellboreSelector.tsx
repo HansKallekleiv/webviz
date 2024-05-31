@@ -1,6 +1,7 @@
 import React from "react";
 
 import { WellboreHeader_api } from "@api";
+import { Label } from "@lib/components/Label";
 import { Select, SelectOption } from "@lib/components/Select";
 import { Deselect, SelectAll } from "@mui/icons-material";
 
@@ -20,8 +21,12 @@ export function WellboreSelector(props: WellboreSelectorProps): React.ReactNode 
     return (
         <div className="flex flex-col gap-2 text-sm">
             <div className="flex gap-2 items-center">
-                <SelectAll titleAccess={"Select all"} onClick={handleSelectAll} />
-                <Deselect titleAccess={"Select none"} onClick={handleSelectNone} />
+                <Label text="All" position="above">
+                    <SelectAll titleAccess={"Select all"} className="cursor-pointer" onClick={handleSelectAll} />
+                </Label>{" "}
+                <Label text="None" position="above">
+                    <Deselect titleAccess={"Select none"} className="cursor-pointer" onClick={handleSelectNone} />
+                </Label>
             </div>
             <Select
                 options={makeWellHeadersOptions(props.wellboreHeaders)}

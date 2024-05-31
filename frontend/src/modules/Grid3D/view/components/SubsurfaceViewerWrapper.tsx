@@ -573,7 +573,7 @@ export function SubsurfaceViewerWrapper(props: SubsurfaceViewerWrapperProps): Re
                         top: 10,
                     },
                 }}
-                coords={{ visible: false, multiPicking: polylineEditPointsModusActive }}
+                coords={{ visible: true, multiPicking: polylineEditPointsModusActive, pickDepth: 2 }}
                 colorTables={props.colorTables}
                 onMouseEvent={handleMouseEvent}
                 userCameraInteractionActive={userCameraInteractionActive}
