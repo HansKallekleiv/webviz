@@ -6,7 +6,7 @@ export type InplaceVolumetricsInfoWithEnsembleIdent = InplaceVolumetricsTableDef
 };
 
 export enum FluidZoneTypeEnum {
-    OIL = "Oil",
-    GAS = "Gas",
-    WATER = "Water",
+    OIL = "OIL",
+    GAS = "GAS",
+    WATER = "WATER",
 }

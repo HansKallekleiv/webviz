@@ -6,6 +6,7 @@ import { ModuleViewProps } from "@framework/Module";
 import { useEnsembleRealizationFilterFunc } from "@framework/WorkbenchSession";
 import { useElementSize } from "@lib/hooks/useElementSize";
 import { ColorSet } from "@lib/utils/ColorSet";
+import { responseNamesToStandardResponseNames } from "@modules/_shared/InplaceVolumetrics/InplaceVolumetricsTablesInfoAccessor";
 
 import { InplaceDistributionPlot, InplaceResultValues } from "./components/InplaceDistributionPlot";
 import { useInplaceDataResultsQuery } from "./hooks/queryHooks";
@@ -28,13 +29,17 @@ export function View(props: ModuleViewProps<State, Interface>) {
     const selectedInplaceTableName = props.viewContext.useSettingsToViewInterfaceValue("selectedInplaceTableName");
     const selectedInplaceResponseName =
         props.viewContext.useSettingsToViewInterfaceValue("selectedInplaceResponseName");
-
+    const selectedInplaceFluidZones = props.viewContext.useSettingsToViewInterfaceValue("selectedInplaceFluidZones");
+    const responseNamesToStandard = responseNamesToStandardResponseNames(
+        selectedInplaceResponseName ? [selectedInplaceResponseName] : [],
+        selectedInplaceFluidZones
+    );
     const selectedInplaceIndexesValues = props.viewContext.useSettingsToViewInterfaceValue("selectedInplaceIndexes");
 
     const inplaceDataSetResultQuery = useInplaceDataResultsQuery(
         ensembleIdentsWithRealizations,
         selectedInplaceTableName,
-        selectedInplaceResponseName as InplaceVolumetricResponseNames_api,
+        responseNamesToStandard[0] as InplaceVolumetricResponseNames_api,
         selectedInplaceIndexesValues as InplaceVolumetricsIndex_api[]
     );
     const plotType = props.viewContext.useSettingsToViewInterfaceValue("plotType");

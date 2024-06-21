@@ -118,3 +118,22 @@ export class InplaceVolumesTablesInfoAccessor {
         }));
     }
 }
+export function responseNamesToStandardResponseNames(
+    responseNames: string[],
+    fluidZones: FluidZoneTypeEnum[]
+): string[] {
+    const realResponseNames = new Set<string>();
+    for (const responseName of responseNames) {
+        if (responseName === "STOIIP_TOTAL") {
+            realResponseNames.add("STOIIP_OIL");
+            realResponseNames.add("ASSOCIATEDOIL_GAS");
+        } else if (responseName === "GIIP_TOTAL") {
+            realResponseNames.add("GIIP_GAS");
+            realResponseNames.add("ASSOCIATEDGAS_OIL");
+        } else
+            for (const fluidZone of fluidZones) {
+                realResponseNames.add(`${responseName}_${fluidZone}`);
+            }
+    }
+    return Array.from(realResponseNames);
+}

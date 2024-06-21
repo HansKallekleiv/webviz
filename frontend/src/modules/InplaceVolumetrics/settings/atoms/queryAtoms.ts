@@ -39,8 +39,8 @@ export const inplaceTableInfosQueryAtom = atomWithQueries((get) => {
         results: UseQueryResult<InplaceVolumetricsTableDefinition_api[], Error>[]
     ): CombinedInplaceVolTableInfoResults {
         const tableInfos = selectedEnsembleIdents.flatMap((ensembleIdent, idx) => {
-            const data = results[idx]?.data ?? [];
-            return data.map((tableInfo) => {
+            const ensembleTableInfos = results[idx]?.data ?? [];
+            return ensembleTableInfos.map((tableInfo) => {
                 return {
                     ...tableInfo,
                     ensembleIdent: ensembleIdent,
