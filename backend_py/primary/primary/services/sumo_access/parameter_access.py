@@ -2,7 +2,7 @@ import logging
 from io import BytesIO
 from typing import List, Optional
 
-import pandas as pd
+import polars as pl
 import pyarrow as pa
 import pyarrow.parquet as pq
 from fmu.sumo.explorer.objects import Case
@@ -71,7 +71,6 @@ def create_ensemble_sensitivities(
     sumo_ensemble_parameters: List[EnsembleParameter],
 ) -> Optional[List[EnsembleSensitivity]]:
     """Extract sensitivities from a list of SumoEnsembleParameter objects"""
-    sensitivities = []
 
     sens_name_parameter = next(
         (parameter for parameter in sumo_ensemble_parameters if parameter.name == "SENSNAME"),
@@ -83,22 +82,27 @@ def create_ensemble_sensitivities(
     )
     if sens_case_parameter is None or sens_name_parameter is None:
         return None
-    df = pd.DataFrame(
+
+    df = pl.DataFrame(
         {
             "name": sens_name_parameter.values,
             "case": sens_case_parameter.values,
             "REAL": sens_case_parameter.realizations,
         }
     )
-    for name, group in df.groupby("name"):
+
+    sensitivities = []
+    for name in df["name"].unique():
+        sens_name_df = df.filter(pl.col("name") == name)
+        sens_case_names = sens_name_df.get_column("case").unique().to_list()
         sensitivities.append(
             EnsembleSensitivity(
                 name=name,
-                type=find_sensitivity_type(list(group["case"].unique())),
-                cases=create_ensemble_sensitivity_cases(group),
+                type=find_sensitivity_type(sens_case_names),
+                cases=create_ensemble_sensitivity_cases(sens_name_df),
             )
         )
-    return sensitivities if sensitivities else None
+    return sensitivities
 
 
 def find_sensitivity_type(sens_case_names: List[str]) -> SensitivityType:
@@ -108,19 +112,13 @@ def find_sensitivity_type(sens_case_names: List[str]) -> SensitivityType:
     return SensitivityType.SCENARIO
 
 
-def create_ensemble_sensitivity_cases(
-    df: pd.DataFrame,
-) -> List[EnsembleSensitivityCase]:
+def create_ensemble_sensitivity_cases(df: pl.DataFrame) -> List[EnsembleSensitivityCase]:
     """Create a list of EnsembleSensitivityCase objects from a dataframe"""
-    cases = []
-    for case_name, case_df in df.groupby("case"):
-        cases.append(
-            EnsembleSensitivityCase(
-                name=case_name,
-                realizations=case_df["REAL"].unique().tolist(),
-            )
-        )
-    return cases
+
+    return [
+        EnsembleSensitivityCase(name=str(case_name[0]), realizations=case_df["REAL"].unique().to_list())
+        for case_name, case_df in df.group_by("case")
+    ]
 
 
 def parameter_table_to_ensemble_parameters(parameter_table: pa.Table) -> List[EnsembleParameter]:
@@ -134,20 +132,37 @@ def parameter_table_to_ensemble_parameters(parameter_table: pa.Table) -> List[En
             continue
         for parameter_name in parameter_names:
             is_logarithmic = parameter_name in parameter_group_dict.get(f"LOG10_{group_name}", [])
-            table_column_name = _parameter_name_and_group_name_to_parameter_str(parameter_name, group_name)
-            ensemble_parameters.append(
-                EnsembleParameter(
-                    name=parameter_name,
-                    group_name=f"LOG10_{group_name}" if is_logarithmic else group_name,
-                    is_logarithmic=is_logarithmic,
-                    is_numerical=parameter_table.schema.field(table_column_name).type != pa.string,
-                    is_constant=len(set(parameter_table[table_column_name])) == 1,
-                    descriptive_name=parameter_name,
-                    values=parameter_table[table_column_name].to_numpy().tolist(),
-                    realizations=parameter_table["REAL"].to_numpy().tolist(),
-                )
-            )
+            ensemble_parameter = create_ensemble_parameter(parameter_table, parameter_name, is_logarithmic, group_name)
+            ensemble_parameters.append(ensemble_parameter)
     return ensemble_parameters
+
+
+def create_ensemble_parameter(
+    parameter_table: pa.Table, parameter_name: str, is_logarithmic: bool, group_name: Optional[str]
+) -> EnsembleParameter:
+    """Create an EnsembleParameter object from a parameter table"""
+    table_column_name = _parameter_name_and_group_name_to_parameter_str(parameter_name, group_name)
+
+    return EnsembleParameter(
+        name=parameter_name,
+        group_name=f"LOG10_{group_name}" if is_logarithmic else group_name,
+        is_logarithmic=is_logarithmic,
+        is_numerical=is_arrow_table_column_numerical(parameter_table, table_column_name),
+        is_constant=is_arrow_table_column_constant(parameter_table, table_column_name),
+        descriptive_name=parameter_name,
+        values=parameter_table[table_column_name].to_numpy().tolist(),
+        realizations=parameter_table["REAL"].to_numpy().tolist(),
+    )
+
+
+def is_arrow_table_column_numerical(table: pa.Table, column_name: str) -> bool:
+    """Check if a column in an arrow table is numerical"""
+    return table.schema.field(column_name).type != pa.string
+
+
+def is_arrow_table_column_constant(table: pa.Table, column_name: str) -> bool:
+    """Check if a column in an arrow table is constant"""
+    return len(set(table[column_name])) == 1
 
 
 def _parameter_name_and_group_name_to_parameter_str(parameter_name: str, group_name: Optional[str]) -> str:
