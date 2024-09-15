@@ -17,6 +17,7 @@ import { PolygonsService } from './services/PolygonsService';
 import { PvtService } from './services/PvtService';
 import { RftService } from './services/RftService';
 import { SeismicService } from './services/SeismicService';
+import { StratigraphyService } from './services/StratigraphyService';
 import { SurfaceService } from './services/SurfaceService';
 import { TimeseriesService } from './services/TimeseriesService';
 import { VfpService } from './services/VfpService';
@@ -36,6 +37,7 @@ export class ApiService {
     public readonly pvt: PvtService;
     public readonly rft: RftService;
     public readonly seismic: SeismicService;
+    public readonly stratigraphy: StratigraphyService;
     public readonly surface: SurfaceService;
     public readonly timeseries: TimeseriesService;
     public readonly vfp: VfpService;
@@ -66,6 +68,7 @@ export class ApiService {
         this.pvt = new PvtService(this.request);
         this.rft = new RftService(this.request);
         this.seismic = new SeismicService(this.request);
+        this.stratigraphy = new StratigraphyService(this.request);
         this.surface = new SurfaceService(this.request);
         this.timeseries = new TimeseriesService(this.request);
         this.vfp = new VfpService(this.request);

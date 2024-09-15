@@ -1,5 +1,6 @@
-import { SurfaceDataPng_api, SurfaceTimeType_api } from "@api";
+import { PolygonsMeta_api, SurfaceDataPng_api, SurfaceTimeType_api } from "@api";
 import { apiService } from "@framework/ApiService";
+import { EnsembleIdent } from "@framework/EnsembleIdent";
 import { ItemDelegate } from "@modules/LayerSpike/layers/delegates/ItemDelegate";
 import { LayerDelegate } from "@modules/LayerSpike/layers/delegates/LayerDelegate";
 import { CACHE_TIME, STALE_TIME } from "@modules/LayerSpike/layers/queryConstants";
@@ -10,6 +11,7 @@ import { encodeSurfAddrStr } from "@modules/_shared/Surface/surfaceAddress";
 import { QueryClient } from "@tanstack/react-query";
 
 import { isEqual } from "lodash";
+import { StratigraphicUnit } from "src/api/models/StratigraphicUnit";
 
 import { RealizationSurfaceContext } from "./RealizationSurfaceContext";
 import { RealizationSurfaceSettings } from "./types";
@@ -76,15 +78,67 @@ export class RealizationSurfaceLayer
 
         this._layerDelegate.registerQueryKey(queryKey);
 
-        const promise = queryClient
-            .fetchQuery({
-                queryKey,
-                queryFn: () => apiService.surface.getSurfaceData(surfAddrStr ?? "", "png", null),
-                staleTime: STALE_TIME,
-                gcTime: CACHE_TIME,
-            })
-            .then((data) => transformSurfaceData(data));
+        //tthis doesnt work
+        return findFaultPolygonsBySurfaceName(queryClient, ensembleIdent, realizationNum, surfaceName).then(
+            (polygonsMeta) => {
+                const promise = queryClient
+                    .fetchQuery({
+                        queryKey,
+                        queryFn: () => apiService.surface.getSurfaceData(surfAddrStr ?? "", "png", null),
+                        staleTime: STALE_TIME,
+                        gcTime: CACHE_TIME,
+                    })
+                    .then((data) => transformSurfaceData(data));
 
-        return promise;
+                return promise;
+            }
+        );
     }
+}
+
+async function findFaultPolygonsBySurfaceName(
+    queryClient: QueryClient,
+    ensembleIdent: EnsembleIdent | null,
+    realizationNum: number | null,
+    surfaceName: string | null
+): Promise<PolygonsMeta_api | null> {
+    const [polygonsInfo, stratigraphicUnits] = await Promise.all([
+        queryClient.fetchQuery({
+            queryKey: ["getRealizationPolysMetadata", ensembleIdent, realizationNum],
+            queryFn: () =>
+                apiService.polygons.getPolygonsDirectory(
+                    ensembleIdent?.getCaseUuid() ?? "",
+                    ensembleIdent?.getEnsembleName() ?? ""
+                ),
+            staleTime: STALE_TIME,
+            gcTime: CACHE_TIME,
+        }),
+        queryClient.fetchQuery({
+            queryKey: ["getStratigraphicUnits", ensembleIdent?.getCaseUuid()],
+            queryFn: () => apiService.stratigraphy.getStratigraphicUnits(ensembleIdent?.getCaseUuid() ?? ""),
+            staleTime: STALE_TIME,
+            gcTime: CACHE_TIME,
+        }),
+    ]);
+
+    // First try to match surfaceName on polygonsInfo array
+    let found = polygonsInfo.find((poly) => poly.name === surfaceName);
+    if (found) {
+        return found;
+    }
+
+    // Then try to lookup surface name from stratigraphicUnit
+    let stratigraphicUnit = stratigraphicUnits.find((unit) => unit.identifier === surfaceName);
+    if (stratigraphicUnit) {
+        found = polygonsInfo.find((poly) => poly.name === stratigraphicUnit.top);
+        if (found) {
+            return found;
+        }
+        found = polygonsInfo.find((poly) => poly.name === stratigraphicUnit.base);
+        if (found) {
+            return found;
+        }
+    }
+
+    return null;
 }

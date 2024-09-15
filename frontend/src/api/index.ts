@@ -121,6 +121,7 @@ export { PolygonsService } from './services/PolygonsService';
 export { PvtService } from './services/PvtService';
 export { RftService } from './services/RftService';
 export { SeismicService } from './services/SeismicService';
+export { StratigraphyService } from './services/StratigraphyService';
 export { SurfaceService } from './services/SurfaceService';
 export { TimeseriesService } from './services/TimeseriesService';
 export { VfpService } from './services/VfpService';

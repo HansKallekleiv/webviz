@@ -12,4 +12,5 @@ export enum SettingType {
     GRID_NAME = "gridName",
     GRID_ATTRIBUTE = "gridAttribute",
     GRID_LAYER = "gridLayer",
+    FAULT_POLYGONS = "faultPolygons",
 }
