@@ -9,7 +9,7 @@ from primary.services.utils.authenticated_user import AuthenticatedUser
 from primary.auth.auth_helper import AuthHelper
 
 from primary.services.ssdl_access.well_access import WellAccess as SsdlWellAccess
-
+from primary.services.sumo_access.well_access import WellAccess as SumoWellAccess
 from . import schemas
 from . import converters
 
@@ -214,3 +214,32 @@ async def get_log_curve_data(
     log_curve = await well_access.get_log_curve_data(wellbore_uuid=wellbore_uuid, curve_name=log_curve_name)
 
     return converters.convert_wellbore_log_curve_data_to_schema(log_curve)
+
+@router.get("/fmu_well_zone_info/")
+async def get_fmu_well_zone_info(
+    # fmt:off
+    authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user),
+    case_uuid: str = Query(description="Sumo case uuid"),
+    ensemble_name: str = Query(description="Ensemble name"),
+    # fmt:on
+) -> schemas.FMUWellZonesInfo:
+    """Get well zones info for an ensemble"""
+    well_access = await SumoWellAccess.from_case_uuid_async(authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name)
+    well_zones_info = await well_access.get_well_zones_info()
+    return converters.convert_fmu_well_zones_info_to_schema(well_zones_info)
+
+@router.get("/fmu_well_zone_realization_pick/")
+async def get_fmu_well_zone_realization_pick(
+    # fmt:off
+    authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user),
+    case_uuid: str = Query(description="Sumo case uuid"),
+    ensemble_name: str = Query(description="Ensemble name"),
+    zone_name: str = Query(description="zone name"),
+    realization_num: int = Query(description="Realization number"),
+    well_names: List[str] = Query(None, description="Optional subset of well names")
+    # fmt:on
+) -> List[schemas.FMUWellZonePick]:
+    """Get well picks for an ensemble for a given zone"""
+    well_access = await SumoWellAccess.from_case_uuid_async(authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name)
+    well_zone_picks = await well_access.get_well_zone_realization_pick(zone_name=zone_name, well_names=well_names, realization_num=realization_num)
+    return [converters.convert_fmu_well_zone_pick_to_schema(well_formation_pick) for well_formation_pick in well_zone_picks]

@@ -35,6 +35,7 @@ export type { FenceMeshSection as FenceMeshSection_api } from './models/FenceMes
 export type { FieldInfo as FieldInfo_api } from './models/FieldInfo';
 export { FlowRateTypeProd as FlowRateTypeProd_api } from './models/FlowRateTypeProd';
 export { FluidZone as FluidZone_api } from './models/FluidZone';
+export type { FMUWellZonesInfo as FMUWellZonesInfo_api } from './models/FMUWellZonesInfo';
 export { Frequency as Frequency_api } from './models/Frequency';
 export { GFR as GFR_api } from './models/GFR';
 export type { GraphUserPhoto as GraphUserPhoto_api } from './models/GraphUserPhoto';

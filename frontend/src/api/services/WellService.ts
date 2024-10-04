@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { FMUWellZonesInfo } from '../models/FMUWellZonesInfo';
 import type { WellboreCasing } from '../models/WellboreCasing';
 import type { WellboreCompletion } from '../models/WellboreCompletion';
 import type { WellboreHeader } from '../models/WellboreHeader';
@@ -209,6 +210,30 @@ export class WellService {
             query: {
                 'wellbore_uuid': wellboreUuid,
                 'log_curve_name': logCurveName,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Fmu Well Formations Info
+     * Get well formations info for an FMU ensemble
+     * @param caseUuid Sumo case uuid
+     * @param ensembleName Ensemble name
+     * @returns FMUWellZonesInfo Successful Response
+     * @throws ApiError
+     */
+    public getFmuWellFormationsInfo(
+        caseUuid: string,
+        ensembleName: string,
+    ): CancelablePromise<FMUWellZonesInfo> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/well/fmu_well_formations_info/',
+            query: {
+                'case_uuid': caseUuid,
+                'ensemble_name': ensembleName,
             },
             errors: {
                 422: `Validation Error`,

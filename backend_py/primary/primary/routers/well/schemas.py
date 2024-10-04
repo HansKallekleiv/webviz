@@ -118,3 +118,19 @@ class WellboreLogCurveData(BaseModel):
     curveDescription: str
     indexUnit: str
     noDataValue: float
+
+class FMUWellZonesInfo(BaseModel):
+    wellNames: List[str]
+    zoneNames: List[str]
+    zoneCodes: List[int]
+
+class FMUWellZonePick(BaseModel):
+    wellName: str
+    zoneName: str
+    zoneCode: int
+    x: float
+    y: float
+    topTvd: float
+    baseTvd: float
+    topMd: float
+    baseMd: float

@@ -6,7 +6,7 @@ from primary.services.ssdl_access.types import (
     WellborePerforation,
     WellboreLogCurveData,
 )
-
+from primary.services.sumo_access.well_types import WellZonesInfo as SumoWellZonesInfo, WellZonePick as SumoWellZonePick
 from . import schemas
 
 
@@ -143,4 +143,13 @@ def convert_wellbore_log_curve_data_to_schema(
         curveDescription=wellbore_log_curve_data.curve_description,
         indexUnit=wellbore_log_curve_data.index_unit,
         noDataValue=wellbore_log_curve_data.no_data_value,
+    )
+
+def convert_fmu_well_zones_info_to_schema(
+    fmu_well_zones_info: SumoWellZonesInfo,
+) -> schemas.FMUWellZonesInfo:
+    return schemas.FMUWellZonesInfo(
+        wellNames=fmu_well_zones_info.well_names,
+        zoneNames=fmu_well_zones_info.zone_names,
+        zoneCodes=fmu_well_zones_info.zone_codes,
     )
