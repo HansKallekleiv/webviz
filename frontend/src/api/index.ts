@@ -65,6 +65,10 @@ export { PolygonsAttributeType as PolygonsAttributeType_api } from './models/Pol
 export type { PolygonsMeta as PolygonsMeta_api } from './models/PolygonsMeta';
 export type { PolylineIntersection as PolylineIntersection_api } from './models/PolylineIntersection';
 export type { PvtData as PvtData_api } from './models/PvtData';
+export type { RelPermRealizationData as RelPermRealizationData_api } from './models/RelPermRealizationData';
+export type { RelPermSatNumData as RelPermSatNumData_api } from './models/RelPermSatNumData';
+export type { RelPermSaturationAxis as RelPermSaturationAxis_api } from './models/RelPermSaturationAxis';
+export type { RelPermTableInfo as RelPermTableInfo_api } from './models/RelPermTableInfo';
 export type { RepeatedTableColumnData as RepeatedTableColumnData_api } from './models/RepeatedTableColumnData';
 export type { RftObservation as RftObservation_api } from './models/RftObservation';
 export type { RftObservations as RftObservations_api } from './models/RftObservations';
@@ -132,6 +136,7 @@ export { ObservationsService } from './services/ObservationsService';
 export { ParametersService } from './services/ParametersService';
 export { PolygonsService } from './services/PolygonsService';
 export { PvtService } from './services/PvtService';
+export { RelpermService } from './services/RelpermService';
 export { RftService } from './services/RftService';
 export { SeismicService } from './services/SeismicService';
 export { SurfaceService } from './services/SurfaceService';
