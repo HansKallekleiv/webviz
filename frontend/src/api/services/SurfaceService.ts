@@ -192,7 +192,7 @@ export class SurfaceService {
      * @param surfBAddrStr Address string of surface B, supported types: *REAL*, *OBS* and *STAT*
      * @param dataFormat Format of binary data in the response
      * @param resampleToDefStr Definition of the surface onto which the data should be resampled. *SurfaceDef* object properties encoded as a `KeyValStr` string.
-     * @returns SurfaceDataFloat Successful Response
+     * @returns any Successful Response
      * @throws ApiError
      */
     public getDeltaSurfaceData(
@@ -200,7 +200,7 @@ export class SurfaceService {
         surfBAddrStr: string,
         dataFormat: 'float' | 'png' = 'float',
         resampleToDefStr?: (string | null),
-    ): CancelablePromise<Array<SurfaceDataFloat>> {
+    ): CancelablePromise<(SurfaceDataFloat | SurfaceDataPng)> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/surface/delta_surface_data',

@@ -1,5 +1,6 @@
 import React from "react";
 
+import { DeltaEnsembleIdent } from "@framework/DeltaEnsembleIdent";
 import { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
 import { EnsembleDropdown } from "@framework/components/EnsembleDropdown";
 
@@ -8,11 +9,11 @@ import { Setting, SettingComponentProps, ValueToStringArgs } from "../../interfa
 import { SettingRegistry } from "../SettingRegistry";
 import { SettingType } from "../settingsTypes";
 
-export class EnsembleSetting implements Setting<RegularEnsembleIdent | null> {
-    private _delegate: SettingDelegate<RegularEnsembleIdent | null>;
+export class EnsembleSetting implements Setting<RegularEnsembleIdent | DeltaEnsembleIdent | null> {
+    private _delegate: SettingDelegate<RegularEnsembleIdent | DeltaEnsembleIdent | null>;
 
     constructor() {
-        this._delegate = new SettingDelegate<RegularEnsembleIdent | null>(null, this);
+        this._delegate = new SettingDelegate<RegularEnsembleIdent | DeltaEnsembleIdent | null>(null, this);
     }
 
     getType(): SettingType {
@@ -23,20 +24,30 @@ export class EnsembleSetting implements Setting<RegularEnsembleIdent | null> {
         return "Ensemble";
     }
 
-    getDelegate(): SettingDelegate<RegularEnsembleIdent | null> {
+    getDelegate(): SettingDelegate<RegularEnsembleIdent | DeltaEnsembleIdent | null> {
         return this._delegate;
     }
 
-    serializeValue(value: RegularEnsembleIdent | null): string {
+    serializeValue(value: RegularEnsembleIdent | DeltaEnsembleIdent | null): string {
         return value?.toString() ?? "";
     }
 
-    deserializeValue(serializedValue: string): RegularEnsembleIdent | null {
-        return serializedValue !== "" ? RegularEnsembleIdent.fromString(serializedValue) : null;
+    deserializeValue(serializedValue: string): RegularEnsembleIdent | DeltaEnsembleIdent | null {
+        if (RegularEnsembleIdent.isValidEnsembleIdentString(serializedValue)) {
+            return RegularEnsembleIdent.fromString(serializedValue);
+        }
+        if (DeltaEnsembleIdent.isValidEnsembleIdentString(serializedValue)) {
+            return DeltaEnsembleIdent.fromString(serializedValue);
+        }
+        return null;
+
+        // return serializedValue !== "" ? RegularEnsembleIdent.fromString(serializedValue) : null;
     }
 
-    makeComponent(): (props: SettingComponentProps<RegularEnsembleIdent | null>) => React.ReactNode {
-        return function Ensemble(props: SettingComponentProps<RegularEnsembleIdent | null>) {
+    makeComponent(): (
+        props: SettingComponentProps<RegularEnsembleIdent | DeltaEnsembleIdent | null>
+    ) => React.ReactNode {
+        return function Ensemble(props: SettingComponentProps<RegularEnsembleIdent | DeltaEnsembleIdent | null>) {
             const ensembles = props.globalSettings.ensembles.filter((ensemble) =>
                 props.availableValues.includes(ensemble.getIdent())
             );
@@ -47,13 +58,14 @@ export class EnsembleSetting implements Setting<RegularEnsembleIdent | null> {
                     value={!props.isOverridden ? props.value : props.overriddenValue}
                     onChange={props.onValueChange}
                     disabled={props.isOverridden}
+                    allowDeltaEnsembles
                     showArrows
                 />
             );
         };
     }
 
-    valueToString(args: ValueToStringArgs<RegularEnsembleIdent | null>): string {
+    valueToString(args: ValueToStringArgs<RegularEnsembleIdent | DeltaEnsembleIdent | null>): string {
         const { value, workbenchSession } = args;
         if (value === null) {
             return "-";
