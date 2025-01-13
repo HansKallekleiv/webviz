@@ -1,5 +1,7 @@
 import { SurfaceDataPng_api, SurfaceTimeType_api } from "@api";
+import { add } from "@equinor/eds-core-react/dist/types/components/Icon/library";
 import { apiService } from "@framework/ApiService";
+import { DeltaEnsembleIdent } from "@framework/DeltaEnsembleIdent";
 import { RegularEnsemble } from "@framework/RegularEnsemble";
 import { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
 import { isEnsembleIdentOfType } from "@framework/utils/ensembleIdentUtils";
@@ -20,8 +22,6 @@ import { RealizationSurfaceSettingsContext } from "./RealizationSurfaceSettingsC
 import { RealizationSurfaceSettings } from "./types";
 
 import { BoundingBox, Layer, SerializedLayer } from "../../../interfaces";
-import { DeltaEnsembleIdent } from "@framework/DeltaEnsembleIdent";
-import { add } from "@equinor/eds-core-react/dist/types/components/Icon/library";
 
 export class RealizationSurfaceLayer
     implements Layer<RealizationSurfaceSettings, SurfaceDataFloat_trans | SurfaceDataPng_api>
@@ -81,15 +81,13 @@ export class RealizationSurfaceLayer
     }
 
     fetchData(queryClient: QueryClient): Promise<SurfaceDataFloat_trans | SurfaceDataPng_api> {
-        
-
         const settings = this.getSettingsContext().getDelegate().getSettings();
         const ensembleIdent = settings[SettingType.ENSEMBLE].getDelegate().getValue();
         const realizationNum = settings[SettingType.REALIZATION].getDelegate().getValue();
         const surfaceName = settings[SettingType.SURFACE_NAME].getDelegate().getValue();
         const attribute = settings[SettingType.SURFACE_ATTRIBUTE].getDelegate().getValue();
         const timeOrInterval = settings[SettingType.TIME_OR_INTERVAL].getDelegate().getValue();
-        
+
         if (ensembleIdent && surfaceName && attribute && realizationNum !== null) {
             const addrBuilder = new SurfaceAddressBuilder();
 
@@ -117,34 +115,36 @@ export class RealizationSurfaceLayer
                         gcTime: CACHE_TIME,
                     })
                     .then((data) => transformSurfaceData(data));
-
-                
             }
-            if (isEnsembleIdentOfType(ensembleIdent,DeltaEnsembleIdent)) {
-                
-                let surfaceAddressA: FullSurfaceAddress | null = null;
-                let surfaceAddressB: FullSurfaceAddress | null = null;
+            if (isEnsembleIdentOfType(ensembleIdent, DeltaEnsembleIdent)) {
+                let surfaceAddrRef: FullSurfaceAddress | null = null;
+                let surfaceAddrComparison: FullSurfaceAddress | null = null;
 
                 addrBuilder.withEnsembleIdent(ensembleIdent.getReferenceEnsembleIdent());
-                surfaceAddressA = addrBuilder.buildRealizationAddress();
-                const surfAddrStrA = surfaceAddressA ? encodeSurfAddrStr(surfaceAddressA) : null;
-                
-                addrBuilder.withEnsembleIdent(ensembleIdent.getComparisonEnsembleIdent());
-                surfaceAddressB = addrBuilder.buildRealizationAddress();
-                const surfAddrStrB = surfaceAddressB ? encodeSurfAddrStr(surfaceAddressB) : null;
+                surfaceAddrRef = addrBuilder.buildRealizationAddress();
+                const surfAddrStrRef = surfaceAddrRef ? encodeSurfAddrStr(surfaceAddrRef) : null;
 
-                const queryKey = ["getDeltaSurfaceData", surfAddrStrA, surfAddrStrB, null, "png"];
+                addrBuilder.withEnsembleIdent(ensembleIdent.getComparisonEnsembleIdent());
+                surfaceAddrComparison = addrBuilder.buildRealizationAddress();
+                const surfAddrStrComparison = surfaceAddrComparison ? encodeSurfAddrStr(surfaceAddrComparison) : null;
+
+                const queryKey = ["getDeltaSurfaceData", surfAddrStrRef, surfAddrStrComparison, null, "png"];
                 this._layerDelegate.registerQueryKey(queryKey);
+
                 return queryClient
                     .fetchQuery({
-                    queryKey: ["getDeltaSurfaceData", surfAddrStrA, surfAddrStrB, null, "png"],
-                    queryFn: () => apiService.surface.getDeltaSurfaceData(surfAddrStrA ?? "", surfAddrStrB ?? "", "png", null),
-                    staleTime: STALE_TIME,
-                    gcTime: CACHE_TIME,
-                }).then((data) => transformSurfaceData(data));;
-                
-
-              
+                        queryKey: ["getDeltaSurfaceData", surfAddrStrRef, surfAddrStrComparison, null, "png"],
+                        queryFn: () =>
+                            apiService.surface.getDeltaSurfaceData(
+                                surfAddrStrRef ?? "",
+                                surfAddrStrComparison ?? "",
+                                "png",
+                                null
+                            ),
+                        staleTime: STALE_TIME,
+                        gcTime: CACHE_TIME,
+                    })
+                    .then((data) => transformSurfaceData(data));
             }
         }
         return new Promise((resolve) => resolve(null as unknown as SurfaceDataFloat_trans));
