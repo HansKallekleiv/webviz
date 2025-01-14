@@ -5,7 +5,7 @@ import { SettingType } from "@modules/2DViewer/layers/settings/settingsTypes";
 import { SensitivityNameCasePair } from "../../../settings/implementations/SensitivitySetting";
 
 export type StatisticalSurfaceSettings = {
-    [SettingType.ENSEMBLE]: RegularEnsembleIdent | null;
+    [SettingType.REGULAR_ENSEMBLE]: RegularEnsembleIdent | null;
     [SettingType.STATISTIC_FUNCTION]: SurfaceStatisticFunction_api;
     [SettingType.SENSITIVITY]: SensitivityNameCasePair | null;
     [SettingType.SURFACE_ATTRIBUTE]: string | null;

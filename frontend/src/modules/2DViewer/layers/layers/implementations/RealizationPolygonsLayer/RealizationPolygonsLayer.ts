@@ -80,7 +80,7 @@ export class RealizationPolygonsLayer implements Layer<RealizationPolygonsSettin
 
     fetchData(queryClient: QueryClient): Promise<PolygonData_api[]> {
         const settings = this.getSettingsContext().getDelegate().getSettings();
-        const ensembleIdent = settings[SettingType.ENSEMBLE].getDelegate().getValue();
+        const ensembleIdent = settings[SettingType.REGULAR_ENSEMBLE].getDelegate().getValue();
         const realizationNum = settings[SettingType.REALIZATION].getDelegate().getValue();
         const polygonsName = settings[SettingType.POLYGONS_NAME].getDelegate().getValue();
         const polygonsAttribute = settings[SettingType.POLYGONS_ATTRIBUTE].getDelegate().getValue();

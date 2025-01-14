@@ -8,7 +8,7 @@ import { StatisticalSurfaceSettings } from "./types";
 
 import { SettingsContextDelegate } from "../../../delegates/SettingsContextDelegate";
 import { DefineDependenciesArgs, SettingsContext } from "../../../interfaces";
-import { EnsembleSetting } from "../../../settings/implementations/EnsembleSetting";
+import { RegularEnsembleSetting } from "../../../settings/implementations/RegularEnsembleSetting";
 import { SensitivityNameCasePair, SensitivitySetting } from "../../../settings/implementations/SensitivitySetting";
 import { StatisticFunctionSetting } from "../../../settings/implementations/StatisticFunctionSetting";
 import { SurfaceAttributeSetting } from "../../../settings/implementations/SurfaceAttributeSetting";
@@ -24,7 +24,7 @@ export class StatisticalSurfaceSettingsContext implements SettingsContext<Statis
             StatisticalSurfaceSettings,
             keyof StatisticalSurfaceSettings
         >(this, layerManager, {
-            [SettingType.ENSEMBLE]: new EnsembleSetting(),
+            [SettingType.REGULAR_ENSEMBLE]: new RegularEnsembleSetting(),
             [SettingType.STATISTIC_FUNCTION]: new StatisticFunctionSetting(),
             [SettingType.SENSITIVITY]: new SensitivitySetting(),
             [SettingType.SURFACE_ATTRIBUTE]: new SurfaceAttributeSetting(),
@@ -48,7 +48,7 @@ export class StatisticalSurfaceSettingsContext implements SettingsContext<Statis
         queryClient,
     }: DefineDependenciesArgs<StatisticalSurfaceSettings>) {
         availableSettingsUpdater(SettingType.STATISTIC_FUNCTION, () => Object.values(SurfaceStatisticFunction_api));
-        availableSettingsUpdater(SettingType.ENSEMBLE, ({ getGlobalSetting }) => {
+        availableSettingsUpdater(SettingType.REGULAR_ENSEMBLE, ({ getGlobalSetting }) => {
             const fieldIdentifier = getGlobalSetting("fieldId");
             const ensembles = getGlobalSetting("ensembles");
 
@@ -59,7 +59,7 @@ export class StatisticalSurfaceSettingsContext implements SettingsContext<Statis
             return ensembleIdents;
         });
         availableSettingsUpdater(SettingType.SENSITIVITY, ({ getLocalSetting }) => {
-            const ensembleIdent = getLocalSetting(SettingType.ENSEMBLE);
+            const ensembleIdent = getLocalSetting(SettingType.REGULAR_ENSEMBLE);
 
             if (!ensembleIdent) {
                 return [];
@@ -84,7 +84,7 @@ export class StatisticalSurfaceSettingsContext implements SettingsContext<Statis
         });
 
         const surfaceMetadataDep = helperDependency(async ({ getLocalSetting, abortSignal }) => {
-            const ensembleIdent = getLocalSetting(SettingType.ENSEMBLE);
+            const ensembleIdent = getLocalSetting(SettingType.REGULAR_ENSEMBLE);
 
             if (!ensembleIdent) {
                 return null;

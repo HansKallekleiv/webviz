@@ -80,7 +80,7 @@ export class StatisticalSurfaceLayer
         const addrBuilder = new SurfaceAddressBuilder();
         const workbenchSession = this.getLayerDelegate().getLayerManager().getWorkbenchSession();
         const settings = this.getSettingsContext().getDelegate().getSettings();
-        const ensembleIdent = settings[SettingType.ENSEMBLE].getDelegate().getValue();
+        const ensembleIdent = settings[SettingType.REGULAR_ENSEMBLE].getDelegate().getValue();
         const surfaceName = settings[SettingType.SURFACE_NAME].getDelegate().getValue();
         const attribute = settings[SettingType.SURFACE_ATTRIBUTE].getDelegate().getValue();
         const timeOrInterval = settings[SettingType.TIME_OR_INTERVAL].getDelegate().getValue();

@@ -8,11 +8,11 @@ import { SettingType } from "@modules/2DViewer/layers/settings/settingsTypes";
 import { RealizationGridSettings } from "./types";
 
 import { DefineDependenciesArgs, SettingsContext } from "../../../interfaces";
-import { EnsembleSetting } from "../../../settings/implementations/EnsembleSetting";
 import { GridAttributeSetting } from "../../../settings/implementations/GridAttributeSetting";
 import { GridLayerSetting } from "../../../settings/implementations/GridLayerSetting";
 import { GridNameSetting } from "../../../settings/implementations/GridNameSetting";
 import { RealizationSetting } from "../../../settings/implementations/RealizationSetting";
+import { RegularEnsembleSetting } from "../../../settings/implementations/RegularEnsembleSetting";
 import { ShowGridLinesSetting } from "../../../settings/implementations/ShowGridLinesSetting";
 import { TimeOrIntervalSetting } from "../../../settings/implementations/TimeOrIntervalSetting";
 
@@ -24,7 +24,7 @@ export class RealizationGridSettingsContext implements SettingsContext<Realizati
             this,
             layerManager,
             {
-                [SettingType.ENSEMBLE]: new EnsembleSetting(),
+                [SettingType.REGULAR_ENSEMBLE]: new RegularEnsembleSetting(),
                 [SettingType.REALIZATION]: new RealizationSetting(),
                 [SettingType.GRID_NAME]: new GridNameSetting(),
                 [SettingType.GRID_ATTRIBUTE]: new GridAttributeSetting(),
@@ -37,7 +37,7 @@ export class RealizationGridSettingsContext implements SettingsContext<Realizati
 
     areCurrentSettingsValid(settings: RealizationGridSettings): boolean {
         return (
-            settings[SettingType.ENSEMBLE] !== null &&
+            settings[SettingType.REGULAR_ENSEMBLE] !== null &&
             settings[SettingType.REALIZATION] !== null &&
             settings[SettingType.GRID_NAME] !== null &&
             settings[SettingType.GRID_ATTRIBUTE] !== null &&
@@ -59,7 +59,7 @@ export class RealizationGridSettingsContext implements SettingsContext<Realizati
         availableSettingsUpdater,
         queryClient,
     }: DefineDependenciesArgs<RealizationGridSettings>) {
-        availableSettingsUpdater(SettingType.ENSEMBLE, ({ getGlobalSetting }) => {
+        availableSettingsUpdater(SettingType.REGULAR_ENSEMBLE, ({ getGlobalSetting }) => {
             const fieldIdentifier = getGlobalSetting("fieldId");
             const ensembles = getGlobalSetting("ensembles");
 
@@ -71,7 +71,7 @@ export class RealizationGridSettingsContext implements SettingsContext<Realizati
         });
 
         availableSettingsUpdater(SettingType.REALIZATION, ({ getLocalSetting, getGlobalSetting }) => {
-            const ensembleIdent = getLocalSetting(SettingType.ENSEMBLE);
+            const ensembleIdent = getLocalSetting(SettingType.REGULAR_ENSEMBLE);
             const realizationFilterFunc = getGlobalSetting("realizationFilterFunction");
 
             if (!ensembleIdent) {
@@ -83,7 +83,7 @@ export class RealizationGridSettingsContext implements SettingsContext<Realizati
             return [...realizations];
         });
         const realizationGridDataDep = helperDependency(async ({ getLocalSetting, abortSignal }) => {
-            const ensembleIdent = getLocalSetting(SettingType.ENSEMBLE);
+            const ensembleIdent = getLocalSetting(SettingType.REGULAR_ENSEMBLE);
             const realization = getLocalSetting(SettingType.REALIZATION);
 
             if (!ensembleIdent || realization === null) {

@@ -9,7 +9,7 @@ import { SettingType } from "@modules/2DViewer/layers/settings/settingsTypes";
 import { ObservedSurfaceSettings } from "./types";
 
 import { DefineDependenciesArgs, SettingsContext } from "../../../interfaces";
-import { EnsembleSetting } from "../../../settings/implementations/EnsembleSetting";
+import { RegularEnsembleSetting } from "../../../settings/implementations/RegularEnsembleSetting";
 import { SurfaceAttributeSetting } from "../../../settings/implementations/SurfaceAttributeSetting";
 import { SurfaceNameSetting } from "../../../settings/implementations/SurfaceNameSetting";
 import { TimeOrIntervalSetting } from "../../../settings/implementations/TimeOrIntervalSetting";
@@ -22,7 +22,7 @@ export class ObservedSurfaceSettingsContext implements SettingsContext<ObservedS
             this,
             layerManager,
             {
-                [SettingType.ENSEMBLE]: new EnsembleSetting(),
+                [SettingType.REGULAR_ENSEMBLE]: new RegularEnsembleSetting(),
                 [SettingType.SURFACE_ATTRIBUTE]: new SurfaceAttributeSetting(),
                 [SettingType.SURFACE_NAME]: new SurfaceNameSetting(),
                 [SettingType.TIME_OR_INTERVAL]: new TimeOrIntervalSetting(),
@@ -43,7 +43,7 @@ export class ObservedSurfaceSettingsContext implements SettingsContext<ObservedS
         workbenchSession,
         queryClient,
     }: DefineDependenciesArgs<ObservedSurfaceSettings>) {
-        availableSettingsUpdater(SettingType.ENSEMBLE, ({ getGlobalSetting }) => {
+        availableSettingsUpdater(SettingType.REGULAR_ENSEMBLE, ({ getGlobalSetting }) => {
             const fieldIdentifier = getGlobalSetting("fieldId");
             const ensembleSet = workbenchSession.getEnsembleSet();
 
@@ -56,7 +56,7 @@ export class ObservedSurfaceSettingsContext implements SettingsContext<ObservedS
         });
 
         const observedSurfaceMetadataDep = helperDependency(async ({ getLocalSetting, abortSignal }) => {
-            const ensembleIdent = getLocalSetting(SettingType.ENSEMBLE);
+            const ensembleIdent = getLocalSetting(SettingType.REGULAR_ENSEMBLE);
 
             if (!ensembleIdent) {
                 return null;

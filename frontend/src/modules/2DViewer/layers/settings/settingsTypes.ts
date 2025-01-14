@@ -1,5 +1,6 @@
 export enum SettingType {
     ENSEMBLE = "ensemble",
+    REGULAR_ENSEMBLE = "regularEnsemble",
     REALIZATION = "realization",
     STATISTIC_FUNCTION = "statisticFunction",
     SENSITIVITY = "sensitivity",

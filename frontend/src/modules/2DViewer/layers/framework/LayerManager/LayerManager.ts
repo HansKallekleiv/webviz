@@ -1,3 +1,4 @@
+import { DeltaEnsemble } from "@framework/DeltaEnsemble";
 import { RegularEnsemble } from "@framework/RegularEnsemble";
 import {
     EnsembleRealizationFilterFunction,
@@ -36,7 +37,7 @@ export type LayerManagerTopicPayload = {
 
 export type GlobalSettings = {
     fieldId: string | null;
-    ensembles: readonly RegularEnsemble[];
+    ensembles: readonly (RegularEnsemble | DeltaEnsemble)[];
     realizationFilterFunction: EnsembleRealizationFilterFunction;
 };
 
@@ -211,7 +212,7 @@ export class LayerManager implements Group, PublishSubscribe<LayerManagerTopic, 
     }
 
     private handleEnsembleSetChanged() {
-        const ensembles = this._workbenchSession.getEnsembleSet().getRegularEnsembleArray();
+        const ensembles = this._workbenchSession.getEnsembleSet().getEnsembleArray();
         this._globalSettings.ensembles = ensembles;
 
         this.publishTopic(LayerManagerTopic.GLOBAL_SETTINGS_CHANGED);

@@ -107,7 +107,7 @@ export class RealizationGridLayer
         gridParameterData: GridMappedProperty_trans;
     }> {
         const settings = this.getSettingsContext().getDelegate().getSettings();
-        const ensembleIdent = settings[SettingType.ENSEMBLE].getDelegate().getValue();
+        const ensembleIdent = settings[SettingType.REGULAR_ENSEMBLE].getDelegate().getValue();
         const realizationNum = settings[SettingType.REALIZATION].getDelegate().getValue();
         const gridName = settings[SettingType.GRID_NAME].getDelegate().getValue();
         const attribute = settings[SettingType.GRID_ATTRIBUTE].getDelegate().getValue();

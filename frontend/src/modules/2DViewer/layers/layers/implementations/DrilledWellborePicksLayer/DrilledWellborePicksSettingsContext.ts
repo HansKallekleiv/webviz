@@ -7,7 +7,7 @@ import { DrilledWellborePicksSettings } from "./types";
 
 import { DefineDependenciesArgs, SettingsContext } from "../../../interfaces";
 import { DrilledWellboresSetting } from "../../../settings/implementations/DrilledWellboresSetting";
-import { EnsembleSetting } from "../../../settings/implementations/EnsembleSetting";
+import { RegularEnsembleSetting } from "../../../settings/implementations/RegularEnsembleSetting";
 import { SurfaceNameSetting } from "../../../settings/implementations/SurfaceNameSetting";
 import { CACHE_TIME, STALE_TIME } from "../../_utils/queryConstants";
 import { cancelPromiseOnAbort } from "../../_utils/utils";
@@ -20,7 +20,7 @@ export class DrilledWellborePicksSettingsContext implements SettingsContext<Dril
             DrilledWellborePicksSettings,
             keyof DrilledWellborePicksSettings
         >(this, layerManager, {
-            [SettingType.ENSEMBLE]: new EnsembleSetting(),
+            [SettingType.REGULAR_ENSEMBLE]: new RegularEnsembleSetting(),
             [SettingType.SMDA_WELLBORE_HEADERS]: new DrilledWellboresSetting(),
             [SettingType.SURFACE_NAME]: new SurfaceNameSetting(),
         });
@@ -36,7 +36,7 @@ export class DrilledWellborePicksSettingsContext implements SettingsContext<Dril
 
     areCurrentSettingsValid(settings: DrilledWellborePicksSettings): boolean {
         return (
-            settings[SettingType.ENSEMBLE] !== null &&
+            settings[SettingType.REGULAR_ENSEMBLE] !== null &&
             settings[SettingType.SMDA_WELLBORE_HEADERS] !== null &&
             settings[SettingType.SMDA_WELLBORE_HEADERS].length > 0 &&
             settings[SettingType.SURFACE_NAME] !== null
@@ -49,7 +49,7 @@ export class DrilledWellborePicksSettingsContext implements SettingsContext<Dril
         workbenchSession,
         queryClient,
     }: DefineDependenciesArgs<DrilledWellborePicksSettings>) {
-        availableSettingsUpdater(SettingType.ENSEMBLE, ({ getGlobalSetting }) => {
+        availableSettingsUpdater(SettingType.REGULAR_ENSEMBLE, ({ getGlobalSetting }) => {
             const fieldIdentifier = getGlobalSetting("fieldId");
             const ensembles = getGlobalSetting("ensembles");
 
@@ -61,7 +61,7 @@ export class DrilledWellborePicksSettingsContext implements SettingsContext<Dril
         });
 
         const wellboreHeadersDep = helperDependency(async function fetchData({ getLocalSetting, abortSignal }) {
-            const ensembleIdent = getLocalSetting(SettingType.ENSEMBLE);
+            const ensembleIdent = getLocalSetting(SettingType.REGULAR_ENSEMBLE);
 
             if (!ensembleIdent) {
                 return null;
@@ -86,7 +86,7 @@ export class DrilledWellborePicksSettingsContext implements SettingsContext<Dril
         });
 
         const pickIdentifiersDep = helperDependency(async function fetchData({ getLocalSetting, abortSignal }) {
-            const ensembleIdent = getLocalSetting(SettingType.ENSEMBLE);
+            const ensembleIdent = getLocalSetting(SettingType.REGULAR_ENSEMBLE);
 
             if (!ensembleIdent) {
                 return null;

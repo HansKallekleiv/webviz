@@ -8,10 +8,10 @@ import { SettingType } from "@modules/2DViewer/layers/settings/settingsTypes";
 import { RealizationPolygonsSettings } from "./types";
 
 import { DefineDependenciesArgs, SettingsContext } from "../../../interfaces";
-import { EnsembleSetting } from "../../../settings/implementations/EnsembleSetting";
 import { PolygonsAttributeSetting } from "../../../settings/implementations/PolygonsAttributeSetting";
 import { PolygonsNameSetting } from "../../../settings/implementations/PolygonsNameSetting";
 import { RealizationSetting } from "../../../settings/implementations/RealizationSetting";
+import { RegularEnsembleSetting } from "../../../settings/implementations/RegularEnsembleSetting";
 
 export class RealizationPolygonsSettingsContext implements SettingsContext<RealizationPolygonsSettings> {
     private _contextDelegate: SettingsContextDelegate<RealizationPolygonsSettings>;
@@ -21,7 +21,7 @@ export class RealizationPolygonsSettingsContext implements SettingsContext<Reali
             RealizationPolygonsSettings,
             keyof RealizationPolygonsSettings
         >(this, layerManager, {
-            [SettingType.ENSEMBLE]: new EnsembleSetting(),
+            [SettingType.REGULAR_ENSEMBLE]: new RegularEnsembleSetting(),
             [SettingType.REALIZATION]: new RealizationSetting(),
             [SettingType.POLYGONS_ATTRIBUTE]: new PolygonsAttributeSetting(),
             [SettingType.POLYGONS_NAME]: new PolygonsNameSetting(),
@@ -41,7 +41,7 @@ export class RealizationPolygonsSettingsContext implements SettingsContext<Reali
         availableSettingsUpdater,
         queryClient,
     }: DefineDependenciesArgs<RealizationPolygonsSettings>) {
-        availableSettingsUpdater(SettingType.ENSEMBLE, ({ getGlobalSetting }) => {
+        availableSettingsUpdater(SettingType.REGULAR_ENSEMBLE, ({ getGlobalSetting }) => {
             const fieldIdentifier = getGlobalSetting("fieldId");
             const ensembles = getGlobalSetting("ensembles");
 
@@ -53,7 +53,7 @@ export class RealizationPolygonsSettingsContext implements SettingsContext<Reali
         });
 
         availableSettingsUpdater(SettingType.REALIZATION, ({ getLocalSetting, getGlobalSetting }) => {
-            const ensembleIdent = getLocalSetting(SettingType.ENSEMBLE);
+            const ensembleIdent = getLocalSetting(SettingType.REGULAR_ENSEMBLE);
             const realizationFilterFunc = getGlobalSetting("realizationFilterFunction");
 
             if (!ensembleIdent) {
@@ -66,7 +66,7 @@ export class RealizationPolygonsSettingsContext implements SettingsContext<Reali
         });
 
         const realizationPolygonsMetadataDep = helperDependency(async ({ getLocalSetting, abortSignal }) => {
-            const ensembleIdent = getLocalSetting(SettingType.ENSEMBLE);
+            const ensembleIdent = getLocalSetting(SettingType.REGULAR_ENSEMBLE);
 
             if (!ensembleIdent) {
                 return null;

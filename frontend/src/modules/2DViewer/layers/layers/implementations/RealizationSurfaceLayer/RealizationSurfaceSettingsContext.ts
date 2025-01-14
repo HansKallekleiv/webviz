@@ -1,5 +1,7 @@
 import { SurfaceTimeType_api } from "@api";
 import { apiService } from "@framework/ApiService";
+import { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
+import { isEnsembleIdentOfType } from "@framework/utils/ensembleIdentUtils";
 import { SettingsContextDelegate } from "@modules/2DViewer/layers/delegates/SettingsContextDelegate";
 import { LayerManager } from "@modules/2DViewer/layers/framework/LayerManager/LayerManager";
 import { CACHE_TIME, STALE_TIME } from "@modules/2DViewer/layers/layers/_utils/queryConstants";
@@ -72,6 +74,9 @@ export class RealizationSurfaceSettingsContext implements SettingsContext<Realiz
             const ensembleIdent = getLocalSetting(SettingType.ENSEMBLE);
 
             if (!ensembleIdent) {
+                return null;
+            }
+            if (!isEnsembleIdentOfType(ensembleIdent, RegularEnsembleIdent)) {
                 return null;
             }
 

@@ -9,7 +9,7 @@ import { DrilledWellTrajectoriesSettings } from "./types";
 
 import { DefineDependenciesArgs, SettingsContext } from "../../../interfaces";
 import { DrilledWellboresSetting } from "../../../settings/implementations/DrilledWellboresSetting";
-import { EnsembleSetting } from "../../../settings/implementations/EnsembleSetting";
+import { RegularEnsembleSetting } from "../../../settings/implementations/RegularEnsembleSetting";
 
 export class DrilledWellTrajectoriesSettingsContext implements SettingsContext<DrilledWellTrajectoriesSettings> {
     private _contextDelegate: SettingsContextDelegate<DrilledWellTrajectoriesSettings>;
@@ -19,7 +19,7 @@ export class DrilledWellTrajectoriesSettingsContext implements SettingsContext<D
             DrilledWellTrajectoriesSettings,
             keyof DrilledWellTrajectoriesSettings
         >(this, layerManager, {
-            [SettingType.ENSEMBLE]: new EnsembleSetting(),
+            [SettingType.REGULAR_ENSEMBLE]: new RegularEnsembleSetting(),
             [SettingType.SMDA_WELLBORE_HEADERS]: new DrilledWellboresSetting(),
         });
     }
@@ -38,7 +38,7 @@ export class DrilledWellTrajectoriesSettingsContext implements SettingsContext<D
         workbenchSession,
         queryClient,
     }: DefineDependenciesArgs<DrilledWellTrajectoriesSettings>) {
-        availableSettingsUpdater(SettingType.ENSEMBLE, ({ getGlobalSetting }) => {
+        availableSettingsUpdater(SettingType.REGULAR_ENSEMBLE, ({ getGlobalSetting }) => {
             const fieldIdentifier = getGlobalSetting("fieldId");
             const ensembles = getGlobalSetting("ensembles");
 
@@ -50,7 +50,7 @@ export class DrilledWellTrajectoriesSettingsContext implements SettingsContext<D
         });
 
         const wellboreHeadersDep = helperDependency(async function fetchData({ getLocalSetting, abortSignal }) {
-            const ensembleIdent = getLocalSetting(SettingType.ENSEMBLE);
+            const ensembleIdent = getLocalSetting(SettingType.REGULAR_ENSEMBLE);
 
             if (!ensembleIdent) {
                 return null;
