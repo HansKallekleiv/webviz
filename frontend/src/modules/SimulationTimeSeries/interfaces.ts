@@ -1,6 +1,7 @@
 import { Frequency_api } from "@api";
-import { Ensemble } from "@framework/Ensemble";
+import { DeltaEnsemble } from "@framework/DeltaEnsemble";
 import { ParameterIdent } from "@framework/EnsembleParameters";
+import { RegularEnsemble } from "@framework/RegularEnsemble";
 import { InterfaceInitialization } from "@framework/UniDirectionalModuleComponentsInterface";
 
 import {
@@ -10,13 +11,24 @@ import {
     showHistoricalAtom,
     showObservationsAtom,
     statisticsSelectionAtom,
+    subplotLimitDirectionAtom,
+    subplotMaxDirectionElementsAtom,
     visualizationModeAtom,
 } from "./settings/atoms/baseAtoms";
-import { parameterIdentAtom, selectedEnsemblesAtom, vectorSpecificationsAtom } from "./settings/atoms/derivedAtoms";
-import { GroupBy, StatisticsSelection, VectorSpec, VisualizationMode } from "./typesAndEnums";
+import {
+    parameterIdentAtom,
+    selectedDeltaEnsemblesAtom,
+    selectedRegularEnsemblesAtom,
+    vectorSpecificationsAtom,
+} from "./settings/atoms/derivedAtoms";
+import { GroupBy, StatisticsSelection, SubplotLimitDirection, VectorSpec, VisualizationMode } from "./typesAndEnums";
 
 export type SettingsToViewInterface = {
     groupBy: GroupBy;
+    subplotLimitation: {
+        direction: SubplotLimitDirection;
+        maxDirectionElements: number;
+    };
     visualizationMode: VisualizationMode;
     showObservations: boolean;
     showHistorical: boolean;
@@ -24,7 +36,8 @@ export type SettingsToViewInterface = {
     statisticsSelection: StatisticsSelection;
     colorByParameter: boolean;
     parameterIdent: ParameterIdent | null;
-    selectedEnsembles: Ensemble[];
+    selectedRegularEnsembles: RegularEnsemble[];
+    selectedDeltaEnsembles: DeltaEnsemble[];
     resampleFrequency: Frequency_api | null;
 };
 
@@ -35,6 +48,12 @@ export type Interfaces = {
 export const settingsToViewInterfaceInitialization: InterfaceInitialization<SettingsToViewInterface> = {
     groupBy: (get) => {
         return get(groupByAtom);
+    },
+    subplotLimitation: (get) => {
+        return {
+            direction: get(subplotLimitDirectionAtom),
+            maxDirectionElements: get(subplotMaxDirectionElementsAtom),
+        };
     },
     visualizationMode: (get) => {
         return get(visualizationModeAtom);
@@ -57,8 +76,11 @@ export const settingsToViewInterfaceInitialization: InterfaceInitialization<Sett
     parameterIdent: (get) => {
         return get(parameterIdentAtom);
     },
-    selectedEnsembles: (get) => {
-        return get(selectedEnsemblesAtom);
+    selectedRegularEnsembles: (get) => {
+        return get(selectedRegularEnsemblesAtom);
+    },
+    selectedDeltaEnsembles: (get) => {
+        return get(selectedDeltaEnsemblesAtom);
     },
     resampleFrequency: (get) => {
         return get(resampleFrequencyAtom);

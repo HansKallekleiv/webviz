@@ -12,6 +12,7 @@ export enum ModuleDataTagId {
     WELL_COMPLETIONS = "well-completions",
     VFP = "vfp",
     RELPERM = "relperm",
+    POLYGONS = "polygons",
 }
 
 export type ModuleDataTag = {
@@ -30,6 +31,11 @@ export const ModuleDataTags: ModuleDataTag[] = [
         id: ModuleDataTagId.GRID3D,
         name: "3D grid model",
         description: "3D grid model",
+    },
+    {
+        id: ModuleDataTagId.POLYGONS,
+        name: "Polygons",
+        description: "Polygons",
     },
     {
         id: ModuleDataTagId.GROUP_TREE,
@@ -75,5 +81,10 @@ export const ModuleDataTags: ModuleDataTag[] = [
         id: ModuleDataTagId.WELL_COMPLETIONS,
         name: "Well completions",
         description: "Well completions",
+    },
+    {
+        id: ModuleDataTagId.RELPERM,
+        name: "Relperm",
+        description: "Relative permeability data",
     },
 ];

@@ -1,5 +1,5 @@
 import { PvtData_api } from "@api";
-import { EnsembleIdent } from "@framework/EnsembleIdent";
+import { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
 import { ColorSet } from "@lib/utils/ColorSet";
 import { Size2D } from "@lib/utils/geometry";
 import { Figure, makeSubplots } from "@modules/_shared/Figure";
@@ -25,9 +25,12 @@ export class PvtPlotBuilder {
     private readonly _pvtDataAccessor: PvtDataAccessor;
     private _figure: Figure | null = null;
     private _numPlots = 0;
-    private readonly _makeEnsembleDisplayNameFunc: (ensemble: EnsembleIdent) => string;
+    private readonly _makeEnsembleDisplayNameFunc: (ensemble: RegularEnsembleIdent) => string;
 
-    constructor(pvtDataAccessor: PvtDataAccessor, makeEnsembleDisplayNameFunc: (ensemble: EnsembleIdent) => string) {
+    constructor(
+        pvtDataAccessor: PvtDataAccessor,
+        makeEnsembleDisplayNameFunc: (ensemble: RegularEnsembleIdent) => string
+    ) {
         this._pvtDataAccessor = pvtDataAccessor;
         this._makeEnsembleDisplayNameFunc = makeEnsembleDisplayNameFunc;
     }
@@ -48,8 +51,8 @@ export class PvtPlotBuilder {
 
         for (let row = 1; row <= numRows; row++) {
             for (let col = 1; col <= numCols; col++) {
-                const titleIndex = (numRows - row) * numCols + (col - 1);
                 const axisIndex = (row - 1) * numCols + col;
+                const titleIndex = axisIndex - 1;
 
                 const dependentVariable = adjustedDependentVariables.at(titleIndex) ?? null;
                 if (!dependentVariable) {
@@ -65,15 +68,16 @@ export class PvtPlotBuilder {
                     [`yaxis${axisIndex}`]: { title: `[${yUnit}]` },
                 };
 
-                // Last plot in vertical direction? - note the reversed order of rows
-                const evenNumberOfPlotsAndFirstRow = this._numPlots % 2 === 0 && row === 1;
-                const unevenNumberOfPlotsAndLastRowAndLastColumn =
-                    this._numPlots % 2 !== 0 && row === 2 && col === numCols;
-                const unevenNumberOfPlotsAndFirstRowAndFirstColumn = this._numPlots % 2 !== 0 && row === 1 && col === 1;
+                // Last plot in vertical direction?
+                const evenNumberOfPlotsAndLastRow = this._numPlots % 2 === 0 && row === numRows;
+                const unevenNumberOfPlotsAndFirstRowAndLastColumn =
+                    this._numPlots % 2 !== 0 && row === 1 && col === numCols;
+                const unevenNumberOfPlotsAndLastRowAndFirstColumn =
+                    this._numPlots % 2 !== 0 && row === numRows && col === 1;
                 const lastPlotInVerticalDirection =
-                    evenNumberOfPlotsAndFirstRow ||
-                    unevenNumberOfPlotsAndLastRowAndLastColumn ||
-                    unevenNumberOfPlotsAndFirstRowAndFirstColumn;
+                    evenNumberOfPlotsAndLastRow ||
+                    unevenNumberOfPlotsAndFirstRowAndLastColumn ||
+                    unevenNumberOfPlotsAndLastRowAndFirstColumn;
                 if (lastPlotInVerticalDirection) {
                     patch = { ...patch, [`xaxis${axisIndex}`]: { title: "Pressure [" + xUnit + "]" } };
                 }
@@ -200,7 +204,7 @@ export class PvtPlotBuilder {
                     }
 
                     for (const [dependentVariable, dependentVariableMap] of groupedTracesMaps) {
-                        const row = Math.ceil(this._numPlots / 2) - Math.floor(i / 2);
+                        const row = Math.floor(i / 2) + 1;
                         const col = (i % 2) + 1;
                         const borderTracePoints: TracePointData[] = [];
                         for (const [, tracePointDataArray] of dependentVariableMap) {
@@ -290,7 +294,7 @@ export class PvtPlotBuilder {
         ratios: readonly number[],
         pvtNum: number,
         phase: PhaseType,
-        ensembleIdent: EnsembleIdent,
+        ensembleIdent: RegularEnsembleIdent,
         realization: number
     ): string[] {
         const nameY = PRESSURE_DEPENDENT_VARIABLE_TO_DISPLAY_NAME[dependentVariable];

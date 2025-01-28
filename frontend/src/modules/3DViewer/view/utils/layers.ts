@@ -1,5 +1,5 @@
-import { BoundingBox3d_api, WellboreTrajectory_api } from "@api";
-import { Layer } from "@deck.gl/core/typed";
+import { BoundingBox3D_api, WellboreTrajectory_api } from "@api";
+import { Layer } from "@deck.gl/core";
 import { ColorScale } from "@lib/utils/ColorScale";
 import { TGrid3DColoringMode } from "@webviz/subsurface-viewer";
 import { AxesLayer, Grid3DLayer, WellsLayer } from "@webviz/subsurface-viewer/dist/layers";
@@ -13,7 +13,7 @@ import {
     PolylineIntersection_trans,
 } from "../queries/queryDataTransforms";
 
-export function makeAxesLayer(gridModelBoundingBox3d: BoundingBox3d_api): AxesLayer {
+export function makeAxesLayer(gridModelBoundingBox3d: BoundingBox3D_api): AxesLayer {
     const axesBounds = gridModelBoundingBox3d
         ? [
               gridModelBoundingBox3d.xmin,
