@@ -3,8 +3,9 @@ from typing import Dict, List, Optional
 
 import httpx
 import numpy as np
-from fmu.sumo.explorer._utils import Utils as InternalExplorerUtils
-from fmu.sumo.explorer.objects import CaseCollection
+
+# from fmu.sumo.explorer._utils import Utils as InternalExplorerUtils
+# from fmu.sumo.explorer.objects import CaseCollection
 from pydantic import BaseModel
 from sumo.wrapper import SumoClient
 
@@ -93,31 +94,32 @@ async def _get_object_uuids_for_surface_realizations(
     surface_attribute: str,
     realizations: Optional[List[int]],
 ) -> List[_RealizationObjectId]:
-    sumo_client = SumoClient(env=config.SUMO_ENV, token=sumo_access_token, interactive=False)
-    case_collection = CaseCollection(sumo_client).filter(uuid=case_uuid)
-    case = await case_collection.getitem_async(0)
+    # sumo_client = SumoClient(env=config.SUMO_ENV, token=sumo_access_token, interactive=False)
+    # case_collection = CaseCollection(sumo_client).filter(uuid=case_uuid)
+    # case = await case_collection.getitem_async(0)
 
-    # What about time here??
-    surface_collection = case.surfaces.filter(
-        iteration=iteration_name,
-        name=surface_name,
-        tagname=surface_attribute,
-        realization=realizations,
-    )
+    # # What about time here??
+    # surface_collection = case.surfaces.filter(
+    #     iteration=iteration_name,
+    #     name=surface_name,
+    #     tagname=surface_attribute,
+    #     realization=realizations,
+    # )
 
-    # Is this the right way to get hold of the object uuids?
-    internal_explorer_utils = InternalExplorerUtils(sumo_client)
-    # pylint: disable=protected-access
-    object_meta_list: List[Dict] = await internal_explorer_utils.get_objects_async(
-        500, surface_collection._query, ["_id", "fmu.realization.id"]
-    )
+    # # Is this the right way to get hold of the object uuids?
+    # internal_explorer_utils = InternalExplorerUtils(sumo_client)
+    # # pylint: disable=protected-access
+    # object_meta_list: List[Dict] = await internal_explorer_utils.get_objects_async(
+    #     500, surface_collection._query, ["_id", "fmu.realization.id"]
+    # )
 
-    ret_list: List[_RealizationObjectId] = []
-    for obj_meta in object_meta_list:
-        ret_list.append(
-            _RealizationObjectId(
-                realization=obj_meta["_source"]["fmu"]["realization"]["id"], objectUuid=obj_meta["_id"]
-            )
-        )
+    # ret_list: List[_RealizationObjectId] = []
+    # for obj_meta in object_meta_list:
+    #     ret_list.append(
+    #         _RealizationObjectId(
+    #             realization=obj_meta["_source"]["fmu"]["realization"]["id"], objectUuid=obj_meta["_id"]
+    #         )
+    #     )
 
-    return ret_list
+    # return ret_list
+    return []

@@ -1,9 +1,9 @@
 from typing import List
 from pydantic import BaseModel
 
-from fmu.sumo.explorer.explorer import CaseCollection, SumoClient
+from fmu.sumo.explorer.explorer import SearchContext, SumoClient
 
-from ._helpers import create_sumo_client
+from ._helpers import create_sumo_client, get_fields
 
 
 class FieldInfo(BaseModel):
@@ -23,17 +23,20 @@ class SumoInspector:
 
     async def get_fields_async(self) -> List[FieldInfo]:
         """Get list of fields"""
-        case_collection = CaseCollection(self._sumo_client)
-        field_idents = await case_collection.fields_async
+        field_idents = await get_fields(self._sumo_client)
         field_idents = sorted(list(set(field_idents)))
 
         return [FieldInfo(identifier=field_ident) for field_ident in field_idents]
 
     async def get_cases_async(self, field_identifier: str) -> List[CaseInfo]:
-        case_collection = CaseCollection(self._sumo_client).filter(field=field_identifier)
-
+        search_context = SearchContext(
+            self._sumo_client, must=[{"term": {"masterdata.smda.field.identifier.keyword": field_identifier}}]
+        )
+        cases = await search_context.cases_async
         case_info_arr: List[CaseInfo] = []
-        async for case in case_collection:
+
+        for case in cases:
+
             case_info_arr.append(CaseInfo(uuid=case.uuid, name=case.name, status=case.status, user=case.user))
 
         # Sort on case name before returning

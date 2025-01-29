@@ -1,7 +1,7 @@
 import asyncio
-from typing import List, Optional
+from typing import List, Optional, Any
 
-from fmu.sumo.explorer.objects import Case, TableCollection
+from fmu.sumo.explorer.objects import Case
 
 import pyarrow as pa
 
@@ -71,13 +71,13 @@ class InplaceVolumetricsAccess:
         return InplaceVolumetricsAccess.get_possible_identifier_columns() + ["REAL"]
 
     async def get_inplace_volumetrics_table_names_async(self) -> List[str]:
-        vol_table_collection = self._case.tables.filter(
-            aggregation="collection",
-            tagname=["vol", "volumes", "inplace"],
-            iteration=self._iteration_name,
-        )
-        table_names = await vol_table_collection.names_async
-        return table_names
+        # vol_table_collection = self._case.tables.filter(
+        #     aggregation="collection",
+        #     tagname=["vol", "volumes", "inplace"],
+        #     iteration=self._iteration_name,
+        # )
+        # table_names = await vol_table_collection.names_async
+        return ["table_names"]
 
     async def get_inplace_volumetrics_table_no_throw_async(
         self, table_name: str, column_names: Optional[set[str]] = None
@@ -138,7 +138,7 @@ class InplaceVolumetricsAccess:
         expected_repeated_collection_columns = set(self.get_possible_selector_columns())
 
         # Find column names not among collection columns
-        collection_columns = await vol_table_collection.columns_async
+        collection_columns = [""]
         remaining_collection_columns = set(collection_columns) - expected_repeated_collection_columns
 
         if column_names is not None and column_names != remaining_collection_columns:
@@ -170,7 +170,7 @@ class InplaceVolumetricsAccess:
 
     async def _assemble_volumetrics_table_collection_into_single_table_async(
         self,
-        vol_table_collection: TableCollection,
+        vol_table_collection: Any,
         table_name: str,
         column_names: Optional[set[str]] = None,
     ) -> pa.Table:

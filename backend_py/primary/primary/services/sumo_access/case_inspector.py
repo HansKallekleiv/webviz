@@ -46,9 +46,8 @@ class CaseInspector:
 
         iter_info_arr: list[IterationInfo] = []
         for iteration in iterations:
-            iter_info_arr.append(
-                IterationInfo(name=iteration.get("name"), realization_count=iteration.get("realizations"))
-            )
+            print("************************************************", iteration, dir(iteration))
+            iter_info_arr.append(IterationInfo(name=iteration.name, realization_count=len(iteration.realizations)))
 
         # Sort on iteration name before returning
         iter_info_arr.sort(key=lambda iter_info: iter_info.name)
@@ -58,7 +57,13 @@ class CaseInspector:
     async def get_realizations_in_iteration_async(self, iteration_name: str) -> list[int]:
         """Get list of realizations for the specified iteration"""
         case: Case = await self._get_or_create_case_obj()
-        realization_list = await case.get_realizations_async(iteration_name)
+        realization_list = []
+        for iteration in case.iterations:
+            if iteration.name == iteration_name:
+                realization_list = iteration._get_field_values("fmu.realization.id.keyword")
+
+                print("************************************************", realization_list, dir(realization_list))
+                break
         return sorted([int(real) for real in realization_list])
 
     async def get_stratigraphic_column_identifier_async(self) -> str:
