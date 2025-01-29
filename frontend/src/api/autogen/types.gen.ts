@@ -478,16 +478,16 @@ export type PvtData_api = {
     ratio_unit: string;
 };
 
-export type RealizationCurveData_api = {
+export type RelPermRealizationCurveData_api = {
     curve_name: string;
     curve_values: Array<number>;
     realization_id: number;
 };
 
-export type RelPermRealizationDataForSaturation_api = {
+export type RelPermRealizationData_api = {
     saturation_number: number;
     saturation_axis_data: CurveData_api;
-    relperm_curve_data: Array<RealizationCurveData_api>;
+    relperm_curve_data: Array<RelPermRealizationCurveData_api>;
 };
 
 export type RelPermSaturationAxis_api = {
@@ -496,10 +496,17 @@ export type RelPermSaturationAxis_api = {
     capillary_pressure_curve_names: Array<string>;
 };
 
+export type RelPermStatisticalCurveData_api = {
+    curve_name: string;
+    curve_values: {
+        [key: string]: Array<number>;
+    };
+};
+
 export type RelPermStatisticalDataForSaturation_api = {
     saturation_axis_data: CurveData_api;
     saturation_number: number;
-    relperm_curve_data: Array<StatisticalCurveData_api>;
+    relperm_curve_data: Array<RelPermStatisticalCurveData_api>;
 };
 
 export type RelPermTableInfo_api = {
@@ -665,13 +672,6 @@ export enum StatisticFunction_api {
 export type StatisticValueObject_api = {
     statistic_function: StatisticFunction_api;
     values: Array<number>;
-};
-
-export type StatisticalCurveData_api = {
-    curve_name: string;
-    curve_values: {
-        [key: string]: Array<number>;
-    };
 };
 
 /**
@@ -2837,9 +2837,9 @@ export type GetRelpermRealizationsCurveDataData_api = {
          */
         curve_names: Array<string>;
         /**
-         * Satnums
+         * Satnum
          */
-        satnums: Array<number>;
+        satnum: number;
     };
     url: "/relperm/relperm_realizations_curve_data";
 };
@@ -2858,7 +2858,7 @@ export type GetRelpermRealizationsCurveDataResponses_api = {
     /**
      * Successful Response
      */
-    200: RelPermRealizationDataForSaturation_api;
+    200: RelPermRealizationData_api;
 };
 
 export type GetRelpermRealizationsCurveDataResponse_api =
