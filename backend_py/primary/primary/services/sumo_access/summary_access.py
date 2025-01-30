@@ -10,6 +10,7 @@ import pyarrow.parquet as pq
 from fmu.sumo.explorer.explorer import SumoClient
 from fmu.sumo.explorer.objects import Table
 from webviz_pkg.core_utils.perf_timer import PerfTimer
+from webviz_pkg.core_utils.perf_metrics import PerfMetrics
 from fmu.sumo.explorer.objects._search_context import SearchContext
 from primary.services.utils.arrow_helpers import (
     find_first_non_increasing_date_pair,
@@ -339,14 +340,16 @@ class SummaryAccess:
 async def _load_all_real_arrow_table_from_sumo(
     sumo_client: SumoClient, case_uuid: str, iteration_name: str, vector_name: str
 ) -> pa.Table:
-    timer = PerfTimer()
+    timer = PerfMetrics()
     sc = SearchContext(sumo_client)
+    timer.record_lap("init search context")
     case = sc.get_case_by_uuid(case_uuid)
+    timer.record_lap("get case by uuid")
     tables = case.tables.filter(iteration=iteration_name, realization=True, tagname="summary", column=vector_name)
+    timer.record_lap("filter tables")
     agg = tables.aggregate(operation="collection", columns=[vector_name])
+    timer.record_lap("aggregate tables")
     table = await agg.to_arrow_async()
-
-    et_locate_ms = timer.lap_ms()
 
     # print(f"{sumo_table.format=}")
     # print(f"{sumo_table.name=}")
@@ -354,11 +357,9 @@ async def _load_all_real_arrow_table_from_sumo(
 
     # byte_stream: BytesIO = await sumo_table.blob_async
     # blob_size_mb = byte_stream.getbuffer().nbytes / (1024 * 1024)
-    et_download_ms = timer.lap_ms()
 
     # In practice, these are always stored in parquet format
     # table: pa.Table = pq.read_table(byte_stream)
-    et_read_ms = timer.lap_ms()
 
     # Verify that we got the expected columns
     if not "DATE" in table.column_names:
@@ -384,7 +385,8 @@ async def _load_all_real_arrow_table_from_sumo(
         raise InvalidDataError(
             f"Unexpected type for {vector_name} column {schema.field(vector_name).type=}", Service.SUMO
         )
-
+    timer.record_lap("verify table")
+    LOGGER.debug(f"**************LOADED ALL REALIZATION TABLES: {timer.to_string()}")
     return table
 
 
