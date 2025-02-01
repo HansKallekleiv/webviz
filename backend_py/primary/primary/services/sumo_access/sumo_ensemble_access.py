@@ -1,6 +1,6 @@
 from typing import TypeVar, Type
 import logging
-
+import asyncio
 import pyarrow as pa
 import pyarrow.feather as pf
 import pyarrow.parquet as pq
@@ -48,7 +48,7 @@ class SumoEnsembleAccess:
 
         return self._ensemble_context.filter(iteration=self._iteration_name)
 
-    async def load_aggregated_arrow_table_from_sumo(
+    async def load_aggregated_arrow_table_single_column_from_sumo(
         self, table_content_name: str, table_name: str, table_column_name: str
     ) -> pa.Table:
         timer = PerfMetrics()
@@ -57,7 +57,7 @@ class SumoEnsembleAccess:
         timer.record_lap("get_ensemble_context")
         table_context = ensemble_context.filter(
             cls="table",
-            tagname="summary",
+            content=table_content_name,
             column=table_column_name,
         )
         agg = await table_context.aggregation_async(column=table_column_name, operation="collection")
@@ -67,6 +67,28 @@ class SumoEnsembleAccess:
         )
 
         return await agg.to_arrow_async()
+
+    async def load_aggregated_arrow_table_multiple_columns_from_sumo(
+        self, table_content_name: str, table_name: str, table_column_names: list[str]
+    ) -> pa.Table:
+        async with asyncio.TaskGroup() as tg:
+            tasks = [
+                tg.create_task(
+                    self.load_aggregated_arrow_table_single_column_from_sumo(
+                        table_content_name=table_content_name, table_name=table_name, table_column_name=column_name
+                    )
+                )
+                for column_name in table_column_names
+            ]
+        table_arr = [task.result() for task in tasks]
+
+        table = None
+        for column_table, column_name in zip(table_arr, table_column_names):
+            if table is None:
+                table = column_table
+            else:
+                table = table.append_column(column_name, column_table[column_name])
+        return table
 
     async def load_single_realization_arrow_table(
         self, table_content_name: str, table_name: str, table_column_names: list[str], realization_no: int

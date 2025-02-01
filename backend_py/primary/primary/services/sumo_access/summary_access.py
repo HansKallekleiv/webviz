@@ -1,14 +1,9 @@
 import logging
-from io import BytesIO
 from typing import List, Optional, Sequence, Tuple, Set
 
 import numpy as np
 import pyarrow as pa
 import pyarrow.compute as pc
-import pyarrow.feather as pf
-import pyarrow.parquet as pq
-from fmu.sumo.explorer.explorer import SumoClient
-from fmu.sumo.explorer.objects import Table
 from webviz_pkg.core_utils.perf_timer import PerfTimer
 from webviz_pkg.core_utils.perf_metrics import PerfMetrics
 from fmu.sumo.explorer.objects._search_context import SearchContext
@@ -19,10 +14,10 @@ from primary.services.utils.arrow_helpers import (
 )
 from primary.services.service_exceptions import (
     Service,
-    NoDataError,
     InvalidDataError,
     MultipleDataMatchesError,
     InvalidParameterError,
+    NoDataError,
 )
 
 from primary.services.sumo_access.sumo_ensemble_access import SumoEnsembleAccess
@@ -44,8 +39,9 @@ class SummaryAccess(SumoEnsembleAccess):
 
         table_names = await table_context.names_async
         if len(table_names) == 0:
-            LOGGER.warning(f"No summary tables found in case={self._case_uuid}, iteration={self._iteration_name}")
-            return []
+            raise NoDataError(
+                f"No summary tables found in case={self._case_uuid}, iteration={self._iteration_name}", Service.SUMO
+            )
         if len(table_names) > 1:
             raise MultipleDataMatchesError(
                 f"Multiple summary tables found in case={self._case_uuid}, iteration={self._iteration_name}: {table_names=}",
@@ -95,7 +91,7 @@ class SummaryAccess(SumoEnsembleAccess):
         """
         timer = PerfTimer()
 
-        table: pa.Table = await self.load_aggregated_arrow_table_from_sumo(
+        table: pa.Table = await self.load_aggregated_arrow_table_single_column_from_sumo(
             table_content_name="timeseries", table_name="summary", table_column_name=vector_name
         )
         table = _validate_single_vector_table(table, vector_name)
@@ -259,7 +255,7 @@ class SummaryAccess(SumoEnsembleAccess):
         if not hist_vec_name:
             return None
 
-        table: pa.Table = await self.load_aggregated_arrow_table_from_sumo(
+        table: pa.Table = await self.load_aggregated_arrow_table_single_column_from_sumo(
             table_content_name="timeseries", table_name="summary", table_column_name=hist_vec_name
         )
 
