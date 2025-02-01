@@ -29,7 +29,8 @@ async def get_parameter_names_and_description(
     access = await ParameterAccess.from_case_uuid_async(
         authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name
     )
-    parameters = (await access.get_parameters_and_sensitivities()).parameters
+    parameters_and_sensitivities = await access.get_parameters_and_sensitivities()
+    parameters = parameters_and_sensitivities.parameters
     if exclude_all_values_constant:
         parameters = [p for p in parameters if not p.is_constant]
     if sort_order == "alphabetically":
@@ -59,7 +60,8 @@ async def get_parameter(
     access = await ParameterAccess.from_case_uuid_async(
         authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name
     )
-    parameters = (await access.get_parameters_and_sensitivities()).parameters
+    parameters_and_sensitivities = await access.get_parameters_and_sensitivities()
+    parameters = parameters_and_sensitivities.parameters
     for parameter in parameters:
         if parameter.name == parameter_name:
             return parameter
@@ -75,7 +77,8 @@ async def get_parameters(
     access = await ParameterAccess.from_case_uuid_async(
         authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name
     )
-    parameters = (await access.get_parameters_and_sensitivities()).parameters
+    parameters_and_sensitivities = await access.get_parameters_and_sensitivities()
+    parameters = parameters_and_sensitivities.parameters
     return [parameter for parameter in parameters]
 
 
@@ -90,8 +93,9 @@ async def get_is_sensitivity_run(
     access = await ParameterAccess.from_case_uuid_async(
         authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name
     )
-    parameters = await access.get_parameters_and_sensitivities()
-    return parameters.sensitivities is not None
+    parameters_and_sensitivities = await access.get_parameters_and_sensitivities()
+    sensitivities = parameters_and_sensitivities.sensitivities
+    return sensitivities is not None
 
 
 @router.get("/sensitivities/")
@@ -106,5 +110,6 @@ async def get_sensitivities(
         authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name
     )
 
-    sensitivities = (await access.get_parameters_and_sensitivities()).sensitivities
+    parameters_and_sensitivities = await access.get_parameters_and_sensitivities()
+    sensitivities = parameters_and_sensitivities.sensitivities
     return sensitivities if sensitivities else []

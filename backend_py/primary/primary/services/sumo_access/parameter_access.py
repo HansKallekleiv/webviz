@@ -16,6 +16,13 @@ from .parameter_types import (
     EnsembleSensitivityCase,
     SensitivityType,
 )
+from primary.services.service_exceptions import (
+    Service,
+    NoDataError,
+    InvalidDataError,
+    MultipleDataMatchesError,
+    InvalidParameterError,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -42,9 +49,11 @@ class ParameterAccess:
             tagname="all",
         )
         if await table_collection.length_async() == 0:
-            raise ValueError(f"No parameter tables found {self._case.name, self._iteration_name}")
+            raise NoDataError(f"No parameter tables found {self._case.name, self._iteration_name}", Service.SUMO)
         if await table_collection.length_async() > 1:
-            raise ValueError(f"Multiple parameter tables found {self._case.name,self._iteration_name}")
+            raise MultipleDataMatchesError(
+                f"Multiple parameter tables found {self._case.name,self._iteration_name}", Service.SUMO
+            )
 
         table = await table_collection.getitem_async(0)
         byte_stream: BytesIO = await table.blob_async

@@ -793,14 +793,12 @@ files = [
 
 [[package]]
 name = "fmu-sumo"
-version = "2.2.0"
+version = "2.2.1.dev4+g4a59189"
 description = "Python package for interacting with Sumo in an FMU setting"
 optional = false
 python-versions = ">=3.8"
-files = [
-    {file = "fmu_sumo-2.2.0-py3-none-any.whl", hash = "sha256:f19c70dacf6ec9bcb2ef0e4d7bd93f1f5f0a03e6382609c3c1986afc26f5d22c"},
-    {file = "fmu_sumo-2.2.0.tar.gz", hash = "sha256:3ec130a29ba447859c18d7e2c638e6f8715b09b16f639acecd21fa983093e349"},
-]
+files = []
+develop = false
 
 [package.dependencies]
 OpenVDS = {version = "*", markers = "sys_platform != \"darwin\" and python_version < \"3.12\""}
@@ -810,9 +808,15 @@ sumo-wrapper-python = "*"
 xtgeo = "*"
 
 [package.extras]
-dev = ["black", "flake8", "pytest"]
+dev = ["pytest", "ruff"]
 docs = ["autoapi", "sphinx (==6.2.1)", "sphinx-autodoc-typehints", "sphinx-rtd-theme", "sphinxcontrib-apidoc"]
 test = ["pytest", "pytest-timeout"]
+
+[package.source]
+type = "git"
+url = "https://github.com/equinor/fmu-sumo"
+reference = "HEAD"
+resolved_reference = "4a59189a8f88274152628a34ad7e6a6aeeb848ba"
 
 [[package]]
 name = "fonttools"
@@ -3220,14 +3224,12 @@ pbr = ">=2.0.0,<2.1.0 || >2.1.0"
 
 [[package]]
 name = "sumo-wrapper-python"
-version = "1.0.22"
+version = "1.0.23.dev1+g158a18b"
 description = "Python wrapper for the Sumo API"
 optional = false
 python-versions = ">=3.9"
-files = [
-    {file = "sumo_wrapper_python-1.0.22-py3-none-any.whl", hash = "sha256:d1e69675cc1c3e9d2296b086806b1e34026151a8df01025ae0d000e319dbd7a1"},
-    {file = "sumo_wrapper_python-1.0.22.tar.gz", hash = "sha256:26d8e84e80f76941d154aedd2e6ffb1302cfc1f5d7594254ec563d0346800563"},
-]
+files = []
+develop = false
 
 [package.dependencies]
 azure-identity = ">=1.13.0"
@@ -3241,6 +3243,12 @@ tenacity = ">=8.2.2,<8.4.0 || >8.4.0"
 dev = ["pre-commit", "ruff"]
 docs = ["autoapi", "sphinx (==7.1.2)", "sphinx-autodoc-typehints", "sphinx-rtd-theme", "sphinxcontrib-apidoc"]
 test = ["PyYAML", "pytest"]
+
+[package.source]
+type = "git"
+url = "https://github.com/equinor/sumo-wrapper-python"
+reference = "HEAD"
+resolved_reference = "158a18b2b21d2b3de5c14ba8198316799dcaaf0b"
 
 [[package]]
 name = "tables"
@@ -3587,4 +3595,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "9d5477a9ee664f6c35fc1289480705de7435683526133423fdd067ea93f98eb9"
+content-hash = "93a830045941276aedb14cc96223f5037c6b915a30f77c41fc07d5c9386f1121"
