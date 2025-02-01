@@ -252,8 +252,6 @@ export const regularEnsembleHistoricalVectorDataQueriesAtom = atomWithQueries((g
     const resampleFrequency = get(resampleFrequencyAtom);
     const regularEnsembleVectorSpecifications = get(regularEnsembleVectorSpecificationsAtom);
 
-    const enabled = regularEnsembleVectorSpecifications.some((elm) => elm.hasHistoricalVector);
-
     const queries = regularEnsembleVectorSpecifications.map((item) => {
         const vectorSpecification = {
             ...item,
@@ -282,7 +280,7 @@ export const regularEnsembleHistoricalVectorDataQueriesAtom = atomWithQueries((g
                 return data;
             },
             enabled: Boolean(
-                enabled &&
+                vectorSpecification.hasHistoricalVector &&
                     vectorSpecification.vectorName &&
                     vectorSpecification.ensembleIdent.getCaseUuid() &&
                     vectorSpecification.ensembleIdent.getEnsembleName()

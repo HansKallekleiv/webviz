@@ -793,7 +793,7 @@ files = [
 
 [[package]]
 name = "fmu-sumo"
-version = "2.2.1.dev4+g4a59189"
+version = "2.2.1.dev6+g491f63d"
 description = "Python package for interacting with Sumo in an FMU setting"
 optional = false
 python-versions = ">=3.8"
@@ -815,8 +815,8 @@ test = ["pytest", "pytest-timeout"]
 [package.source]
 type = "git"
 url = "https://github.com/equinor/fmu-sumo"
-reference = "HEAD"
-resolved_reference = "4a59189a8f88274152628a34ad7e6a6aeeb848ba"
+reference = "feature/more-aggregation"
+resolved_reference = "491f63d2ae3afda8b27d06c496fe11504fe62e4d"
 
 [[package]]
 name = "fonttools"
@@ -3595,4 +3595,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "93a830045941276aedb14cc96223f5037c6b915a30f77c41fc07d5c9386f1121"
+content-hash = "c17f2816904cb7a6c1f1882a77de5b26708d5755208b6a083ae199e7a15c43c7"

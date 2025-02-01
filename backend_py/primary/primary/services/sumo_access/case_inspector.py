@@ -49,7 +49,7 @@ class CaseInspector:
 
     async def _get_iteration_info(self, iteration_uuid: str) -> IterationInfo:
         search_context = SearchContext(self._sumo_client)
-        iteration = await search_context.get_iteration_by_uuid_async(iteration_uuid)
+        iteration = search_context.get_iteration_by_uuid(iteration_uuid)
         return IterationInfo(name=iteration.name, realization_count=len(iteration.realizations))
 
     async def get_iterations_async(self) -> list[IterationInfo]:

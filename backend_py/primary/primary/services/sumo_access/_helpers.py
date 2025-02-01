@@ -35,12 +35,3 @@ async def create_sumo_case_async(client: SumoClient, case_uuid: str, want_keepal
     LOGGER.debug(timer.to_string())
 
     return case
-
-
-async def get_fields(client: SumoClient) -> list[str]:
-    timer = PerfMetrics()
-    search_context = SearchContext(client)
-    field_names = await search_context._get_field_values_async("masterdata.smda.field.identifier.keyword")
-    timer.record_lap("Get Sumo field names")
-    LOGGER.debug(timer.to_string())
-    return field_names

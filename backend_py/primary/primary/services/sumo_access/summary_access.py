@@ -25,54 +25,39 @@ from primary.services.service_exceptions import (
     InvalidParameterError,
 )
 
+from primary.services.sumo_access.sumo_ensemble_access import SumoEnsembleAccess
 
 from ._field_metadata import create_vector_metadata_from_field_meta
-from ._helpers import create_sumo_client
 from ._resampling import resample_segmented_multi_real_table, resample_single_real_table
 from .generic_types import EnsembleScalarResponse
 from .summary_types import Frequency, VectorInfo, RealizationVector, HistoricalVector, VectorMetadata
-from .queries.summary import find_summary_vector_tables_async
 
 LOGGER = logging.getLogger(__name__)
 
 
-class SummaryAccess:
-    def __init__(self, sumo_client: SumoClient, case_uuid: str, iteration_name: str):
-        self._sumo_client: SumoClient = sumo_client
-        self._case_uuid: str = case_uuid
-        self._iteration_name: str = iteration_name
-
-    @classmethod
-    def from_case_uuid(cls, access_token: str, case_uuid: str, iteration_name: str) -> "SummaryAccess":
-        sumo_client: SumoClient = create_sumo_client(access_token)
-        return SummaryAccess(sumo_client=sumo_client, case_uuid=case_uuid, iteration_name=iteration_name)
-
+class SummaryAccess(SumoEnsembleAccess):
     async def get_available_vectors_async(self) -> List[VectorInfo]:
         timer = PerfTimer()
 
-        # For now, the search below only considers the collection-aggregated tables even if we will
-        #  also be accessing and returning data for the per-realization summary tables.
-        table_info_arr = await find_summary_vector_tables_async(
-            self._sumo_client, self._case_uuid, self._iteration_name
-        )
-        et_get_table_info_ms = timer.lap_ms()
+        ensemble_context = await self.get_ensemble_context()
+        table_context: SearchContext = ensemble_context.filter(cls="table", tagname="summary")
 
-        if len(table_info_arr) == 0:
+        table_names = await table_context.names_async
+        if len(table_names) == 0:
             LOGGER.warning(f"No summary tables found in case={self._case_uuid}, iteration={self._iteration_name}")
             return []
-        if len(table_info_arr) > 1:
-            table_names = [ti.table_name for ti in table_info_arr]
+        if len(table_names) > 1:
             raise MultipleDataMatchesError(
                 f"Multiple summary tables found in case={self._case_uuid}, iteration={self._iteration_name}: {table_names=}",
                 Service.SUMO,
             )
-
-        table_info = table_info_arr[0]
+        column_names = await table_context.columns_async
+        et_get_table_info_ms = timer.lap_ms()
 
         ret_info_arr: List[VectorInfo] = []
         hist_vectors: Set[str] = set()
 
-        for vec_name in table_info.column_names:
+        for vec_name in column_names:
             if vec_name not in ["DATE", "REAL"]:
                 if _is_historical_vector_name(vec_name):
                     hist_vectors.add(vec_name)
@@ -89,7 +74,7 @@ class SummaryAccess:
         LOGGER.debug(
             f"Got available vectors in: {timer.elapsed_ms()}ms "
             f"(get_table_info={et_get_table_info_ms}ms, build_return_info={et_build_return_info_ms}ms) "
-            f"(total_column_count={len(table_info.column_names)})"
+            f"(total_column_count={len(column_names)})"
         )
 
         return ret_info_arr
@@ -110,9 +95,10 @@ class SummaryAccess:
         """
         timer = PerfTimer()
 
-        table = await _load_all_real_arrow_table_from_sumo(
-            self._sumo_client, self._case_uuid, self._iteration_name, vector_name
+        table: pa.Table = await self.load_aggregated_arrow_table_from_sumo(
+            table_content_name="timeseries", table_name="summary", table_column_name=vector_name
         )
+        table = _validate_single_vector_table(table, vector_name)
         et_loading_ms = timer.lap_ms()
 
         if realizations is not None:
@@ -206,10 +192,22 @@ class SummaryAccess:
             raise InvalidParameterError("List of requested vector names is empty", Service.SUMO)
 
         timer = PerfTimer()
-
-        table: pa.Table = await _load_single_real_arrow_table_from_sumo(
-            self._sumo_client, self._case_uuid, self._iteration_name, vector_names, realization
+        columns_to_get = ["DATE"]
+        columns_to_get.extend(vector_names)
+        table: pa.Table = await self.load_single_realization_arrow_table(
+            table_content_name="timeseries",
+            table_name="summary",
+            table_column_names=columns_to_get,
+            realization_no=realization,
         )
+        # Verify that we got the expected DATE column
+
+        if not "DATE" in table.column_names:
+            raise InvalidDataError("Table does not contain a DATE column", Service.SUMO)
+        date_field: pa.Field = table.field("DATE")
+        if date_field.type != pa.timestamp("ms"):
+            raise InvalidDataError(f"Unexpected type for DATE column {date_field.type=}", Service.SUMO)
+
         et_loading_ms = timer.lap_ms()
 
         # Verify that the column datatypes are as we expect
@@ -261,9 +259,11 @@ class SummaryAccess:
         if not hist_vec_name:
             return None
 
-        table = await _load_all_real_arrow_table_from_sumo(
-            self._sumo_client, self._case_uuid, self._iteration_name, hist_vec_name
+        table: pa.Table = await self.load_aggregated_arrow_table_from_sumo(
+            table_content_name="timeseries", table_name="summary", table_column_name=hist_vec_name
         )
+
+        table = _validate_single_vector_table(table, hist_vec_name)
         et_load_table_ms = timer.lap_ms()
 
         # Use data from the first realization
@@ -337,46 +337,25 @@ class SummaryAccess:
         return pc.unique(table.column("DATE")).to_numpy().astype(int).tolist()
 
 
-async def _load_all_real_arrow_table_from_sumo(
-    sumo_client: SumoClient, case_uuid: str, iteration_name: str, vector_name: str
-) -> pa.Table:
+def _validate_single_vector_table(arrow_table: pa.Table, vector_name: str) -> pa.Table:
     timer = PerfMetrics()
-    sc = SearchContext(sumo_client)
-    timer.record_lap("init search context")
-    case = sc.get_case_by_uuid(case_uuid)
-    timer.record_lap("get case by uuid")
-    tables = case.tables.filter(iteration=iteration_name, realization=True, tagname="summary", column=vector_name)
-    timer.record_lap("filter tables")
-    agg = tables.aggregate(operation="collection", columns=[vector_name])
-    timer.record_lap("aggregate tables")
-    table = await agg.to_arrow_async()
-
-    # print(f"{sumo_table.format=}")
-    # print(f"{sumo_table.name=}")
-    # print(f"{sumo_table.tagname=}")
-
-    # byte_stream: BytesIO = await sumo_table.blob_async
-    # blob_size_mb = byte_stream.getbuffer().nbytes / (1024 * 1024)
-
-    # In practice, these are always stored in parquet format
-    # table: pa.Table = pq.read_table(byte_stream)
 
     # Verify that we got the expected columns
-    if not "DATE" in table.column_names:
+    if not "DATE" in arrow_table.column_names:
         raise InvalidDataError("Table does not contain a DATE column", Service.SUMO)
-    if not "REAL" in table.column_names:
+    if not "REAL" in arrow_table.column_names:
         raise InvalidDataError("Table does not contain a REAL column", Service.SUMO)
-    if not vector_name in table.column_names:
+    if not vector_name in arrow_table.column_names:
         raise InvalidDataError(f"Table does not contain a {vector_name} column", Service.SUMO)
-    if table.num_columns != 3:
+    if arrow_table.num_columns != 3:
         raise InvalidDataError("Table should contain exactly 3 columns", Service.SUMO)
 
     # Verify that we got the expected columns
-    if sorted(table.column_names) != sorted(["DATE", "REAL", vector_name]):
-        raise InvalidDataError(f"Unexpected columns in table {table.column_names=}", Service.SUMO)
+    if sorted(arrow_table.column_names) != sorted(["DATE", "REAL", vector_name]):
+        raise InvalidDataError(f"Unexpected columns in table {arrow_table.column_names=}", Service.SUMO)
 
     # Verify that the column datatypes are as we expect
-    schema = table.schema
+    schema = arrow_table.schema
     if schema.field("DATE").type != pa.timestamp("ms"):
         raise InvalidDataError(f"Unexpected type for DATE column {schema.field('DATE').type=}", Service.SUMO)
     if schema.field("REAL").type != pa.int16():
@@ -386,63 +365,8 @@ async def _load_all_real_arrow_table_from_sumo(
             f"Unexpected type for {vector_name} column {schema.field(vector_name).type=}", Service.SUMO
         )
     timer.record_lap("verify table")
-    LOGGER.debug(f"**************LOADED ALL REALIZATION TABLES: {timer.to_string()}")
-    return table
-
-
-async def _load_single_real_arrow_table_from_sumo(
-    sumo_client: SumoClient, case_uuid: str, iteration_name: str, vector_names: Sequence[str], realization: int
-) -> pa.Table:
-    timer = PerfTimer()
-    sc = SearchContext(sumo_client)
-    case = sc.get_case_by_uuid(case_uuid)
-    tables = case.tables.filter(
-        tagname="summary",
-        stage="realization",
-        iteration=iteration_name,
-        realization=realization,
-    )
-    sumo_table = tables[0]
-    table = await sumo_table.to_arrow_async()
-    # sumo_table: Table = await _locate_single_real_sumo_table(sumo_client, case_uuid, iteration_name, realization)
-    et_locate_ms = timer.lap_ms()
-
-    # print(f"{sumo_table.format=}")
-    # print(f"{sumo_table.name=}")
-    # print(f"{sumo_table.tagname=}")
-    # print(f"{sumo_table.context=}")
-    # print(f"{sumo_table.stage=}")
-    # print(f"{sumo_table.aggregation=}")
-
-    # byte_stream: BytesIO = await sumo_table.blob_async
-    # blob_size_mb = byte_stream.getbuffer().nbytes / (1024 * 1024)
-    et_download_ms = timer.lap_ms()
-
-    columns_to_get = ["DATE"]
-    columns_to_get.extend(vector_names)
-
-    # Currently (spring 2024) these are stored in feather format, but will transition to parquet
-    # table: pa.Table
-    # try:
-    #     table = pf.read_table(byte_stream, columns=columns_to_get)
-    # except pa.ArrowInvalid:
-    # table = pq.read_table(byte_stream, columns=columns_to_get)
-    et_read_ms = timer.lap_ms()
-
-    # Verify that we got the expected DATE column
-    if not "DATE" in table.column_names:
-        raise InvalidDataError("Table does not contain a DATE column", Service.SUMO)
-    date_field: pa.Field = table.field("DATE")
-    if date_field.type != pa.timestamp("ms"):
-        raise InvalidDataError(f"Unexpected type for DATE column {date_field.type=}", Service.SUMO)
-
-    # LOGGER.debug(
-    #     f"Loaded single realization arrow table from Sumo in: {timer.elapsed_ms()}ms "
-    #     f"(locate={et_locate_ms}ms, download={et_download_ms}ms, read={et_read_ms}ms) "
-    #     f"({realization=}, {table.shape=}, {blob_size_mb=:.2f})"
-    # )
-
-    return table
+    LOGGER.debug(f"{timer.to_string()}")
+    return arrow_table
 
 
 def _is_historical_vector_name(vector_name: str) -> bool:

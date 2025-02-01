@@ -103,19 +103,19 @@ async def main() -> None:
 
     logging.getLogger("src.services.sumo_access").setLevel(level=logging.DEBUG)
 
-    dummy_sumo_client = SumoClient(env="prod", interactive=False, verbosity="DEBUG")
-    access_token = dummy_sumo_client.auth.get_token()
-
+    dummy_sumo_client = SumoClient(env="prod", interactive=True, verbosity="DEBUG")
+    access_token = dummy_sumo_client.authenticate()
+    print("*************************", access_token)
     sumo_inspector = SumoInspector(access_token=access_token)
     # case_list = await sumo_inspector.get_cases(field_identifier="DROGON")
     # case_list = await sumo_inspector.get_cases(field_identifier="JOHAN SVERDRUP")
-    case_list = await sumo_inspector.get_cases_async(field_identifier="SNORRE")
+    case_list = await sumo_inspector.get_cases_async(field_identifier="DROGON")
     # for case_info in case_list:
     #     print(case_info)
 
     sumo_case_id = "11167ec3-41f7-452c-8a08-38466df6bb97"
-    sumo_case_id = "e2c7ca0a-8087-4e78-a0f5-121632af3d7b"  # Sverdrup, no vectors
-    sumo_case_id = "9c7ac93c-1bc2-4fdc-a827-787a68f19a21"  # Snorre
+    # sumo_case_id = "e2c7ca0a-8087-4e78-a0f5-121632af3d7b"  # Sverdrup, no vectors
+    # sumo_case_id = "9c7ac93c-1bc2-4fdc-a827-787a68f19a21"  # Snorre
     sumo_case_name = None
     for case_info in case_list:
         if case_info.uuid == sumo_case_id:
@@ -132,7 +132,7 @@ async def main() -> None:
         print(iteration_info)
 
     iteration_name = iteration_list[0].name
-    summary_access = SummaryAccess.from_case_uuid(
+    summary_access = SummaryAccess.from_case_uuid_and_ensemble_name(
         access_token=access_token, case_uuid=sumo_case_id, iteration_name=iteration_name
     )
     await test_summary_access(summary_access)
