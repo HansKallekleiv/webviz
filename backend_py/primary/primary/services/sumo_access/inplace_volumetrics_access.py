@@ -55,7 +55,7 @@ class InplaceVolumetricsAccess(SumoEnsembleAccess):
         table_names = await table_context.names_async
         return table_names
 
-    async def get_inplace_volumetrics_table_async(
+    async def get_inplace_volumetrics_aggregated_table_async(
         self, table_name: str, column_names: Optional[set[str]] = None
     ) -> pa.Table:
         """
@@ -92,3 +92,31 @@ class InplaceVolumetricsAccess(SumoEnsembleAccess):
         )
 
         return vol_table
+
+    async def get_inplace_volumetrics_columns_async(self, table_name: str) -> dict[str, List[str]]:
+        """
+        Get inplace volumetrics data for list of columns for given case and iteration as a pyarrow table.
+
+        The volumes are fetched from collection in Sumo and put together in a single table, i.e. a column per response.
+
+        Returns:
+        pa.Table with columns: ZONE, REGION, FACIES, REAL, and the requested column names.
+        """
+
+        ensemble_context = await self.get_ensemble_context()
+        realizations = await ensemble_context._get_field_values_async("fmu.realization.id")
+        if len(realizations) == 0:
+            raise InvalidDataError(
+                f"No realizations found in the ensemble {self._case_uuid}, {self._iteration_name}",
+                Service.SUMO,
+            )
+
+        vol_table: pa.Table = await self.load_single_realization_arrow_table(
+            table_content_name="volumes", table_name=table_name, realization_no=realizations[0]
+        )
+
+        column_names = vol_table.column_names
+        column_names_and_values = {}
+        for col in column_names:
+            column_names_and_values[col] = vol_table[col].unique().to_pylist()
+        return column_names_and_values

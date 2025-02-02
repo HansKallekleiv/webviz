@@ -105,16 +105,14 @@ class SumoEnsembleAccess:
         return table
 
     async def load_single_realization_arrow_table(
-        self, table_content_name: str, table_name: str, table_column_names: list[str], realization_no: int
+        self, table_content_name: str, table_name: str, realization_no: int, table_column_names: list[str] | None = None
     ) -> pa.Table:
         timer = PerfMetrics()
 
         ensemble_context = await self.get_ensemble_context()
         timer.record_lap("get_ensemble_context")
-        table_context = ensemble_context.filter(
-            cls="table",
-            tagname=table_name,
-            stage="realization",
+        table_context = ensemble_context.tables.filter(
+            name=table_name,
             realization=realization_no,
         )
         no_of_tables = await table_context.length_async()
@@ -136,5 +134,6 @@ class SumoEnsembleAccess:
         LOGGER.debug(
             f"{timer.to_string()}, {self._case_uuid=}, {self._iteration_name=}, {table_content_name=}, {table_name=}"
         )
-
-        return table.select(table_column_names)
+        if table_column_names is not None:
+            return table.select(table_column_names)
+        return table
