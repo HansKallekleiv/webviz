@@ -3,10 +3,10 @@ from typing import List
 
 import numpy as np
 import pyarrow as pa
-from fmu.sumo.explorer.objects import Case
-from primary.services.service_exceptions import MultipleDataMatchesError, NoDataError, Service
 
-from ._helpers import create_sumo_case_async, create_sumo_client
+from primary.services.service_exceptions import MultipleDataMatchesError, NoDataError, Service
+from primary.services.sumo_access.sumo_ensemble_access import SumoEnsembleAccess
+
 from .vfp_types import (
     ALQ,
     GFR,
@@ -25,41 +25,31 @@ from .vfp_types import (
 LOGGER = logging.getLogger(__name__)
 
 
-class VfpAccess:
+class VfpAccess(SumoEnsembleAccess):
     """
     Class for accessing and retrieving Vfp tables
     """
 
-    def __init__(self, case: Case, iteration_name: str):
-        self._case = case
-        self._iteration_name = iteration_name
-
-    @classmethod
-    async def from_case_uuid_async(cls, access_token: str, case_uuid: str, iteration_name: str) -> "VfpAccess":
-        sumo_client = create_sumo_client(access_token)
-        case: Case = await create_sumo_case_async(sumo_client, case_uuid, want_keepalive_pit=False)
-        return VfpAccess(case, iteration_name)
-
     async def get_all_vfp_table_names_for_realization(self, realization: int) -> List[str]:
         """Returns all VFP table names/tagnames for a realization."""
-        table_collection = self._case.tables.filter(
-            content="lift_curves", realization=realization, iteration=self._iteration_name
-        )
-        table_count = await table_collection.length_async()
+        ensemble_context = await self.get_ensemble_context()
+        table_context = ensemble_context.filter(cls="table", content="lift_curves", realization=realization)
+
+        table_count = await table_context.length_async()
         if table_count == 0:
             raise NoDataError(f"No VFP tables found for realization: {realization}", Service.SUMO)
-        return table_collection.tagnames
+        return table_context.tagnames
 
     async def get_vfp_table_from_tagname_as_pyarrow(self, tagname: str, realization: int) -> pa.Table:
         """Returns a VFP table as a pyarrow table for a specific tagname (table name)
         and realization.
         """
-
-        table_collection = self._case.tables.filter(
-            tagname=tagname, realization=realization, iteration=self._iteration_name
+        ensemble_context = await self.get_ensemble_context()
+        table_context = ensemble_context.filter(
+            cls="table", content="lift_curves", realization=realization, tagname=tagname
         )
 
-        table_count = await table_collection.length_async()
+        table_count = await table_context.length_async()
         if table_count == 0:
             raise NoDataError(
                 f"No VFP table found with tagname: {tagname} and realization: {realization}", Service.SUMO
@@ -69,7 +59,7 @@ class VfpAccess:
                 f"Multiple VFP tables found with tagname: {tagname} and realization: {realization}", Service.SUMO
             )
 
-        pa_table: pa.Table = await table_collection[0].to_arrow_async()
+        pa_table: pa.Table = await table_context[0].to_arrow_async()
 
         return pa_table
 

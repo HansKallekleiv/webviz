@@ -334,7 +334,6 @@ class SummaryAccess(SumoEnsembleAccess):
 
 
 def _validate_single_vector_table(arrow_table: pa.Table, vector_name: str) -> pa.Table:
-    timer = PerfMetrics()
 
     # Verify that we got the expected columns
     if not "DATE" in arrow_table.column_names:
@@ -360,8 +359,7 @@ def _validate_single_vector_table(arrow_table: pa.Table, vector_name: str) -> pa
         raise InvalidDataError(
             f"Unexpected type for {vector_name} column {schema.field(vector_name).type=}", Service.SUMO
         )
-    timer.record_lap("verify table")
-    LOGGER.debug(f"{timer.to_string()}")
+
     return arrow_table
 
 

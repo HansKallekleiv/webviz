@@ -2,8 +2,7 @@ from typing import TypeVar, Type
 import logging
 import asyncio
 import pyarrow as pa
-import pyarrow.feather as pf
-import pyarrow.parquet as pq
+
 from fmu.sumo.explorer.explorer import SumoClient
 from fmu.sumo.explorer.objects._search_context import SearchContext
 from webviz_pkg.core_utils.perf_metrics import PerfMetrics
@@ -11,8 +10,9 @@ from primary.services.service_exceptions import Service, NoDataError, MultipleDa
 from ._helpers import create_sumo_client
 
 
-T = TypeVar("T", bound="SumoEnsembleAccess")
 LOGGER = logging.getLogger(__name__)
+
+T = TypeVar("T", bound="SumoEnsembleAccess")
 
 
 class SumoEnsembleAccess:
@@ -35,21 +35,26 @@ class SumoEnsembleAccess:
             SearchContext: The context for the current ensemble
 
         Raises:
-            RuntimeError: If unable to create or retrieve ensemble context
+            NoDataError: If unable to create or retrieve ensemble context
         """
         if not self._ensemble_context:
             try:
                 search_context = SearchContext(sumo=self._sumo_client)
-                self._ensemble_context = await search_context.get_case_by_uuid_async(self._case_uuid)
+                # case_context = await search_context.get_case_by_uuid_async(self._case_uuid)
+                self._ensemble_context = search_context.filter(uuid=self._case_uuid, iteration=self._iteration_name)
             except Exception as exc:
                 raise NoDataError(
                     f"Unable to get ensemble context for {self._case_uuid=}, {self._iteration_name=}", Service.SUMO
                 ) from exc
 
-        return self._ensemble_context.filter(iteration=self._iteration_name)
+        return self._ensemble_context
 
     async def load_aggregated_arrow_table_single_column_from_sumo(
-        self, table_content_name: str, table_name: str, table_column_name: str
+        self,
+        table_name: str,
+        table_column_name: str,
+        table_content_name: str | None = None,
+        table_tagname: str | None = None,
     ) -> pa.Table:
         timer = PerfMetrics()
 
@@ -57,7 +62,8 @@ class SumoEnsembleAccess:
         timer.record_lap("get_ensemble_context")
         table_context = ensemble_context.filter(
             cls="table",
-            content=table_content_name,
+            tagname=table_tagname,
+            # content=table_content_name,
             column=table_column_name,
         )
         agg = await table_context.aggregation_async(column=table_column_name, operation="collection")
@@ -69,13 +75,20 @@ class SumoEnsembleAccess:
         return await agg.to_arrow_async()
 
     async def load_aggregated_arrow_table_multiple_columns_from_sumo(
-        self, table_content_name: str, table_name: str, table_column_names: list[str]
+        self,
+        table_name: str,
+        table_column_names: list[str],
+        table_content_name: str | None = None,
+        table_tagname: str | None = None,
     ) -> pa.Table:
         async with asyncio.TaskGroup() as tg:
             tasks = [
                 tg.create_task(
                     self.load_aggregated_arrow_table_single_column_from_sumo(
-                        table_content_name=table_content_name, table_name=table_name, table_column_name=column_name
+                        table_content_name=table_content_name,
+                        table_tagname=table_tagname,
+                        table_name=table_name,
+                        table_column_name=column_name,
                     )
                 )
                 for column_name in table_column_names
@@ -114,8 +127,9 @@ class SumoEnsembleAccess:
                 f"Multiple tables found in {self._case_uuid=}, {self._iteration_name=}, {table_content_name=}, {table_name=}",
                 Service.SUMO,
             )
-        table: pa.Table = await table_context.to_arrow_async()
-
+        sumo_table = await table_context.getitem_async(0)
+        timer.record_lap("getitem_async")
+        table = await sumo_table.to_arrow_async()
         timer.record_lap("to_arrow_async")
 
         LOGGER.debug(
