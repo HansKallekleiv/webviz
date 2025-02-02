@@ -62,9 +62,10 @@ class SumoEnsembleAccess:
         timer.record_lap("get_ensemble_context")
         table_context = ensemble_context.filter(
             cls="table",
-            tagname=table_tagname,
-            # content=table_content_name,
+            # tagname=table_tagname,
+            content=table_content_name,
             column=table_column_name,
+            name=table_name,
         )
         agg = await table_context.aggregation_async(column=table_column_name, operation="collection")
         timer.record_lap("aggregation_async")

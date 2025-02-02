@@ -512,7 +512,7 @@ class InplaceVolumetricsAssembler:
         # - Soft fail: get_inplace_volumetrics_table_no_throw_async() does not require matching volumetric column names
         # - Hard fail: get_inplace_volumetrics_table_async() throws an exception if requested column names are not found
         inplace_volumetrics_table: pa.Table = (
-            await self._inplace_volumetrics_access.get_inplace_volumetrics_table_no_throw_async(
+            await self._inplace_volumetrics_access.get_inplace_volumetrics_table_async(
                 table_name=table_name, column_names=volumetric_columns
             )
         )
