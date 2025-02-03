@@ -1,10 +1,10 @@
-from typing import TypeVar, Type
+from typing import TypeVar, Type, List
 import logging
 import asyncio
 import pyarrow as pa
 
 from fmu.sumo.explorer.explorer import SumoClient
-from fmu.sumo.explorer.objects._search_context import SearchContext
+from fmu.sumo.explorer.objects._search_context import SearchContext, filters
 from webviz_pkg.core_utils.perf_metrics import PerfMetrics
 from primary.services.service_exceptions import Service, NoDataError, MultipleDataMatchesError
 from ._helpers import create_sumo_client
@@ -13,6 +13,84 @@ from ._helpers import create_sumo_client
 LOGGER = logging.getLogger(__name__)
 
 T = TypeVar("T", bound="SumoEnsembleAccess")
+
+
+class AsyncSearchContext(SearchContext):
+    def __init__(
+        self,
+        sumo: SumoClient,
+        must: List = [],
+        must_not: List = [],
+        hidden=False,
+        visible=True,
+    ):
+        super().__init__(sumo, must=must, must_not=must_not, hidden=hidden, visible=visible)
+
+    async def aggregation_async(self, column=None, operation=None):
+        assert operation is not None
+        assert column is None or isinstance(column, str)
+        sc = self.filter(aggregation=operation, column=column)
+        length = await sc.length_async()
+        print("**************************************************", length)
+        if length == 1:
+            return await sc.getitem_async(0)
+        else:
+            return await self.filter(realization=True).aggregate_async(
+                columns=[column] if column is not None else None,
+                operation=operation,
+            )
+
+    async def aggregate_async(self, columns=None, operation=None):
+        hidden_length = await self.hidden.length_async()
+        print("**************************************************", hidden_length, columns, operation)
+        if hidden_length > 0:
+            return await self.hidden._aggregate_async(columns=columns, operation=operation)
+        else:
+            return await self.visible._aggregate_async(columns=columns, operation=operation)
+
+    def filter(self, **kwargs) -> "AsyncSearchContext":
+        """Filter AsyncSearchContext"""
+
+        must = self._must[:]
+        must_not = self._must_not[:]
+        for k, v in kwargs.items():
+            f = filters.get(k)
+            if f is None:
+                raise Exception(f"Don't know how to generate filter for {k}")
+                pass
+            _must, _must_not = f(v)
+            if _must:
+                must.append(_must)
+            if _must_not is not None:
+                must_not.append(_must_not)
+
+        sc = AsyncSearchContext(
+            self._sumo,
+            must=must,
+            must_not=must_not,
+            hidden=self._hidden,
+            visible=self._visible,
+        )
+
+        if "has" in kwargs:
+            # Get list of cases matched by current filter set
+            uuids = sc._get_field_values("fmu.case.uuid.keyword")
+            # Generate new AsyncSearchContext for objects that match the uuids
+            # and also satisfy the "has" filter
+            sc = AsyncSearchContext(
+                self._sumo,
+                must=[
+                    {"terms": {"fmu.case.uuid.keyword": uuids}},
+                    kwargs["has"],
+                ],
+            )
+            uuids = sc._get_field_values("fmu.case.uuid.keyword")
+            sc = AsyncSearchContext(
+                self._sumo,
+                must=[{"ids": {"values": uuids}}],
+            )
+
+        return sc
 
 
 class SumoEnsembleAccess:
@@ -27,19 +105,19 @@ class SumoEnsembleAccess:
         sumo_client: SumoClient = create_sumo_client(access_token)
         return cls(sumo_client=sumo_client, case_uuid=case_uuid, iteration_name=iteration_name)
 
-    async def get_ensemble_context(self) -> SearchContext:
+    async def get_ensemble_context(self) -> AsyncSearchContext:
         """
         Get the ensemble context, creating it if necessary.
 
         Returns:
-            SearchContext: The context for the current ensemble
+            AsyncSearchContext: The context for the current ensemble
 
         Raises:
             NoDataError: If unable to create or retrieve ensemble context
         """
-        if not self._ensemble_context:
+        if self._ensemble_context is None:
             try:
-                search_context = SearchContext(sumo=self._sumo_client)
+                search_context = AsyncSearchContext(sumo=self._sumo_client)
                 # case_context = await search_context.get_case_by_uuid_async(self._case_uuid)
                 self._ensemble_context = search_context.filter(uuid=self._case_uuid, iteration=self._iteration_name)
             except Exception as exc:
@@ -51,15 +129,14 @@ class SumoEnsembleAccess:
 
     async def load_aggregated_arrow_table_single_column_from_sumo(
         self,
-        table_name: str,
         table_column_name: str,
+        table_name: str | None = None,
         table_content_name: str | None = None,
         table_tagname: str | None = None,
     ) -> pa.Table:
         timer = PerfMetrics()
 
         ensemble_context = await self.get_ensemble_context()
-        timer.record_lap("get_ensemble_context")
         table_context = ensemble_context.filter(
             cls="table",
             # tagname=table_tagname,
@@ -67,18 +144,17 @@ class SumoEnsembleAccess:
             column=table_column_name,
             name=table_name,
         )
+        timer.record_lap("get_context")
         agg = await table_context.aggregation_async(column=table_column_name, operation="collection")
         timer.record_lap("aggregation_async")
-        LOGGER.debug(
-            f"{timer.to_string()}, {self._case_uuid=}, {self._iteration_name=}, {table_content_name=}, {table_name=}, {table_column_name=}"
-        )
+        LOGGER.debug(f"load_aggregated_arrow_table_single_column_from_sumo {timer.to_string()}, {table_column_name=}")
 
         return await agg.to_arrow_async()
 
     async def load_aggregated_arrow_table_multiple_columns_from_sumo(
         self,
-        table_name: str,
         table_column_names: list[str],
+        table_name: str | None = None,
         table_content_name: str | None = None,
         table_tagname: str | None = None,
     ) -> pa.Table:

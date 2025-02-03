@@ -92,7 +92,7 @@ class SummaryAccess(SumoEnsembleAccess):
         timer = PerfTimer()
 
         table: pa.Table = await self.load_aggregated_arrow_table_single_column_from_sumo(
-            table_content_name="timeseries", table_name="summary", table_column_name=vector_name
+            table_content_name="timeseries", table_column_name=vector_name
         )
         table = _validate_single_vector_table(table, vector_name)
         et_loading_ms = timer.lap_ms()
@@ -192,7 +192,6 @@ class SummaryAccess(SumoEnsembleAccess):
         columns_to_get.extend(vector_names)
         table: pa.Table = await self.load_single_realization_arrow_table(
             table_content_name="timeseries",
-            table_name="summary",
             table_column_names=columns_to_get,
             realization_no=realization,
         )
@@ -256,7 +255,7 @@ class SummaryAccess(SumoEnsembleAccess):
             return None
 
         table: pa.Table = await self.load_aggregated_arrow_table_single_column_from_sumo(
-            table_content_name="timeseries", table_name="summary", table_column_name=hist_vec_name
+            table_content_name="timeseries", table_column_name=hist_vec_name
         )
 
         table = _validate_single_vector_table(table, hist_vec_name)

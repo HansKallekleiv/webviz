@@ -27,4 +27,4 @@ COPY --chown=appuser ./backend_py/libs    /home/appuser/backend_py/libs
 COPY --chown=appuser ./backend_py/primary /home/appuser/backend_py/primary
 RUN poetry install --only main
 
-CMD exec uvicorn --proxy-headers --host=0.0.0.0 primary.main:app
+CMD exec uvicorn --proxy-headers --host=0.0.0.0 primary.main:app --workers 4

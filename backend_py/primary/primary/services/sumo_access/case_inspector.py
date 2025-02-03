@@ -3,7 +3,7 @@ import asyncio
 from pydantic import BaseModel
 from fmu.sumo.explorer.explorer import SumoClient
 from fmu.sumo.explorer.objects import Case, SearchContext
-
+import fmu.sumo.explorer.objects as objects
 from webviz_pkg.core_utils.perf_metrics import PerfMetrics
 from .queries.case import get_stratigraphic_column_identifier, get_field_identifiers
 from ._helpers import create_sumo_client, create_sumo_case_async
@@ -23,6 +23,21 @@ class IterationInfo(BaseModel):
     realization_count: int
 
 
+class MySearchContext(SearchContext):
+    async def get_iteration_by_uuid_async(self, uuid: str):
+        """Get iteration object by uuid
+
+        Args:
+            uuid (str): iteration uuid
+
+        Returns: iteration object
+        """
+        res = (await self._sumo.post_async("/search", json=self._iteration_query(uuid))).json()
+        obj = res["hits"]["hits"][0]
+        obj["_id"] = uuid
+        return objects.Iteration(self._sumo, obj)
+
+
 class CaseInspector:
     def __init__(self, sumo_client: SumoClient, case_uuid: str):
         self._sumo_client = sumo_client
@@ -35,7 +50,7 @@ class CaseInspector:
         return CaseInspector(sumo_client=sumo_client, case_uuid=case_uuid)
 
     async def _get_or_create_case_context(self) -> Case:
-        if not self._cached_case_context:
+        if self._cached_case_context is None:
             self._cached_case_context = await create_sumo_case_async(
                 client=self._sumo_client, case_uuid=self._case_uuid, want_keepalive_pit=False
             )
@@ -48,9 +63,11 @@ class CaseInspector:
         return case.name
 
     async def _get_iteration_info(self, iteration_uuid: str) -> IterationInfo:
-        search_context = SearchContext(self._sumo_client)
-        iteration = search_context.get_iteration_by_uuid(iteration_uuid)
-        return IterationInfo(name=iteration.name, realization_count=len(iteration.realizations))
+        search_context = MySearchContext(self._sumo_client)
+        iteration = await search_context.get_iteration_by_uuid_async(iteration_uuid)
+        realizations = await iteration.realizations_async
+        realization_count = len(realizations.uuids)
+        return IterationInfo(name=iteration.name, realization_count=realization_count)
 
     async def get_iterations_async(self) -> list[IterationInfo]:
         """Get list of iterations for a case"""

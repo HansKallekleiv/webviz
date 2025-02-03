@@ -3,6 +3,7 @@ from pydantic import BaseModel
 import logging
 
 from fmu.sumo.explorer.explorer import SearchContext, SumoClient
+from fmu.sumo.explorer.objects import Cases
 import asyncio
 
 from webviz_pkg.core_utils.perf_metrics import PerfMetrics
@@ -36,17 +37,24 @@ class SumoInspector:
         LOGGER.debug(timer.to_string())
         return [FieldInfo(identifier=field_ident) for field_ident in field_idents]
 
+    async def _get_case_info_async(self, search_context: SearchContext, case_uuid: str) -> CaseInfo:
+
+        case = await search_context.get_case_by_uuid_async(case_uuid)
+        return CaseInfo(uuid=case.uuid, name=case.name, status=case.status, user=case.user)
+
     async def get_cases_async(self, field_identifier: str) -> List[CaseInfo]:
         """Get list of cases for specified field"""
         timer = PerfMetrics()
         search_context = SearchContext(self._sumo_client)
         field_context = search_context.filter(field=field_identifier, cls="case")
-        cases = await field_context.cases_async
+        cases: Cases = await field_context.cases_async
+        case_uuids = cases.uuids
         timer.record_lap("get case uuids")
 
-        case_info_arr: List[CaseInfo] = []
-        for case in cases:
-            case_info_arr.append(CaseInfo(uuid=case.uuid, name=case.name, status=case.status, user=case.user))
+        async with asyncio.TaskGroup() as tg:
+            tasks = [tg.create_task(self._get_case_info_async(cases, case_uuid)) for case_uuid in case_uuids]
+
+        case_info_arr: list[CaseInfo] = [task.result() for task in tasks]
 
         timer.record_lap("get_cases_for_field")
         case_info_arr = sorted(case_info_arr, key=lambda case_info: case_info.name)

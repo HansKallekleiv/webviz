@@ -1,7 +1,7 @@
 import datetime
 import logging
 import os
-
+from typing import Optional
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 from fastapi.routing import APIRoute
@@ -36,6 +36,7 @@ from primary.utils.exception_handlers import override_default_fastapi_exception_
 from primary.utils.logging_setup import ensure_console_log_handler_is_configured, setup_normal_log_levels
 
 from . import config
+from .httpx_client import http_client, http_sync_client
 
 
 ensure_console_log_handler_is_configured()
@@ -43,6 +44,8 @@ setup_normal_log_levels()
 
 # temporarily set some loggers to DEBUG
 # logging.getLogger().setLevel(logging.CRITICAL)
+# logging.getLogger("primary.services.sumo_access._helpers").setLevel(logging.DEBUG)
+logging.getLogger("primary.services.sumo_access.sumo_ensemble_access").setLevel(logging.DEBUG)
 logging.getLogger("primary.services.sumo_access").setLevel(logging.DEBUG)
 # logging.getLogger("primary.services.user_session_manager").setLevel(logging.DEBUG)
 # logging.getLogger("primary.services.user_grid3d_service").setLevel(logging.DEBUG)
@@ -71,6 +74,17 @@ if os.environ.get("APPLICATIONINSIGHTS_CONNECTION_STRING"):
     setup_azure_monitor_telemetry(app)
 else:
     LOGGER.warning("Skipping telemetry configuration, APPLICATIONINSIGHTS_CONNECTION_STRING env variable not set.")
+
+
+@app.on_event("startup")
+async def startup_event():
+    http_client.start()
+    http_sync_client.start()
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    await http_client.stop()
 
 
 # The tags we add here will determine the name of the frontend api service for our endpoints as well as
