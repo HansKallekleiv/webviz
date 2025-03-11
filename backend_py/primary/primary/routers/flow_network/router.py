@@ -29,10 +29,12 @@ async def get_realization_flow_network(
 ) -> schemas.FlowNetworkData:
     timer = PerfTimer()
 
-    group_tree_access = await GroupTreeAccess.from_case_uuid_async(
+    group_tree_access = GroupTreeAccess.from_iteration_name(
         authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name
     )
-    summary_access = SummaryAccess.from_case_uuid(authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name)
+    summary_access = SummaryAccess.from_iteration_name(
+        authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name
+    )
     summary_frequency = Frequency.from_string_value(resampling_frequency.value)
     if summary_frequency is None:
         summary_frequency = Frequency.YEARLY
@@ -45,7 +47,7 @@ async def get_realization_flow_network(
         summary_access=summary_access,
         realization=realization,
         summary_frequency=summary_frequency,
-        node_types=unique_node_types,
+        selected_node_types=unique_node_types,
         flow_network_mode=NetworkModeOptions.SINGLE_REAL,
     )
 
@@ -57,7 +59,7 @@ async def get_realization_flow_network(
         dated_networks,
         edge_metadata,
         node_metadata,
-    ) = await network_assembler.create_dated_networks_and_metadata_lists()
+    ) = network_assembler.create_dated_networks_and_metadata_lists()
     create_data_time_ms = timer.lap_ms()
 
     LOGGER.info(

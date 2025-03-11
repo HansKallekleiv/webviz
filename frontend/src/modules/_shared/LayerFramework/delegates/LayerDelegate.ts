@@ -1,15 +1,19 @@
-import { StatusMessage } from "@framework/ModuleInstanceStatusController";
+import type { StatusMessage } from "@framework/ModuleInstanceStatusController";
 import { ApiErrorHelper } from "@framework/utils/ApiErrorHelper";
 import { isDevMode } from "@lib/utils/devMode";
-import { QueryClient, isCancelledError } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
+import { isCancelledError } from "@tanstack/react-query";
 
-import { PublishSubscribe, PublishSubscribeDelegate } from "./PublishSubscribeDelegate";
 import { SettingsContextDelegateTopic } from "./SettingsContextDelegate";
 import { UnsubscribeHandlerDelegate } from "./UnsubscribeHandlerDelegate";
 
-import { LayerManager, LayerManagerTopic } from "../framework/LayerManager/LayerManager";
+import type { PublishSubscribe } from "../../utils/PublishSubscribeDelegate";
+import { PublishSubscribeDelegate } from "../../utils/PublishSubscribeDelegate";
+import type { LayerManager } from "../framework/LayerManager/LayerManager";
+import { LayerManagerTopic } from "../framework/LayerManager/LayerManager";
 import { SharedSetting } from "../framework/SharedSetting/SharedSetting";
-import { BoundingBox, Layer, SerializedLayer, SerializedType, Settings, SettingsContext } from "../interfaces";
+import type { BoundingBox, Layer, SerializedLayer, Settings, SettingsContext, StoredData } from "../interfaces";
+import { SerializedType } from "../interfaces";
 
 export enum LayerDelegateTopic {
     STATUS = "STATUS",
@@ -41,29 +45,31 @@ export type LayerDelegatePayloads<TData> = {
  * It is responsible for (re-)fetching the data whenever changes to settings make it necessary.
  * It also manages the status of the layer (loading, success, error).
  */
-export class LayerDelegate<TSettings extends Settings, TData>
-    implements PublishSubscribe<LayerDelegateTopic, LayerDelegatePayloads<TData>>
+export class LayerDelegate<TSettings extends Settings, TData, TStoredData extends StoredData = Record<string, never>>
+    implements PublishSubscribe<LayerDelegatePayloads<TData>>
 {
-    private _owner: Layer<TSettings, TData>;
-    private _settingsContext: SettingsContext<TSettings>;
+    private _owner: Layer<TSettings, TData, TStoredData>;
+    private _settingsContext: SettingsContext<TSettings, TStoredData>;
     private _layerManager: LayerManager;
     private _unsubscribeHandler: UnsubscribeHandlerDelegate = new UnsubscribeHandlerDelegate();
     private _cancellationPending: boolean = false;
-    private _publishSubscribeDelegate = new PublishSubscribeDelegate<LayerDelegateTopic>();
+    private _publishSubscribeDelegate = new PublishSubscribeDelegate<LayerDelegatePayloads<TData>>();
     private _queryKeys: unknown[][] = [];
     private _status: LayerStatus = LayerStatus.IDLE;
     private _data: TData | null = null;
     private _error: StatusMessage | string | null = null;
+    private _prevBoundingBox: BoundingBox | null = null;
+    private _predictedBoundingBox: BoundingBox | null = null;
     private _boundingBox: BoundingBox | null = null;
     private _valueRange: [number, number] | null = null;
     private _coloringType: LayerColoringType;
     private _isSubordinated: boolean = false;
 
     constructor(
-        owner: Layer<TSettings, TData>,
+        owner: Layer<TSettings, TData, TStoredData>,
         layerManager: LayerManager,
-        settingsContext: SettingsContext<TSettings>,
-        coloringType: LayerColoringType
+        settingsContext: SettingsContext<TSettings, TStoredData>,
+        coloringType: LayerColoringType,
     ) {
         this._owner = owner;
         this._layerManager = layerManager;
@@ -77,7 +83,7 @@ export class LayerDelegate<TSettings extends Settings, TData>
                 .getPublishSubscribeDelegate()
                 .makeSubscriberFunction(SettingsContextDelegateTopic.SETTINGS_CHANGED)(() => {
                 this.handleSettingsChange();
-            })
+            }),
         );
 
         this._unsubscribeHandler.registerUnsubscribeFunction(
@@ -86,14 +92,14 @@ export class LayerDelegate<TSettings extends Settings, TData>
                 .getPublishSubscribeDelegate()
                 .makeSubscriberFunction(LayerManagerTopic.SHARED_SETTINGS_CHANGED)(() => {
                 this.handleSharedSettingsChanged();
-            })
+            }),
         );
 
         this._unsubscribeHandler.registerUnsubscribeFunction(
             "layer-manager",
             layerManager.getPublishSubscribeDelegate().makeSubscriberFunction(LayerManagerTopic.ITEMS_CHANGED)(() => {
                 this.handleSharedSettingsChanged();
-            })
+            }),
         );
     }
 
@@ -116,12 +122,23 @@ export class LayerDelegate<TSettings extends Settings, TData>
         return this._data;
     }
 
-    getSettingsContext(): SettingsContext<TSettings> {
+    getSettingsContext(): SettingsContext<TSettings, TStoredData> {
         return this._settingsContext;
     }
 
     getBoundingBox(): BoundingBox | null {
         return this._boundingBox;
+    }
+
+    getLastValidBoundingBox(): BoundingBox | null {
+        if (this._boundingBox) {
+            return this._boundingBox;
+        }
+        return this._prevBoundingBox;
+    }
+
+    getPredictedBoundingBox(): BoundingBox | null {
+        return this._predictedBoundingBox;
     }
 
     getColoringType(): LayerColoringType {
@@ -148,7 +165,7 @@ export class LayerDelegate<TSettings extends Settings, TData>
         const parentGroup = this._owner.getItemDelegate().getParentGroup();
         if (parentGroup) {
             const sharedSettings: SharedSetting[] = parentGroup.getAncestorAndSiblingItems(
-                (item) => item instanceof SharedSetting
+                (item) => item instanceof SharedSetting,
             ) as SharedSetting[];
             const overriddenSettings: { [K in keyof TSettings]: TSettings[K] } = {} as {
                 [K in keyof TSettings]: TSettings[K];
@@ -191,7 +208,7 @@ export class LayerDelegate<TSettings extends Settings, TData>
         return snapshotGetter;
     }
 
-    getPublishSubscribeDelegate(): PublishSubscribeDelegate<LayerDelegateTopic> {
+    getPublishSubscribeDelegate(): PublishSubscribeDelegate<LayerDelegatePayloads<TData>> {
         return this._publishSubscribeDelegate;
     }
 
@@ -227,9 +244,11 @@ export class LayerDelegate<TSettings extends Settings, TData>
             return;
         }
 
-        this.setStatus(LayerStatus.LOADING);
         this.invalidateBoundingBox();
         this.invalidateValueRange();
+        this._predictedBoundingBox = this._owner.predictBoundingBox?.() ?? null;
+
+        this.setStatus(LayerStatus.LOADING);
 
         try {
             this._data = await this._owner.fetchData(queryClient);
@@ -241,7 +260,7 @@ export class LayerDelegate<TSettings extends Settings, TData>
             }
             if (this._queryKeys.length === null && isDevMode()) {
                 console.warn(
-                    "Did you forget to use 'setQueryKeys' in your layer implementation of 'fetchData'? This will cause the queries to not be cancelled when settings change and might lead to undesired behaviour."
+                    "Did you forget to use 'setQueryKeys' in your layer implementation of 'fetchData'? This will cause the queries to not be cancelled when settings change and might lead to undesired behaviour.",
                 );
             }
             this._queryKeys = [];
@@ -297,6 +316,15 @@ export class LayerDelegate<TSettings extends Settings, TData>
     }
 
     private invalidateBoundingBox(): void {
+        if (this._boundingBox) {
+            this._prevBoundingBox = {
+                x: [this._boundingBox.x[0], this._boundingBox.x[1]],
+                y: [this._boundingBox.y[0], this._boundingBox.y[1]],
+                z: [this._boundingBox.z[0], this._boundingBox.z[1]],
+            };
+        } else {
+            this._prevBoundingBox = null;
+        }
         this._boundingBox = null;
     }
 
@@ -323,7 +351,7 @@ export class LayerDelegate<TSettings extends Settings, TData>
                     {
                         silent: true,
                         revert: true,
-                    }
+                    },
                 );
                 await queryClient.invalidateQueries({ queryKey });
                 queryClient.removeQueries({ queryKey });

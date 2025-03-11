@@ -1,7 +1,6 @@
-import { VectorRealizationData_api, VectorStatisticSensitivityData_api } from "@api";
-import { StatisticFunction_api } from "@api";
+import type { StatisticFunction_api, VectorRealizationData_api, VectorStatisticSensitivityData_api } from "@api";
 
-import { PlotData } from "plotly.js";
+import type { PlotData } from "plotly.js";
 
 export interface TimeSeriesPlotlyTrace extends Partial<PlotData> {
     realizationNumber?: number | null;
@@ -11,25 +10,25 @@ export interface TimeSeriesPlotlyTrace extends Partial<PlotData> {
 export function createStatisticalLineTraces(
     sensitivityData: VectorStatisticSensitivityData_api[],
     statisticsFunction: StatisticFunction_api,
-    color: string
+    color: string,
 ): TimeSeriesPlotlyTrace[] {
     const traces: TimeSeriesPlotlyTrace[] = [];
     sensitivityData.forEach((aCase, index) => {
-        const statisticObj = aCase.value_objects.find((obj) => obj.statistic_function === statisticsFunction);
+        const statisticObj = aCase.valueObjects.find((obj) => obj.statisticFunction === statisticsFunction);
         if (statisticObj) {
             traces.push(
                 createLineTrace({
-                    timestampsMsUtc: aCase.timestamps_utc_ms,
+                    timestampsMsUtc: aCase.timestampsUtcMs,
                     values: statisticObj.values,
-                    name: `${aCase.sensitivity_name}`,
-                    legendGroup: `${aCase.sensitivity_name}`,
+                    name: `${aCase.sensitivityName}`,
+                    legendGroup: `${aCase.sensitivityName}`,
                     lineShape: "linear",
                     lineDash: "dash",
                     showLegend: index === 0,
                     lineColor: color,
                     lineWidth: 3,
-                    hoverTemplate: `Sensitivity:<b>${aCase.sensitivity_name}</b> <br> Case: <b>${aCase.sensitivity_case}</b> <br> Value: %{y} <br> Date: %{x}<extra></extra>`,
-                })
+                    hoverTemplate: `Sensitivity:<b>${aCase.sensitivityName}</b> <br> Case: <b>${aCase.sensitivityName}</b> <br> Value: %{y} <br> Date: %{x}<extra></extra>`,
+                }),
             );
         }
     });
@@ -40,7 +39,7 @@ export function createRealizationLineTraces(
     realizationData: VectorRealizationData_api[],
     sensitivityName: string,
     color: string,
-    highlightedRealization?: number | undefined
+    highlightedRealization?: number | undefined,
 ): TimeSeriesPlotlyTrace[] {
     const traces: TimeSeriesPlotlyTrace[] = [];
     let highlightedTrace: TimeSeriesPlotlyTrace | null = null;
@@ -51,7 +50,7 @@ export function createRealizationLineTraces(
         const isHighlighted = vec.realization === highlightedRealization ? true : false;
 
         const trace = createLineTrace({
-            timestampsMsUtc: vec.timestamps_utc_ms,
+            timestampsMsUtc: vec.timestampsUtcMs,
             values: vec.values,
             name: `real-${vec.realization}`,
             lineShape: lineShape,

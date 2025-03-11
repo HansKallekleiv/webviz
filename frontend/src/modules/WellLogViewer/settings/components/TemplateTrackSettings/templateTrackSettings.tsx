@@ -1,11 +1,15 @@
 import React from "react";
 
-import { SettingsStatusWriter } from "@framework/StatusWriter";
+import { WellLogCurveTypeEnum_api } from "@api";
+import type { SettingsStatusWriter } from "@framework/StatusWriter";
 import { Menu } from "@lib/components/Menu";
 import { MenuItem } from "@lib/components/MenuItem";
+import type { SelectOption } from "@lib/components/Select";
 import { SortableList } from "@lib/components/SortableList";
 import { arrayMove } from "@lib/utils/arrays";
-import { TemplateTrackConfig } from "@modules/WellLogViewer/types";
+import { TrackIcon } from "@modules/WellLogViewer/_shared/components/icons";
+import type { TemplateTrackConfig } from "@modules/WellLogViewer/types";
+import { makeTrackPlot } from "@modules/WellLogViewer/utils/logViewerTemplate";
 import { configToJsonDataBlob, jsonFileToTrackConfigs } from "@modules/WellLogViewer/utils/settingsImport";
 import { Dropdown, MenuButton } from "@mui/base";
 import { FileDownload, FileUpload, MoreVert } from "@mui/icons-material";
@@ -15,40 +19,54 @@ import { v4 } from "uuid";
 
 import { SortableTrackItem } from "./private-components/SortableTrackItem";
 
-import { logViewerTrackConfigs } from "../../atoms/persistedAtoms";
+import { logViewerTrackConfigsAtom } from "../../atoms/persistedAtoms";
 import { AddItemButton } from "../AddItemButton";
 
 interface TemplateTrackSettingsProps {
     statusWriter: SettingsStatusWriter;
 }
 
+type TrackSelectOption = SelectOption<TemplateTrackConfig["_type"]>;
+const TRACK_OPTIONS: TrackSelectOption[] = [
+    {
+        label: "Continous",
+        value: WellLogCurveTypeEnum_api.CONTINUOUS,
+        adornment: <TrackIcon type={WellLogCurveTypeEnum_api.CONTINUOUS} />,
+    },
+    {
+        label: "Discrete",
+        value: WellLogCurveTypeEnum_api.DISCRETE,
+        adornment: <TrackIcon type={WellLogCurveTypeEnum_api.DISCRETE} />,
+    },
+];
+
 export function TemplateTrackSettings(props: TemplateTrackSettingsProps): React.ReactNode {
-    const [trackConfigs, setTrackConfigs] = useAtom(logViewerTrackConfigs);
+    const [trackConfigs, setTrackConfigs] = useAtom(logViewerTrackConfigsAtom);
     const jsonImportInputRef = React.useRef<HTMLInputElement | null>(null);
 
     const handleNewPlotTrack = React.useCallback(
-        function handleNewPlotTrack() {
-            const newConfig = createNewConfig(`Plot track #${trackConfigs.length + 1}`);
+        function handleNewPlotTrack(type: TrackSelectOption["value"]) {
+            const newConfig = createNewConfig(`Plot track #${trackConfigs.length + 1}`, type);
 
             setTrackConfigs([...trackConfigs, newConfig]);
         },
-        [setTrackConfigs, trackConfigs]
+        [setTrackConfigs, trackConfigs],
     );
 
     const handleDeleteTrack = React.useCallback(
         function handleDeleteTrack(track: TemplateTrackConfig) {
-            setTrackConfigs(trackConfigs.filter((configs) => configs._id !== track._id));
+            setTrackConfigs(trackConfigs.filter((configs) => configs._key !== track._key));
         },
-        [setTrackConfigs, trackConfigs]
+        [setTrackConfigs, trackConfigs],
     );
 
     const handleEditTrack = React.useCallback(
         function handleEditTrack(updatedItem: TemplateTrackConfig) {
-            const newConfigs = trackConfigs.map((tc) => (tc._id === updatedItem._id ? updatedItem : tc));
+            const newConfigs = trackConfigs.map((tc) => (tc._key === updatedItem._key ? updatedItem : tc));
 
             setTrackConfigs(newConfigs);
         },
-        [setTrackConfigs, trackConfigs]
+        [setTrackConfigs, trackConfigs],
     );
 
     const handleTrackMove = React.useCallback(
@@ -56,14 +74,14 @@ export function TemplateTrackSettings(props: TemplateTrackSettingsProps): React.
             movedItemId: string,
             originId: string | null,
             destinationId: string | null,
-            newPosition: number
+            newPosition: number,
         ) {
-            const currentPosition = trackConfigs.findIndex((cfg) => cfg._id === movedItemId);
+            const currentPosition = trackConfigs.findIndex((cfg) => cfg._key === movedItemId);
             const newTrackCfg = arrayMove(trackConfigs, currentPosition, newPosition);
 
             setTrackConfigs(newTrackCfg);
         },
-        [setTrackConfigs, trackConfigs]
+        [setTrackConfigs, trackConfigs],
     );
 
     const encodedConfigJsonUrl = React.useMemo(() => configToJsonDataBlob(trackConfigs), [trackConfigs]);
@@ -87,7 +105,7 @@ export function TemplateTrackSettings(props: TemplateTrackSettingsProps): React.
                 window.alert("Invalid JSON content\n\n" + errorMsg);
             }
         },
-        [setTrackConfigs]
+        [setTrackConfigs],
     );
 
     return (
@@ -101,11 +119,11 @@ export function TemplateTrackSettings(props: TemplateTrackSettingsProps): React.
                     onChange={handleConfigJsonImport}
                 />
 
-                <div className="flex-grow font-bold text-sm">Plot Tracks</div>
+                <div className="grow font-bold text-sm">Plot Tracks</div>
 
-                <AddItemButton buttonText="Add track" onAddClicked={handleNewPlotTrack} />
+                <AddItemButton buttonText="Add track" options={TRACK_OPTIONS} onOptionClicked={handleNewPlotTrack} />
                 <Dropdown>
-                    <MenuButton className="py-0.5 px-1 text-sm rounded hover:bg-blue-100">
+                    <MenuButton className="py-0.5 px-1 text-sm rounded-sm hover:bg-blue-100">
                         <MoreVert fontSize="inherit" />
                     </MenuButton>
                     <Menu anchorOrigin="bottom-end" className="text-sm">
@@ -128,7 +146,7 @@ export function TemplateTrackSettings(props: TemplateTrackSettingsProps): React.
             <SortableList onItemMoved={handleTrackMove}>
                 {trackConfigs.map((config) => (
                     <SortableTrackItem
-                        key={config._id}
+                        key={config._key}
                         trackConfig={config}
                         statusWriter={props.statusWriter}
                         // Listeners
@@ -141,12 +159,24 @@ export function TemplateTrackSettings(props: TemplateTrackSettingsProps): React.
     );
 }
 
-function createNewConfig(title: string): TemplateTrackConfig {
+function createNewConfig(title: string, type: TemplateTrackConfig["_type"]): TemplateTrackConfig {
+    if (type === WellLogCurveTypeEnum_api.DISCRETE) {
+        return {
+            _key: v4(),
+            _type: type,
+            scale: "linear",
+            width: 3,
+            title,
+            plots: [makeTrackPlot({ _curveHeader: null, type: "stacked" })],
+        };
+    }
+
     return {
-        _id: v4(),
-        plots: [],
+        _key: v4(),
+        _type: type,
         scale: "linear",
         width: 3,
         title,
+        plots: [] as ReturnType<typeof makeTrackPlot>[],
     };
 }

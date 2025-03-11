@@ -1,21 +1,18 @@
 import { getDrilledWellboreHeadersOptions } from "@api";
 import { SettingsContextDelegate } from "@modules/_shared/LayerFramework/delegates/SettingsContextDelegate";
-import { LayerManager } from "@modules/_shared/LayerFramework/framework/LayerManager/LayerManager";
-import { DefineDependenciesArgs, SettingsContext } from "@modules/_shared/LayerFramework/interfaces";
+import type { LayerManager } from "@modules/_shared/LayerFramework/framework/LayerManager/LayerManager";
+import type { DefineDependenciesArgs, SettingsContext } from "@modules/_shared/LayerFramework/interfaces";
 import { DrilledWellboresSetting } from "@modules/_shared/LayerFramework/settings/implementations/DrilledWellboresSetting";
 import { EnsembleSetting } from "@modules/_shared/LayerFramework/settings/implementations/EnsembleSetting";
 import { SettingType } from "@modules/_shared/LayerFramework/settings/settingsTypes";
 
-import { DrilledWellTrajectoriesSettings } from "./types";
+import type { DrilledWellTrajectoriesSettings } from "./types";
 
 export class DrilledWellTrajectoriesSettingsContext implements SettingsContext<DrilledWellTrajectoriesSettings> {
     private _contextDelegate: SettingsContextDelegate<DrilledWellTrajectoriesSettings>;
 
     constructor(layerManager: LayerManager) {
-        this._contextDelegate = new SettingsContextDelegate<
-            DrilledWellTrajectoriesSettings,
-            keyof DrilledWellTrajectoriesSettings
-        >(this, layerManager, {
+        this._contextDelegate = new SettingsContextDelegate<DrilledWellTrajectoriesSettings>(this, layerManager, {
             [SettingType.ENSEMBLE]: new EnsembleSetting(),
             [SettingType.SMDA_WELLBORE_HEADERS]: new DrilledWellboresSetting(),
         });

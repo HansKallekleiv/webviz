@@ -70,7 +70,7 @@ async def get_realization_surfaces_metadata(
     perf_metrics = ResponsePerfMetrics(response)
 
     async with asyncio.TaskGroup() as tg:
-        access = SurfaceAccess.from_case_uuid(authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name)
+        access = SurfaceAccess.from_iteration_name(authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name)
         surf_meta_task = tg.create_task(access.get_realization_surfaces_metadata_async())
         surf_meta_task.add_done_callback(lambda _: perf_metrics.record_lap_no_reset("get-meta"))
 
@@ -141,7 +141,7 @@ async def get_surface_data(
         raise HTTPException(status_code=404, detail="Endpoint only supports address types REAL, OBS and STAT")
 
     if addr.address_type == "REAL":
-        access = SurfaceAccess.from_case_uuid(access_token, addr.case_uuid, addr.ensemble_name)
+        access = SurfaceAccess.from_iteration_name(access_token, addr.case_uuid, addr.ensemble_name)
         xtgeo_surf = await access.get_realization_surface_data_async(
             real_num=addr.realization,
             name=addr.name,
@@ -157,7 +157,7 @@ async def get_surface_data(
         if service_stat_func_to_compute is None:
             raise HTTPException(status_code=404, detail="Invalid statistic requested")
 
-        access = SurfaceAccess.from_case_uuid(access_token, addr.case_uuid, addr.ensemble_name)
+        access = SurfaceAccess.from_iteration_name(access_token, addr.case_uuid, addr.ensemble_name)
         xtgeo_surf = await access.get_statistical_surface_data_async(
             statistic_function=service_stat_func_to_compute,
             name=addr.name,
@@ -211,7 +211,7 @@ async def post_get_surface_intersection(
     The surface intersection data for surface name contains: An array of z-points, i.e. one z-value/depth per (x, y)-point in polyline,
     and cumulative lengths, the accumulated length at each z-point in the array.
     """
-    access = SurfaceAccess.from_case_uuid(authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name)
+    access = SurfaceAccess.from_iteration_name(authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name)
 
     surface = await access.get_realization_surface_data_async(
         real_num=realization_num, name=name, attribute=attribute, time_or_interval_str=time_or_interval_str
@@ -296,6 +296,24 @@ async def get_misfit_surface_data(
     raise HTTPException(status.HTTP_501_NOT_IMPLEMENTED)
 
 
+@router.get("/wellbore_stratigraphic_columns/")
+async def get_wellbore_stratigraphic_columns(
+    authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user),
+    wellbore_uuid: str = Query(description="Wellbore uuid"),
+) -> list[schemas.StratigraphicColumn]:
+
+    smda_access: SmdaAccess | DrogonSmdaAccess
+    if is_drogon_identifier(wellbore_uuid=wellbore_uuid):
+        # Handle DROGON
+        smda_access = DrogonSmdaAccess()
+    else:
+        smda_access = SmdaAccess(authenticated_user.get_smda_access_token())
+
+    strat_columns = await smda_access.get_stratigraphic_columns_for_wellbore_async(wellbore_uuid)
+
+    return [converters.to_api_stratigraphic_column(col) for col in strat_columns]
+
+
 @router.get("/stratigraphic_units")
 async def get_stratigraphic_units(
     # fmt:off
@@ -329,7 +347,7 @@ async def _get_stratigraphic_units_for_case_async(
     else:
         smda_access = SmdaAccess(authenticated_user.get_smda_access_token())
 
-    strat_units = await smda_access.get_stratigraphic_units(strat_column_identifier)
+    strat_units = await smda_access.get_stratigraphic_units_async(strat_column_identifier)
     perf_metrics.record_lap("get-strat-units")
 
     LOGGER.info(f"Got stratigraphic units for case in : {perf_metrics.to_string()}")

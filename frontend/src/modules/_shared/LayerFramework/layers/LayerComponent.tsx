@@ -1,24 +1,24 @@
-import React from "react";
+import type React from "react";
 
-import { StatusMessage } from "@framework/ModuleInstanceStatusController";
+import type { StatusMessage } from "@framework/ModuleInstanceStatusController";
 import { CircularProgress } from "@lib/components/CircularProgress";
 import { DenseIconButton } from "@lib/components/DenseIconButton";
 import { SortableListItem } from "@lib/components/SortableList";
 import { resolveClassNames } from "@lib/utils/resolveClassNames";
 import { Block, CheckCircle, Difference, Error, ExpandLess, ExpandMore } from "@mui/icons-material";
 
+import { usePublishSubscribeTopicValue } from "../../utils/PublishSubscribeDelegate";
 import { ItemDelegateTopic } from "../delegates/ItemDelegate";
 import { LayerDelegateTopic, LayerStatus } from "../delegates/LayerDelegate";
-import { usePublishSubscribeTopicValue } from "../delegates/PublishSubscribeDelegate";
 import { SettingsContextDelegateTopic, SettingsContextLoadingState } from "../delegates/SettingsContextDelegate";
 import { EditName } from "../framework/utilityComponents/EditName";
 import { RemoveItemButton } from "../framework/utilityComponents/RemoveItemButton";
 import { VisibilityToggle } from "../framework/utilityComponents/VisibilityToggle";
-import { Layer, Setting } from "../interfaces";
+import type { Layer, Setting } from "../interfaces";
 import { SettingComponent } from "../settings/SettingComponent";
 
 export type LayerComponentProps = {
-    layer: Layer<any, any>;
+    layer: Layer<any, any, any>;
 };
 
 export function LayerComponent(props: LayerComponentProps): React.ReactNode {
@@ -94,11 +94,11 @@ function EndActions(props: EndActionProps): React.ReactNode {
     const status = usePublishSubscribeTopicValue(props.layer.getLayerDelegate(), LayerDelegateTopic.STATUS);
     const settingsStatus = usePublishSubscribeTopicValue(
         props.layer.getLayerDelegate().getSettingsContext().getDelegate(),
-        SettingsContextDelegateTopic.LOADING_STATE_CHANGED
+        SettingsContextDelegateTopic.LOADING_STATE_CHANGED,
     );
     const isSubordinated = usePublishSubscribeTopicValue(
         props.layer.getLayerDelegate(),
-        LayerDelegateTopic.SUBORDINATED
+        LayerDelegateTopic.SUBORDINATED,
     );
 
     function makeStatus(): React.ReactNode {

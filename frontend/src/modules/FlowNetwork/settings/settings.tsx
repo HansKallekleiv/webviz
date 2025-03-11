@@ -1,8 +1,8 @@
 import React from "react";
 
 import { Frequency_api, NodeType_api } from "@api";
-import { ModuleSettingsProps } from "@framework/Module";
-import { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
+import type { ModuleSettingsProps } from "@framework/Module";
+import type { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
 import { useSettingsStatusWriter } from "@framework/StatusWriter";
 import { useEnsembleRealizationFilterFunc, useEnsembleSet } from "@framework/WorkbenchSession";
 import { EnsembleDropdown } from "@framework/components/EnsembleDropdown";
@@ -39,7 +39,7 @@ import {
     selectedRealizationNumberAtom,
 } from "./atoms/derivedAtoms";
 
-import { Interfaces } from "../interfaces";
+import type { Interfaces } from "../interfaces";
 import { FrequencyEnumToStringMapping, NodeTypeEnumToStringMapping } from "../types";
 
 export function Settings({ workbenchSession, settingsContext }: ModuleSettingsProps<Interfaces>) {
@@ -133,7 +133,7 @@ export function Settings({ workbenchSession, settingsContext }: ModuleSettingsPr
 
             return availableDateTimes[value];
         },
-        [availableDateTimes]
+        [availableDateTimes],
     );
 
     const selectedDateTimeIndex = selectedDateTime ? availableDateTimes.indexOf(selectedDateTime) : -1;
@@ -191,6 +191,8 @@ export function Settings({ workbenchSession, settingsContext }: ModuleSettingsPr
                     <div className="flex flex-col gap-2">
                         <Label text="Edge options">
                             <Dropdown
+                                placeholder={!edgeMetadataList.length ? "No edge data available" : ""}
+                                disabled={!edgeMetadataList.length}
                                 options={edgeMetadataList.map((item) => {
                                     return { label: item.label, value: item.key };
                                 })}

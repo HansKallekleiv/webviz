@@ -1,33 +1,27 @@
-import { SurfaceStatisticFunction_api, SurfaceTimeType_api } from "@api";
-import { getRealizationSurfacesMetadataOptions } from "@api";
+import { SurfaceStatisticFunction_api, SurfaceTimeType_api, getRealizationSurfacesMetadataOptions } from "@api";
 import { SettingsContextDelegate } from "@modules/_shared/LayerFramework/delegates/SettingsContextDelegate";
-import { LayerManager } from "@modules/_shared/LayerFramework/framework/LayerManager/LayerManager";
-import { DefineDependenciesArgs, SettingsContext } from "@modules/_shared/LayerFramework/interfaces";
+import type { LayerManager } from "@modules/_shared/LayerFramework/framework/LayerManager/LayerManager";
+import type { DefineDependenciesArgs, SettingsContext } from "@modules/_shared/LayerFramework/interfaces";
+import { AttributeSetting } from "@modules/_shared/LayerFramework/settings/implementations/AttributeSetting";
 import { EnsembleSetting } from "@modules/_shared/LayerFramework/settings/implementations/EnsembleSetting";
-import {
-    SensitivityNameCasePair,
-    SensitivitySetting,
-} from "@modules/_shared/LayerFramework/settings/implementations/SensitivitySetting";
+import type { SensitivityNameCasePair } from "@modules/_shared/LayerFramework/settings/implementations/SensitivitySetting";
+import { SensitivitySetting } from "@modules/_shared/LayerFramework/settings/implementations/SensitivitySetting";
 import { StatisticFunctionSetting } from "@modules/_shared/LayerFramework/settings/implementations/StatisticFunctionSetting";
-import { SurfaceAttributeSetting } from "@modules/_shared/LayerFramework/settings/implementations/SurfaceAttributeSetting";
 import { SurfaceNameSetting } from "@modules/_shared/LayerFramework/settings/implementations/SurfaceNameSetting";
 import { TimeOrIntervalSetting } from "@modules/_shared/LayerFramework/settings/implementations/TimeOrIntervalSetting";
 import { SettingType } from "@modules/_shared/LayerFramework/settings/settingsTypes";
 
-import { StatisticalSurfaceSettings } from "./types";
+import type { StatisticalSurfaceSettings } from "./types";
 
 export class StatisticalSurfaceSettingsContext implements SettingsContext<StatisticalSurfaceSettings> {
     private _contextDelegate: SettingsContextDelegate<StatisticalSurfaceSettings>;
 
     constructor(layerManager: LayerManager) {
-        this._contextDelegate = new SettingsContextDelegate<
-            StatisticalSurfaceSettings,
-            keyof StatisticalSurfaceSettings
-        >(this, layerManager, {
+        this._contextDelegate = new SettingsContextDelegate<StatisticalSurfaceSettings>(this, layerManager, {
             [SettingType.ENSEMBLE]: new EnsembleSetting(),
             [SettingType.STATISTIC_FUNCTION]: new StatisticFunctionSetting(),
             [SettingType.SENSITIVITY]: new SensitivitySetting(),
-            [SettingType.SURFACE_ATTRIBUTE]: new SurfaceAttributeSetting(),
+            [SettingType.ATTRIBUTE]: new AttributeSetting(),
             [SettingType.SURFACE_NAME]: new SurfaceNameSetting(),
             [SettingType.TIME_OR_INTERVAL]: new TimeOrIntervalSetting(),
         });
@@ -78,7 +72,7 @@ export class StatisticalSurfaceSettingsContext implements SettingsContext<Statis
                         sensitivityName: sensitivity.name,
                         sensitivityCase: sensitivityCase.name,
                     });
-                })
+                }),
             );
             return availableSensitivityPairs;
         });
@@ -101,7 +95,7 @@ export class StatisticalSurfaceSettingsContext implements SettingsContext<Statis
             });
         });
 
-        availableSettingsUpdater(SettingType.SURFACE_ATTRIBUTE, ({ getHelperDependency }) => {
+        availableSettingsUpdater(SettingType.ATTRIBUTE, ({ getHelperDependency }) => {
             const data = getHelperDependency(surfaceMetadataDep);
 
             if (!data) {
@@ -115,7 +109,7 @@ export class StatisticalSurfaceSettingsContext implements SettingsContext<Statis
             return availableAttributes;
         });
         availableSettingsUpdater(SettingType.SURFACE_NAME, ({ getHelperDependency, getLocalSetting }) => {
-            const attribute = getLocalSetting(SettingType.SURFACE_ATTRIBUTE);
+            const attribute = getLocalSetting(SettingType.ATTRIBUTE);
             const data = getHelperDependency(surfaceMetadataDep);
 
             if (!attribute || !data) {
@@ -125,8 +119,8 @@ export class StatisticalSurfaceSettingsContext implements SettingsContext<Statis
             const availableSurfaceNames = [
                 ...Array.from(
                     new Set(
-                        data.surfaces.filter((surface) => surface.attribute_name === attribute).map((el) => el.name)
-                    )
+                        data.surfaces.filter((surface) => surface.attribute_name === attribute).map((el) => el.name),
+                    ),
                 ),
             ];
 
@@ -134,7 +128,7 @@ export class StatisticalSurfaceSettingsContext implements SettingsContext<Statis
         });
 
         availableSettingsUpdater(SettingType.TIME_OR_INTERVAL, ({ getLocalSetting, getHelperDependency }) => {
-            const attribute = getLocalSetting(SettingType.SURFACE_ATTRIBUTE);
+            const attribute = getLocalSetting(SettingType.ATTRIBUTE);
             const surfaceName = getLocalSetting(SettingType.SURFACE_NAME);
             const data = getHelperDependency(surfaceMetadataDep);
 
@@ -148,8 +142,8 @@ export class StatisticalSurfaceSettingsContext implements SettingsContext<Statis
                     new Set(
                         data.surfaces
                             .filter((surface) => surface.attribute_name === attribute && surface.name === surfaceName)
-                            .map((el) => el.time_type)
-                    )
+                            .map((el) => el.time_type),
+                    ),
                 ),
             ];
 

@@ -1,23 +1,20 @@
 import { getPolygonsDirectoryOptions } from "@api";
 import { SettingsContextDelegate } from "@modules/_shared/LayerFramework/delegates/SettingsContextDelegate";
-import { LayerManager } from "@modules/_shared/LayerFramework/framework/LayerManager/LayerManager";
-import { DefineDependenciesArgs, SettingsContext } from "@modules/_shared/LayerFramework/interfaces";
+import type { LayerManager } from "@modules/_shared/LayerFramework/framework/LayerManager/LayerManager";
+import type { DefineDependenciesArgs, SettingsContext } from "@modules/_shared/LayerFramework/interfaces";
 import { EnsembleSetting } from "@modules/_shared/LayerFramework/settings/implementations/EnsembleSetting";
 import { PolygonsAttributeSetting } from "@modules/_shared/LayerFramework/settings/implementations/PolygonsAttributeSetting";
 import { PolygonsNameSetting } from "@modules/_shared/LayerFramework/settings/implementations/PolygonsNameSetting";
 import { RealizationSetting } from "@modules/_shared/LayerFramework/settings/implementations/RealizationSetting";
 import { SettingType } from "@modules/_shared/LayerFramework/settings/settingsTypes";
 
-import { RealizationPolygonsSettings } from "./types";
+import type { RealizationPolygonsSettings } from "./types";
 
 export class RealizationPolygonsSettingsContext implements SettingsContext<RealizationPolygonsSettings> {
     private _contextDelegate: SettingsContextDelegate<RealizationPolygonsSettings>;
 
     constructor(layerManager: LayerManager) {
-        this._contextDelegate = new SettingsContextDelegate<
-            RealizationPolygonsSettings,
-            keyof RealizationPolygonsSettings
-        >(this, layerManager, {
+        this._contextDelegate = new SettingsContextDelegate<RealizationPolygonsSettings>(this, layerManager, {
             [SettingType.ENSEMBLE]: new EnsembleSetting(),
             [SettingType.REALIZATION]: new RealizationSetting(),
             [SettingType.POLYGONS_ATTRIBUTE]: new PolygonsAttributeSetting(),
@@ -105,8 +102,8 @@ export class RealizationPolygonsSettingsContext implements SettingsContext<Reali
             const availableSurfaceNames = [
                 ...Array.from(
                     new Set(
-                        data.filter((polygonsMeta) => polygonsMeta.attribute_name === attribute).map((el) => el.name)
-                    )
+                        data.filter((polygonsMeta) => polygonsMeta.attribute_name === attribute).map((el) => el.name),
+                    ),
                 ),
             ];
 

@@ -1,12 +1,16 @@
-import { DeltaEnsemble } from "@framework/DeltaEnsemble";
+import type { VectorDefinitionsType } from "@assets/vectorDefinitions";
+import type { DeltaEnsemble } from "@framework/DeltaEnsemble";
 import { DeltaEnsembleIdent } from "@framework/DeltaEnsembleIdent";
-import { Parameter, ParameterIdent, ParameterType } from "@framework/EnsembleParameters";
+import type { Parameter } from "@framework/EnsembleParameters";
+import { ParameterIdent, ParameterType } from "@framework/EnsembleParameters";
 import { EnsembleSetAtom } from "@framework/GlobalAtoms";
-import { RegularEnsemble } from "@framework/RegularEnsemble";
+import type { RegularEnsemble } from "@framework/RegularEnsemble";
 import { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
 import { filterEnsembleIdentsByType } from "@framework/utils/ensembleIdentUtils";
 import { fixupEnsembleIdents } from "@framework/utils/ensembleUiHelpers";
+import { createDerivedVectorDescription } from "@modules/SimulationTimeSeries/utils/vectorDescriptionUtils";
 import { createVectorSelectorDataFromVectors } from "@modules/_shared/components/VectorSelector";
+import { simulationVectorDefinition } from "@modules/_shared/reservoirSimulationStringUtils";
 
 import { atom } from "jotai";
 
@@ -19,7 +23,8 @@ import {
 } from "./baseAtoms";
 import { vectorListQueriesAtom } from "./queryAtoms";
 
-import { StatisticsType, VectorSpec, VisualizationMode } from "../../typesAndEnums";
+import type { VectorSpec } from "../../typesAndEnums";
+import { StatisticsType, VisualizationMode } from "../../typesAndEnums";
 import { EnsembleVectorListsHelper } from "../../utils/ensemblesVectorListHelper";
 
 export const statisticsTypeAtom = atom<StatisticsType>((get) => {
@@ -37,7 +42,7 @@ export const selectedEnsembleIdentsAtom = atom<(RegularEnsembleIdent | DeltaEnse
     const userSelectedEnsembleIdents = get(userSelectedEnsembleIdentsAtom);
 
     const newSelectedEnsembleIdents = userSelectedEnsembleIdents.filter((ensemble) =>
-        ensembleSet.hasEnsemble(ensemble)
+        ensembleSet.hasEnsemble(ensemble),
     );
     const validatedEnsembleIdents = fixupEnsembleIdents(newSelectedEnsembleIdents, ensembleSet);
 
@@ -105,7 +110,7 @@ export const continuousAndNonConstantParametersUnionAtom = atom<Parameter[]>((ge
         for (const parameter of continuousAndNonConstantParameters) {
             const parameterIdent = ParameterIdent.fromNameAndGroup(parameter.name, parameter.groupName);
             const isParameterInUnion = continuousAndNonConstantParametersUnion.some((elm) =>
-                parameterIdent.equals(ParameterIdent.fromNameAndGroup(elm.name, elm.groupName))
+                parameterIdent.equals(ParameterIdent.fromNameAndGroup(elm.name, elm.groupName)),
             );
 
             if (isParameterInUnion) continue;
@@ -122,30 +127,60 @@ export const isVectorListQueriesFetchingAtom = atom<boolean>((get) => {
     return vectorListQueries.some((query) => query.isFetching);
 });
 
-export const availableVectorNamesAtom = atom((get) => {
-    const ensembleVectorListsHelper = get(ensembleVectorListsHelperAtom);
-
-    const vectorNamesUnion = ensembleVectorListsHelper.vectorsUnion();
-
-    return vectorNamesUnion;
-});
-
-export const vectorSelectorDataAtom = atom((get) => {
-    const isFetching = get(isVectorListQueriesFetchingAtom);
-    const availableVectorNames = get(availableVectorNamesAtom);
-
-    if (isFetching) {
-        return [];
-    }
-
-    return createVectorSelectorDataFromVectors(availableVectorNames);
-});
-
 export const ensembleVectorListsHelperAtom = atom<EnsembleVectorListsHelper>((get) => {
     const vectorListQueries = get(vectorListQueriesAtom);
     const selectedEnsembleIdents = get(selectedEnsembleIdentsAtom);
 
     return new EnsembleVectorListsHelper(selectedEnsembleIdents, vectorListQueries);
+});
+
+export const vectorSelectorDataAtom = atom((get) => {
+    const isFetching = get(isVectorListQueriesFetchingAtom);
+    const ensembleVectorListsHelper = get(ensembleVectorListsHelperAtom);
+
+    if (isFetching) {
+        return [];
+    }
+
+    const vectorNames = ensembleVectorListsHelper.vectorNamesUnion();
+
+    return createVectorSelectorDataFromVectors(vectorNames);
+});
+
+export const customVectorDefinitionsAtom = atom<VectorDefinitionsType | null>((get) => {
+    const isFetching = get(isVectorListQueriesFetchingAtom);
+    const ensembleVectorListsHelper = get(ensembleVectorListsHelperAtom);
+
+    if (isFetching) {
+        return null;
+    }
+
+    const vectors = ensembleVectorListsHelper.vectorsUnion();
+
+    // Create custom vector definitions for parent nodes of derived vectors
+    const customVectorParentNodeDefinitions: VectorDefinitionsType = {};
+    for (const vector of vectors) {
+        if (!vector.derivedVectorInfo) {
+            continue;
+        }
+
+        // Create description only for base name of source vector (i.e. parent node)
+        const sourceVectorBaseName = vector.derivedVectorInfo.sourceVector.split(":", 2)[0];
+        const derivedVectorDescription = createDerivedVectorDescription(
+            sourceVectorBaseName,
+            vector.derivedVectorInfo.type,
+        );
+        const sourceBaseVectorType = simulationVectorDefinition(sourceVectorBaseName)?.type ?? "";
+
+        // Only add custom definitions for parent nodes
+        const parentNodeName = vector.name.split(":", 2)[0];
+        customVectorParentNodeDefinitions[parentNodeName] = {
+            type: sourceBaseVectorType,
+            description: derivedVectorDescription,
+        };
+    }
+
+    return customVectorParentNodeDefinitions;
 });
 
 export const vectorSpecificationsAtom = atom<VectorSpec[]>((get) => {
@@ -203,7 +238,7 @@ export const parameterIdentAtom = atom<ParameterIdent | null>((get) => {
     try {
         const newParameterIdent = ParameterIdent.fromString(selectedParameterIdentString);
         const isParameterAmongFiltered = filteredParameterIdentList.some((parameter) =>
-            parameter.equals(newParameterIdent)
+            parameter.equals(newParameterIdent),
         );
         if (isParameterAmongFiltered) {
             return newParameterIdent;

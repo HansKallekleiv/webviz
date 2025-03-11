@@ -1,22 +1,19 @@
 import { getDrilledWellboreHeadersOptions, getWellborePickIdentifiersOptions } from "@api";
 import { SettingsContextDelegate } from "@modules/_shared/LayerFramework/delegates/SettingsContextDelegate";
-import { LayerManager } from "@modules/_shared/LayerFramework/framework/LayerManager/LayerManager";
-import { DefineDependenciesArgs, SettingsContext } from "@modules/_shared/LayerFramework/interfaces";
+import type { LayerManager } from "@modules/_shared/LayerFramework/framework/LayerManager/LayerManager";
+import type { DefineDependenciesArgs, SettingsContext } from "@modules/_shared/LayerFramework/interfaces";
 import { DrilledWellboresSetting } from "@modules/_shared/LayerFramework/settings/implementations/DrilledWellboresSetting";
 import { EnsembleSetting } from "@modules/_shared/LayerFramework/settings/implementations/EnsembleSetting";
 import { SurfaceNameSetting } from "@modules/_shared/LayerFramework/settings/implementations/SurfaceNameSetting";
 import { SettingType } from "@modules/_shared/LayerFramework/settings/settingsTypes";
 
-import { DrilledWellborePicksSettings } from "./types";
+import type { DrilledWellborePicksSettings } from "./types";
 
 export class DrilledWellborePicksSettingsContext implements SettingsContext<DrilledWellborePicksSettings> {
     private _contextDelegate: SettingsContextDelegate<DrilledWellborePicksSettings>;
 
     constructor(layerManager: LayerManager) {
-        this._contextDelegate = new SettingsContextDelegate<
-            DrilledWellborePicksSettings,
-            keyof DrilledWellborePicksSettings
-        >(this, layerManager, {
+        this._contextDelegate = new SettingsContextDelegate<DrilledWellborePicksSettings>(this, layerManager, {
             [SettingType.ENSEMBLE]: new EnsembleSetting(),
             [SettingType.SMDA_WELLBORE_HEADERS]: new DrilledWellboresSetting(),
             [SettingType.SURFACE_NAME]: new SurfaceNameSetting(),

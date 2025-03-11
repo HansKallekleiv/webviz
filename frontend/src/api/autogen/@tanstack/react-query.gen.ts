@@ -10,10 +10,12 @@ import {
     getAlive,
     getAliveProtected,
     getCases,
+    getCrosslineSlice,
     getDeltaEnsembleRealizationsVectorData,
     getDeltaEnsembleStatisticalVectorData,
     getDeltaEnsembleVectorList,
     getDeltaSurfaceData,
+    getDepthSlice,
     getDrilledWellboreHeaders,
     getEnsembleDetails,
     getEnsembles,
@@ -22,7 +24,7 @@ import {
     getGridParameter,
     getGridSurface,
     getHistoricalVectorData,
-    getIsGridGeometryShared,
+    getInlineSlice,
     getIsSensitivityRun,
     getLogCurveData,
     getLoggedInUser,
@@ -38,12 +40,7 @@ import {
     getRealizationFlowNetwork,
     getRealizationSurfacesMetadata,
     getRealizationVectorAtTimestamp,
-    getRealizationsTablesAreEqual,
     getRealizationsVectorData,
-    getRelpermRealizationsCurveData,
-    getRelpermStatisticalCurveData,
-    getRelpermTableInfo,
-    getRelpermTableNames,
     getSeismicCubeMetaList,
     getSensitivities,
     getStatisticalVectorData,
@@ -67,6 +64,8 @@ import {
     getWellborePickIdentifiers,
     getWellborePicksForPickIdentifier,
     getWellborePicksForWellbore,
+    getWellborePicksInStratColumn,
+    getWellboreStratigraphicColumns,
     loginRoute,
     postGetAggregatedPerRealizationTableData,
     postGetAggregatedStatisticalTableData,
@@ -81,10 +80,12 @@ import type {
     GetAliveData_api,
     GetAliveProtectedData_api,
     GetCasesData_api,
+    GetCrosslineSliceData_api,
     GetDeltaEnsembleRealizationsVectorDataData_api,
     GetDeltaEnsembleStatisticalVectorDataData_api,
     GetDeltaEnsembleVectorListData_api,
     GetDeltaSurfaceDataData_api,
+    GetDepthSliceData_api,
     GetDrilledWellboreHeadersData_api,
     GetEnsembleDetailsData_api,
     GetEnsemblesData_api,
@@ -93,7 +94,7 @@ import type {
     GetGridParameterData_api,
     GetGridSurfaceData_api,
     GetHistoricalVectorDataData_api,
-    GetIsGridGeometrySharedData_api,
+    GetInlineSliceData_api,
     GetIsSensitivityRunData_api,
     GetLogCurveDataData_api,
     GetLoggedInUserData_api,
@@ -109,12 +110,7 @@ import type {
     GetRealizationFlowNetworkData_api,
     GetRealizationSurfacesMetadataData_api,
     GetRealizationVectorAtTimestampData_api,
-    GetRealizationsTablesAreEqualData_api,
     GetRealizationsVectorDataData_api,
-    GetRelpermRealizationsCurveDataData_api,
-    GetRelpermStatisticalCurveDataData_api,
-    GetRelpermTableInfoData_api,
-    GetRelpermTableNamesData_api,
     GetSeismicCubeMetaListData_api,
     GetSensitivitiesData_api,
     GetStatisticalVectorDataData_api,
@@ -138,6 +134,8 @@ import type {
     GetWellborePickIdentifiersData_api,
     GetWellborePicksForPickIdentifierData_api,
     GetWellborePicksForWellboreData_api,
+    GetWellborePicksInStratColumnData_api,
+    GetWellboreStratigraphicColumnsData_api,
     LoginRouteData_api,
     PostGetAggregatedPerRealizationTableDataData_api,
     PostGetAggregatedPerRealizationTableDataError_api,
@@ -164,13 +162,13 @@ type QueryKey<TOptions extends Options> = [
     Pick<TOptions, "baseURL" | "body" | "headers" | "path" | "query"> & {
         _id: string;
         _infinite?: boolean;
-    }
+    },
 ];
 
 const createQueryKey = <TOptions extends Options>(
     id: string,
     options?: TOptions,
-    infinite?: boolean
+    infinite?: boolean,
 ): QueryKey<TOptions>[0] => {
     const params: QueryKey<TOptions>[0] = {
         _id: id,
@@ -322,11 +320,11 @@ export const getRealizationsVectorDataOptions = (options: Options<GetRealization
 };
 
 export const getDeltaEnsembleRealizationsVectorDataQueryKey = (
-    options: Options<GetDeltaEnsembleRealizationsVectorDataData_api>
+    options: Options<GetDeltaEnsembleRealizationsVectorDataData_api>,
 ) => [createQueryKey("getDeltaEnsembleRealizationsVectorData", options)];
 
 export const getDeltaEnsembleRealizationsVectorDataOptions = (
-    options: Options<GetDeltaEnsembleRealizationsVectorDataData_api>
+    options: Options<GetDeltaEnsembleRealizationsVectorDataData_api>,
 ) => {
     return queryOptions({
         queryFn: async ({ queryKey, signal }) => {
@@ -400,11 +398,11 @@ export const getStatisticalVectorDataOptions = (options: Options<GetStatisticalV
 };
 
 export const getDeltaEnsembleStatisticalVectorDataQueryKey = (
-    options: Options<GetDeltaEnsembleStatisticalVectorDataData_api>
+    options: Options<GetDeltaEnsembleStatisticalVectorDataData_api>,
 ) => [createQueryKey("getDeltaEnsembleStatisticalVectorData", options)];
 
 export const getDeltaEnsembleStatisticalVectorDataOptions = (
-    options: Options<GetDeltaEnsembleStatisticalVectorDataData_api>
+    options: Options<GetDeltaEnsembleStatisticalVectorDataData_api>,
 ) => {
     return queryOptions({
         queryFn: async ({ queryKey, signal }) => {
@@ -421,11 +419,11 @@ export const getDeltaEnsembleStatisticalVectorDataOptions = (
 };
 
 export const getStatisticalVectorDataPerSensitivityQueryKey = (
-    options: Options<GetStatisticalVectorDataPerSensitivityData_api>
+    options: Options<GetStatisticalVectorDataPerSensitivityData_api>,
 ) => [createQueryKey("getStatisticalVectorDataPerSensitivity", options)];
 
 export const getStatisticalVectorDataPerSensitivityOptions = (
-    options: Options<GetStatisticalVectorDataPerSensitivityData_api>
+    options: Options<GetStatisticalVectorDataPerSensitivityData_api>,
 ) => {
     return queryOptions({
         queryFn: async ({ queryKey, signal }) => {
@@ -480,11 +478,11 @@ export const getTableDefinitionsOptions = (options: Options<GetTableDefinitionsD
 };
 
 export const postGetAggregatedPerRealizationTableDataQueryKey = (
-    options: Options<PostGetAggregatedPerRealizationTableDataData_api>
+    options: Options<PostGetAggregatedPerRealizationTableDataData_api>,
 ) => [createQueryKey("postGetAggregatedPerRealizationTableData", options)];
 
 export const postGetAggregatedPerRealizationTableDataOptions = (
-    options: Options<PostGetAggregatedPerRealizationTableDataData_api>
+    options: Options<PostGetAggregatedPerRealizationTableDataData_api>,
 ) => {
     return queryOptions({
         queryFn: async ({ queryKey, signal }) => {
@@ -501,7 +499,7 @@ export const postGetAggregatedPerRealizationTableDataOptions = (
 };
 
 export const postGetAggregatedPerRealizationTableDataMutation = (
-    options?: Partial<Options<PostGetAggregatedPerRealizationTableDataData_api>>
+    options?: Partial<Options<PostGetAggregatedPerRealizationTableDataData_api>>,
 ) => {
     const mutationOptions: UseMutationOptions<
         PostGetAggregatedPerRealizationTableDataResponse_api,
@@ -521,11 +519,11 @@ export const postGetAggregatedPerRealizationTableDataMutation = (
 };
 
 export const postGetAggregatedStatisticalTableDataQueryKey = (
-    options: Options<PostGetAggregatedStatisticalTableDataData_api>
+    options: Options<PostGetAggregatedStatisticalTableDataData_api>,
 ) => [createQueryKey("postGetAggregatedStatisticalTableData", options)];
 
 export const postGetAggregatedStatisticalTableDataOptions = (
-    options: Options<PostGetAggregatedStatisticalTableDataData_api>
+    options: Options<PostGetAggregatedStatisticalTableDataData_api>,
 ) => {
     return queryOptions({
         queryFn: async ({ queryKey, signal }) => {
@@ -542,7 +540,7 @@ export const postGetAggregatedStatisticalTableDataOptions = (
 };
 
 export const postGetAggregatedStatisticalTableDataMutation = (
-    options?: Partial<Options<PostGetAggregatedStatisticalTableDataData_api>>
+    options?: Partial<Options<PostGetAggregatedStatisticalTableDataData_api>>,
 ) => {
     const mutationOptions: UseMutationOptions<
         PostGetAggregatedStatisticalTableDataResponse_api,
@@ -730,6 +728,25 @@ export const getMisfitSurfaceDataOptions = (options: Options<GetMisfitSurfaceDat
     });
 };
 
+export const getWellboreStratigraphicColumnsQueryKey = (options: Options<GetWellboreStratigraphicColumnsData_api>) => [
+    createQueryKey("getWellboreStratigraphicColumns", options),
+];
+
+export const getWellboreStratigraphicColumnsOptions = (options: Options<GetWellboreStratigraphicColumnsData_api>) => {
+    return queryOptions({
+        queryFn: async ({ queryKey, signal }) => {
+            const { data } = await getWellboreStratigraphicColumns({
+                ...options,
+                ...queryKey[0],
+                signal,
+                throwOnError: true,
+            });
+            return data;
+        },
+        queryKey: getWellboreStratigraphicColumnsQueryKey(options),
+    });
+};
+
 export const getStratigraphicUnitsQueryKey = (options: Options<GetStratigraphicUnitsData_api>) => [
     createQueryKey("getStratigraphicUnits", options),
 ];
@@ -861,25 +878,6 @@ export const getGridModelsInfoOptions = (options: Options<GetGridModelsInfoData_
     });
 };
 
-export const getIsGridGeometrySharedQueryKey = (options: Options<GetIsGridGeometrySharedData_api>) => [
-    createQueryKey("getIsGridGeometryShared", options),
-];
-
-export const getIsGridGeometrySharedOptions = (options: Options<GetIsGridGeometrySharedData_api>) => {
-    return queryOptions({
-        queryFn: async ({ queryKey, signal }) => {
-            const { data } = await getIsGridGeometryShared({
-                ...options,
-                ...queryKey[0],
-                signal,
-                throwOnError: true,
-            });
-            return data;
-        },
-        queryKey: getIsGridGeometrySharedQueryKey(options),
-    });
-};
-
 export const getGridSurfaceQueryKey = (options: Options<GetGridSurfaceData_api>) => [
     createQueryKey("getGridSurface", options),
 ];
@@ -988,101 +986,6 @@ export const getTableDataOptions = (options: Options<GetTableDataData_api>) => {
             return data;
         },
         queryKey: getTableDataQueryKey(options),
-    });
-};
-
-export const getRealizationsTablesAreEqualQueryKey = (options: Options<GetRealizationsTablesAreEqualData_api>) => [
-    createQueryKey("getRealizationsTablesAreEqual", options),
-];
-
-export const getRealizationsTablesAreEqualOptions = (options: Options<GetRealizationsTablesAreEqualData_api>) => {
-    return queryOptions({
-        queryFn: async ({ queryKey, signal }) => {
-            const { data } = await getRealizationsTablesAreEqual({
-                ...options,
-                ...queryKey[0],
-                signal,
-                throwOnError: true,
-            });
-            return data;
-        },
-        queryKey: getRealizationsTablesAreEqualQueryKey(options),
-    });
-};
-
-export const getRelpermTableNamesQueryKey = (options: Options<GetRelpermTableNamesData_api>) => [
-    createQueryKey("getRelpermTableNames", options),
-];
-
-export const getRelpermTableNamesOptions = (options: Options<GetRelpermTableNamesData_api>) => {
-    return queryOptions({
-        queryFn: async ({ queryKey, signal }) => {
-            const { data } = await getRelpermTableNames({
-                ...options,
-                ...queryKey[0],
-                signal,
-                throwOnError: true,
-            });
-            return data;
-        },
-        queryKey: getRelpermTableNamesQueryKey(options),
-    });
-};
-
-export const getRelpermTableInfoQueryKey = (options: Options<GetRelpermTableInfoData_api>) => [
-    createQueryKey("getRelpermTableInfo", options),
-];
-
-export const getRelpermTableInfoOptions = (options: Options<GetRelpermTableInfoData_api>) => {
-    return queryOptions({
-        queryFn: async ({ queryKey, signal }) => {
-            const { data } = await getRelpermTableInfo({
-                ...options,
-                ...queryKey[0],
-                signal,
-                throwOnError: true,
-            });
-            return data;
-        },
-        queryKey: getRelpermTableInfoQueryKey(options),
-    });
-};
-
-export const getRelpermRealizationsCurveDataQueryKey = (options: Options<GetRelpermRealizationsCurveDataData_api>) => [
-    createQueryKey("getRelpermRealizationsCurveData", options),
-];
-
-export const getRelpermRealizationsCurveDataOptions = (options: Options<GetRelpermRealizationsCurveDataData_api>) => {
-    return queryOptions({
-        queryFn: async ({ queryKey, signal }) => {
-            const { data } = await getRelpermRealizationsCurveData({
-                ...options,
-                ...queryKey[0],
-                signal,
-                throwOnError: true,
-            });
-            return data;
-        },
-        queryKey: getRelpermRealizationsCurveDataQueryKey(options),
-    });
-};
-
-export const getRelpermStatisticalCurveDataQueryKey = (options: Options<GetRelpermStatisticalCurveDataData_api>) => [
-    createQueryKey("getRelpermStatisticalCurveData", options),
-];
-
-export const getRelpermStatisticalCurveDataOptions = (options: Options<GetRelpermStatisticalCurveDataData_api>) => {
-    return queryOptions({
-        queryFn: async ({ queryKey, signal }) => {
-            const { data } = await getRelpermStatisticalCurveData({
-                ...options,
-                ...queryKey[0],
-                signal,
-                throwOnError: true,
-            });
-            return data;
-        },
-        queryKey: getRelpermStatisticalCurveDataQueryKey(options),
     });
 };
 
@@ -1200,6 +1103,25 @@ export const getWellborePicksForWellboreOptions = (options: Options<GetWellboreP
     });
 };
 
+export const getWellborePicksInStratColumnQueryKey = (options: Options<GetWellborePicksInStratColumnData_api>) => [
+    createQueryKey("getWellborePicksInStratColumn", options),
+];
+
+export const getWellborePicksInStratColumnOptions = (options: Options<GetWellborePicksInStratColumnData_api>) => {
+    return queryOptions({
+        queryFn: async ({ queryKey, signal }) => {
+            const { data } = await getWellborePicksInStratColumn({
+                ...options,
+                ...queryKey[0],
+                signal,
+                throwOnError: true,
+            });
+            return data;
+        },
+        queryKey: getWellborePicksInStratColumnQueryKey(options),
+    });
+};
+
 export const getWellboreCompletionsQueryKey = (options: Options<GetWellboreCompletionsData_api>) => [
     createQueryKey("getWellboreCompletions", options),
 ];
@@ -1311,6 +1233,63 @@ export const getSeismicCubeMetaListOptions = (options: Options<GetSeismicCubeMet
             return data;
         },
         queryKey: getSeismicCubeMetaListQueryKey(options),
+    });
+};
+
+export const getInlineSliceQueryKey = (options: Options<GetInlineSliceData_api>) => [
+    createQueryKey("getInlineSlice", options),
+];
+
+export const getInlineSliceOptions = (options: Options<GetInlineSliceData_api>) => {
+    return queryOptions({
+        queryFn: async ({ queryKey, signal }) => {
+            const { data } = await getInlineSlice({
+                ...options,
+                ...queryKey[0],
+                signal,
+                throwOnError: true,
+            });
+            return data;
+        },
+        queryKey: getInlineSliceQueryKey(options),
+    });
+};
+
+export const getCrosslineSliceQueryKey = (options: Options<GetCrosslineSliceData_api>) => [
+    createQueryKey("getCrosslineSlice", options),
+];
+
+export const getCrosslineSliceOptions = (options: Options<GetCrosslineSliceData_api>) => {
+    return queryOptions({
+        queryFn: async ({ queryKey, signal }) => {
+            const { data } = await getCrosslineSlice({
+                ...options,
+                ...queryKey[0],
+                signal,
+                throwOnError: true,
+            });
+            return data;
+        },
+        queryKey: getCrosslineSliceQueryKey(options),
+    });
+};
+
+export const getDepthSliceQueryKey = (options: Options<GetDepthSliceData_api>) => [
+    createQueryKey("getDepthSlice", options),
+];
+
+export const getDepthSliceOptions = (options: Options<GetDepthSliceData_api>) => {
+    return queryOptions({
+        queryFn: async ({ queryKey, signal }) => {
+            const { data } = await getDepthSlice({
+                ...options,
+                ...queryKey[0],
+                signal,
+                throwOnError: true,
+            });
+            return data;
+        },
+        queryKey: getDepthSliceQueryKey(options),
     });
 };
 

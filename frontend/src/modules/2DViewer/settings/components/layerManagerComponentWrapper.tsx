@@ -1,9 +1,9 @@
-import React from "react";
+import type React from "react";
 
 import { Icon } from "@equinor/eds-core-react";
 import { color_palette, fault, grid_layer, settings, surface_layer, wellbore } from "@equinor/eds-icons";
-import { WorkbenchSession } from "@framework/WorkbenchSession";
-import { WorkbenchSettings } from "@framework/WorkbenchSettings";
+import type { WorkbenchSession } from "@framework/WorkbenchSession";
+import type { WorkbenchSettings } from "@framework/WorkbenchSettings";
 import { Menu } from "@lib/components/Menu";
 import { MenuButton } from "@lib/components/MenuButton";
 import { MenuHeading } from "@lib/components/MenuHeading";
@@ -15,23 +15,25 @@ import { RealizationSurfaceLayer } from "@modules/2DViewer/LayerFramework/custom
 import { StatisticalSurfaceLayer } from "@modules/2DViewer/LayerFramework/customLayerImplementations/StatisticalSurfaceLayer";
 import { PreferredViewLayout } from "@modules/2DViewer/types";
 import { EnsembleSetting } from "@modules//_shared/LayerFramework/settings/implementations/EnsembleSetting";
-import { LayersActionGroup } from "@modules/_shared/LayerFramework/LayersActions";
-import { GroupDelegate, GroupDelegateTopic } from "@modules/_shared/LayerFramework/delegates/GroupDelegate";
-import { usePublishSubscribeTopicValue } from "@modules/_shared/LayerFramework/delegates/PublishSubscribeDelegate";
+import type { LayersActionGroup } from "@modules/_shared/LayerFramework/LayersActions";
+import type { GroupDelegate } from "@modules/_shared/LayerFramework/delegates/GroupDelegate";
+import { GroupDelegateTopic } from "@modules/_shared/LayerFramework/delegates/GroupDelegate";
 import { ColorScale } from "@modules/_shared/LayerFramework/framework/ColorScale/ColorScale";
 import { DeltaSurface } from "@modules/_shared/LayerFramework/framework/DeltaSurface/DeltaSurface";
-import { LayerManager } from "@modules/_shared/LayerFramework/framework/LayerManager/LayerManager";
+import type { LayerManager } from "@modules/_shared/LayerFramework/framework/LayerManager/LayerManager";
 import { LayerManagerComponent } from "@modules/_shared/LayerFramework/framework/LayerManager/LayerManagerComponent";
 import { SettingsGroup } from "@modules/_shared/LayerFramework/framework/SettingsGroup/SettingsGroup";
 import { SharedSetting } from "@modules/_shared/LayerFramework/framework/SharedSetting/SharedSetting";
 import { View } from "@modules/_shared/LayerFramework/framework/View/View";
-import { Group, Item, instanceofGroup, instanceofLayer } from "@modules/_shared/LayerFramework/interfaces";
+import type { Group, Item } from "@modules/_shared/LayerFramework/interfaces";
+import { instanceofGroup, instanceofLayer } from "@modules/_shared/LayerFramework/interfaces";
 import { DrilledWellTrajectoriesLayer } from "@modules/_shared/LayerFramework/layers/implementations/DrilledWellTrajectoriesLayer";
 import { DrilledWellborePicksLayer } from "@modules/_shared/LayerFramework/layers/implementations/DrilledWellborePicksLayer";
+import { AttributeSetting } from "@modules/_shared/LayerFramework/settings/implementations/AttributeSetting";
 import { RealizationSetting } from "@modules/_shared/LayerFramework/settings/implementations/RealizationSetting";
-import { SurfaceAttributeSetting } from "@modules/_shared/LayerFramework/settings/implementations/SurfaceAttributeSetting";
 import { SurfaceNameSetting } from "@modules/_shared/LayerFramework/settings/implementations/SurfaceNameSetting";
 import { TimeOrIntervalSetting } from "@modules/_shared/LayerFramework/settings/implementations/TimeOrIntervalSetting";
+import { usePublishSubscribeTopicValue } from "@modules/_shared/utils/PublishSubscribeDelegate";
 import { Dropdown } from "@mui/base";
 import {
     Check,
@@ -69,7 +71,7 @@ export function LayerManagerComponentWrapper(props: LayerManagerComponentWrapper
         switch (identifier) {
             case "view":
                 groupDelegate.appendChild(
-                    new View(numViews > 0 ? `View (${numViews})` : "View", props.layerManager, colorSet.getNextColor())
+                    new View(numViews > 0 ? `View (${numViews})` : "View", props.layerManager, colorSet.getNextColor()),
                 );
                 return;
             case "delta-surface":
@@ -111,8 +113,8 @@ export function LayerManagerComponentWrapper(props: LayerManagerComponentWrapper
             case "surface-name":
                 groupDelegate.prependChild(new SharedSetting(new SurfaceNameSetting(), props.layerManager));
                 return;
-            case "surface-attribute":
-                groupDelegate.prependChild(new SharedSetting(new SurfaceAttributeSetting(), props.layerManager));
+            case "attribute":
+                groupDelegate.prependChild(new SharedSetting(new AttributeSetting(), props.layerManager));
                 return;
             case "Date":
                 groupDelegate.prependChild(new SharedSetting(new TimeOrIntervalSetting(), props.layerManager));
@@ -310,9 +312,9 @@ const LAYER_ACTIONS: LayersActionGroup[] = [
                 label: "Surface Name",
             },
             {
-                identifier: "surface-attribute",
+                identifier: "attribute",
                 icon: <Icon data={settings} fontSize="small" />,
-                label: "Surface Attribute",
+                label: "Attribute",
             },
             {
                 identifier: "Date",

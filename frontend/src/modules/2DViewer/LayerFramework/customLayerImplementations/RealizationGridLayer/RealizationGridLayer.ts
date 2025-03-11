@@ -1,22 +1,18 @@
 import { getGridParameterOptions, getGridSurfaceOptions } from "@api";
-import {
-    GridMappedProperty_trans,
-    GridSurface_trans,
-    transformGridMappedProperty,
-    transformGridSurface,
-} from "@modules/3DViewer/view/queries/queryDataTransforms";
+import type { GridMappedProperty_trans, GridSurface_trans } from "@modules/3DViewer/view/queries/queryDataTransforms";
+import { transformGridMappedProperty, transformGridSurface } from "@modules/3DViewer/view/queries/queryDataTransforms";
 import { ItemDelegate } from "@modules/_shared/LayerFramework/delegates/ItemDelegate";
 import { LayerColoringType, LayerDelegate } from "@modules/_shared/LayerFramework/delegates/LayerDelegate";
-import { LayerManager } from "@modules/_shared/LayerFramework/framework/LayerManager/LayerManager";
-import { BoundingBox, Layer, SerializedLayer } from "@modules/_shared/LayerFramework/interfaces";
+import type { LayerManager } from "@modules/_shared/LayerFramework/framework/LayerManager/LayerManager";
+import type { BoundingBox, Layer, SerializedLayer } from "@modules/_shared/LayerFramework/interfaces";
 import { LayerRegistry } from "@modules/_shared/LayerFramework/layers/LayerRegistry";
 import { SettingType } from "@modules/_shared/LayerFramework/settings/settingsTypes";
-import { QueryClient } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 
 import { isEqual } from "lodash";
 
 import { RealizationGridSettingsContext } from "./RealizationGridSettingsContext";
-import { RealizationGridSettings } from "./types";
+import type { RealizationGridSettings } from "./types";
 
 export class RealizationGridLayer
     implements
@@ -43,7 +39,7 @@ export class RealizationGridLayer
             this,
             layerManager,
             new RealizationGridSettingsContext(layerManager),
-            LayerColoringType.COLORSCALE
+            LayerColoringType.COLORSCALE,
         );
     }
 
@@ -67,7 +63,7 @@ export class RealizationGridLayer
 
     doSettingsChangesRequireDataRefetch(
         prevSettings: RealizationGridSettings,
-        newSettings: RealizationGridSettings
+        newSettings: RealizationGridSettings,
     ): boolean {
         return !isEqual(prevSettings, newSettings);
     }
@@ -108,16 +104,16 @@ export class RealizationGridLayer
         const ensembleIdent = settings[SettingType.ENSEMBLE].getDelegate().getValue();
         const realizationNum = settings[SettingType.REALIZATION].getDelegate().getValue();
         const gridName = settings[SettingType.GRID_NAME].getDelegate().getValue();
-        const attribute = settings[SettingType.GRID_ATTRIBUTE].getDelegate().getValue();
+        const attribute = settings[SettingType.ATTRIBUTE].getDelegate().getValue();
         let timeOrInterval = settings[SettingType.TIME_OR_INTERVAL].getDelegate().getValue();
         if (timeOrInterval === "NO_TIME") {
             timeOrInterval = null;
         }
-        let availableDimensions = settings[SettingType.GRID_LAYER].getDelegate().getAvailableValues();
+        let availableDimensions = settings[SettingType.GRID_LAYER_K].getDelegate().getAvailableValues();
         if (!availableDimensions.length || availableDimensions[0] === null) {
             availableDimensions = [0, 0, 0];
         }
-        const layerIndex = settings[SettingType.GRID_LAYER].getDelegate().getValue();
+        const layerIndex = settings[SettingType.GRID_LAYER_K].getDelegate().getValue();
         const iMin = 0;
         const iMax = availableDimensions[0] || 0;
         const jMin = 0;

@@ -1,11 +1,13 @@
 import { ItemDelegateTopic } from "./ItemDelegate";
-import { PublishSubscribe, PublishSubscribeDelegate } from "./PublishSubscribeDelegate";
 import { UnsubscribeHandlerDelegate } from "./UnsubscribeHandlerDelegate";
 
+import type { PublishSubscribe } from "../../utils/PublishSubscribeDelegate";
+import { PublishSubscribeDelegate } from "../../utils/PublishSubscribeDelegate";
 import { LayerManagerTopic } from "../framework/LayerManager/LayerManager";
 import { SharedSetting } from "../framework/SharedSetting/SharedSetting";
 import { DeserializationFactory } from "../framework/utils/DeserializationFactory";
-import { Item, SerializedItem, instanceofGroup, instanceofLayer } from "../interfaces";
+import type { Item, SerializedItem } from "../interfaces";
+import { instanceofGroup, instanceofLayer } from "../interfaces";
 
 export enum GroupDelegateTopic {
     CHILDREN = "CHILDREN",
@@ -24,11 +26,11 @@ export type GroupDelegateTopicPayloads = {
  * It provides methods for adding, removing, and moving children, as well as for serializing and deserializing children.
  * The class also provides methods for finding children and descendants based on a predicate.
  */
-export class GroupDelegate implements PublishSubscribe<GroupDelegateTopic, GroupDelegateTopicPayloads> {
+export class GroupDelegate implements PublishSubscribe<GroupDelegateTopicPayloads> {
     private _owner: Item | null;
     private _color: string | null = null;
     private _children: Item[] = [];
-    private _publishSubscribeDelegate = new PublishSubscribeDelegate<GroupDelegateTopic>();
+    private _publishSubscribeDelegate = new PublishSubscribeDelegate<GroupDelegateTopicPayloads>();
     private _unsubscribeHandlerDelegate = new UnsubscribeHandlerDelegate();
     private _treeRevisionNumber: number = 0;
     private _deserializing = false;
@@ -165,7 +167,7 @@ export class GroupDelegate implements PublishSubscribe<GroupDelegateTopic, Group
         return snapshotGetter;
     }
 
-    getPublishSubscribeDelegate(): PublishSubscribeDelegate<GroupDelegateTopic> {
+    getPublishSubscribeDelegate(): PublishSubscribeDelegate<GroupDelegateTopicPayloads> {
         return this._publishSubscribeDelegate;
     }
 
@@ -205,7 +207,7 @@ export class GroupDelegate implements PublishSubscribe<GroupDelegateTopic, Group
                     .getPublishSubscribeDelegate()
                     .makeSubscriberFunction(ItemDelegateTopic.EXPANDED)(() => {
                     this.publishTopic(GroupDelegateTopic.CHILDREN_EXPANSION_STATES);
-                })
+                }),
             );
         }
 
@@ -217,7 +219,7 @@ export class GroupDelegate implements PublishSubscribe<GroupDelegateTopic, Group
                     .getPublishSubscribeDelegate()
                     .makeSubscriberFunction(GroupDelegateTopic.TREE_REVISION_NUMBER)(() => {
                     this.incrementTreeRevisionNumber();
-                })
+                }),
             );
             this._unsubscribeHandlerDelegate.registerUnsubscribeFunction(
                 child.getItemDelegate().getId(),
@@ -226,7 +228,7 @@ export class GroupDelegate implements PublishSubscribe<GroupDelegateTopic, Group
                     .getPublishSubscribeDelegate()
                     .makeSubscriberFunction(GroupDelegateTopic.CHILDREN_EXPANSION_STATES)(() => {
                     this.publishTopic(GroupDelegateTopic.CHILDREN_EXPANSION_STATES);
-                })
+                }),
             );
         }
 

@@ -1,9 +1,9 @@
 import { DenseIconButton } from "@lib/components/DenseIconButton";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 
+import { usePublishSubscribeTopicValue } from "../../../utils/PublishSubscribeDelegate";
 import { ItemDelegateTopic } from "../../delegates/ItemDelegate";
-import { usePublishSubscribeTopicValue } from "../../delegates/PublishSubscribeDelegate";
-import { Item } from "../../interfaces";
+import type { Item } from "../../interfaces";
 
 export type VisibilityToggleProps = {
     item: Item;

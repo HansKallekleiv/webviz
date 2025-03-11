@@ -1,7 +1,7 @@
 import { EnsembleSetAtom } from "@framework/GlobalAtoms";
-import { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
+import type { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
 import { fixupRegularEnsembleIdent, maybeAssignFirstSyncedEnsemble } from "@framework/utils/ensembleUiHelpers";
-import { VectorSpec } from "@modules/SimulationTimeSeriesSensitivity/typesAndEnums";
+import type { VectorSpec } from "@modules/SimulationTimeSeriesSensitivity/typesAndEnums";
 import { createVectorSelectorDataFromVectors } from "@modules/_shared/components/VectorSelector";
 
 import { atom } from "jotai";
@@ -24,7 +24,7 @@ export const selectedRegularEnsembleIdentAtom = atom<RegularEnsembleIdent | null
 
     const candidateEnsembleIdent = maybeAssignFirstSyncedEnsemble(
         userSelectedRegularEnsembleIdent,
-        syncedRegularEnsembleIdents
+        syncedRegularEnsembleIdents,
     );
     const fixedUpEnsembleIdent = fixupRegularEnsembleIdent(candidateEnsembleIdent, ensembleSet);
     return fixedUpEnsembleIdent;
@@ -116,7 +116,7 @@ export const selectedVectorNameHasHistoricalAtom = atom<boolean>((get) => {
     const vectorListQuery = get(vectorListQueryAtom);
 
     const selectedVector = vectorListQuery.data?.find((vec) => vec.name === selectedVectorName);
-    return !!selectedVector?.has_historical;
+    return !!selectedVector?.hasHistorical;
 });
 
 export const vectorSpecificationAtom = atom<VectorSpec | null>((get) => {

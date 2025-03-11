@@ -29,9 +29,7 @@ async def get_polygons_directory(
     """
     Get a directory of polygons in a Sumo ensemble
     """
-    access = await PolygonsAccess.from_case_uuid_async(
-        authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name
-    )
+    access = PolygonsAccess.from_iteration_name(authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name)
     polygons_dir = await access.get_polygons_directory_async()
 
     case_inspector = CaseInspector.from_case_uuid(authenticated_user.get_sumo_access_token(), case_uuid)
@@ -42,7 +40,7 @@ async def get_polygons_directory(
         smda_access = DrogonSmdaAccess()
     else:
         smda_access = SmdaAccess(authenticated_user.get_smda_access_token())
-    strat_units = await smda_access.get_stratigraphic_units(strat_column_identifier)
+    strat_units = await smda_access.get_stratigraphic_units_async(strat_column_identifier)
     sorted_stratigraphic_surfaces = sort_stratigraphic_names_by_hierarchy(strat_units)
 
     return converters.to_api_polygons_directory(polygons_dir, sorted_stratigraphic_surfaces)
@@ -59,9 +57,7 @@ async def get_polygons_data(
 ) -> List[schemas.PolygonData]:
     timer = PerfTimer()
 
-    access = await PolygonsAccess.from_case_uuid_async(
-        authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name
-    )
+    access = PolygonsAccess.from_iteration_name(authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name)
     xtgeo_poly = await access.get_polygons_async(real_num=realization_num, name=name, attribute=attribute)
 
     if not xtgeo_poly:

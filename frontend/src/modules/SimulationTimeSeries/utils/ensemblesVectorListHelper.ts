@@ -1,7 +1,7 @@
-import { VectorDescription_api } from "@api";
-import { DeltaEnsembleIdent } from "@framework/DeltaEnsembleIdent";
-import { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
-import { UseQueryResult } from "@tanstack/react-query";
+import type { VectorDescription_api } from "@api";
+import type { DeltaEnsembleIdent } from "@framework/DeltaEnsembleIdent";
+import type { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
+import type { UseQueryResult } from "@tanstack/react-query";
 
 /**
  * Helper class for working with ensembles and corresponding vector list query results
@@ -14,7 +14,7 @@ export class EnsembleVectorListsHelper {
 
     constructor(
         ensembleIdents: (RegularEnsembleIdent | DeltaEnsembleIdent)[],
-        vectorListQueryResults: UseQueryResult<VectorDescription_api[]>[]
+        vectorListQueryResults: UseQueryResult<VectorDescription_api[]>[],
     ) {
         if (ensembleIdents.length !== vectorListQueryResults.length) {
             throw new Error("Number of ensembles and vector list query results must be equal");
@@ -38,7 +38,7 @@ export class EnsembleVectorListsHelper {
      *
      * @returns Array of unique vector names, as union of all vectors in all queries
      */
-    vectorsUnion(): string[] {
+    vectorNamesUnion(): string[] {
         const uniqueVectorNames = new Set<string>();
         for (const query of this._queries) {
             if (query.data) {
@@ -49,6 +49,30 @@ export class EnsembleVectorListsHelper {
         }
 
         return Array.from(uniqueVectorNames);
+    }
+
+    /**
+     * Get union of vector descriptions from all queries
+     *
+     * If duplicate vector names exist, this will keep the first occurrence of the vector description
+     *
+     * @returns Array of unique vector descriptions, as union of all vectors in all queries
+     */
+    vectorsUnion(): VectorDescription_api[] {
+        const vectorDescriptionMap = new Map<string, VectorDescription_api>();
+        for (const query of this._queries) {
+            if (query.data) {
+                for (const vector of query.data) {
+                    // Note: This will keep the first vector with the same name,
+                    // i.e. if vectors are different in different ensembles, only the first one will be kept
+                    if (!vectorDescriptionMap.has(vector.name)) {
+                        vectorDescriptionMap.set(vector.name, vector);
+                    }
+                }
+            }
+        }
+
+        return Array.from(vectorDescriptionMap.values());
     }
 
     /**
@@ -79,7 +103,7 @@ export class EnsembleVectorListsHelper {
         const index = this.findIndexOfEnsembleIdent(ensembleIdent);
         if (index === -1 || !this._queries[index].data) return false;
 
-        return this._queries[index].data?.some((vec) => vec.name === vector && vec.has_historical) ?? false;
+        return this._queries[index].data?.some((vec) => vec.name === vector && vec.hasHistorical) ?? false;
     }
 
     /**
@@ -90,7 +114,7 @@ export class EnsembleVectorListsHelper {
      */
     hasAnyHistoricalVector(vectors: string[]): boolean {
         return this._ensembleIdents.some((ensemble) =>
-            vectors.some((vector) => this.hasHistoricalVector(ensemble, vector))
+            vectors.some((vector) => this.hasHistoricalVector(ensemble, vector)),
         );
     }
 

@@ -1,20 +1,23 @@
-import { RegularEnsemble } from "@framework/RegularEnsemble";
+import type { RegularEnsemble } from "@framework/RegularEnsemble";
+import type { EnsembleRealizationFilterFunction, WorkbenchSession } from "@framework/WorkbenchSession";
 import {
-    EnsembleRealizationFilterFunction,
-    WorkbenchSession,
     WorkbenchSessionEvent,
     createEnsembleRealizationFilterFuncForWorkbenchSession,
 } from "@framework/WorkbenchSession";
-import { WorkbenchSettings } from "@framework/WorkbenchSettings";
-import { QueryClient } from "@tanstack/react-query";
+import type { WorkbenchSettings } from "@framework/WorkbenchSettings";
+import type { IntersectionPolyline } from "@framework/userCreatedItems/IntersectionPolylines";
+import { IntersectionPolylinesEvent } from "@framework/userCreatedItems/IntersectionPolylines";
+import type { QueryClient } from "@tanstack/react-query";
 
 import { isEqual } from "lodash";
 
+import type { PublishSubscribe } from "../../../utils/PublishSubscribeDelegate";
+import { PublishSubscribeDelegate } from "../../../utils/PublishSubscribeDelegate";
 import { GroupDelegate, GroupDelegateTopic } from "../../delegates/GroupDelegate";
 import { ItemDelegate } from "../../delegates/ItemDelegate";
-import { PublishSubscribe, PublishSubscribeDelegate } from "../../delegates/PublishSubscribeDelegate";
 import { UnsubscribeHandlerDelegate } from "../../delegates/UnsubscribeHandlerDelegate";
-import { Group, Item, SerializedLayerManager, SerializedType } from "../../interfaces";
+import type { Group, Item, SerializedLayerManager } from "../../interfaces";
+import { SerializedType } from "../../interfaces";
 
 export enum LayerManagerTopic {
     ITEMS_CHANGED = "ITEMS_CHANGED",
@@ -30,7 +33,7 @@ export type LayerManagerTopicPayload = {
     [LayerManagerTopic.SETTINGS_CHANGED]: void;
     [LayerManagerTopic.AVAILABLE_SETTINGS_CHANGED]: void;
     [LayerManagerTopic.LAYER_DATA_REVISION]: number;
-    [LayerManagerTopic.GLOBAL_SETTINGS_CHANGED]: void;
+    [LayerManagerTopic.GLOBAL_SETTINGS_CHANGED]: GlobalSettings;
     [LayerManagerTopic.SHARED_SETTINGS_CHANGED]: void;
 };
 
@@ -38,6 +41,7 @@ export type GlobalSettings = {
     fieldId: string | null;
     ensembles: readonly RegularEnsemble[];
     realizationFilterFunction: EnsembleRealizationFilterFunction;
+    intersectionPolylines: IntersectionPolyline[];
 };
 
 /*
@@ -50,12 +54,12 @@ export type GlobalSettings = {
  * It does also serve as a provider of the QueryClient and WorkbenchSession.
  */
 
-export class LayerManager implements Group, PublishSubscribe<LayerManagerTopic, LayerManagerTopicPayload> {
+export class LayerManager implements Group, PublishSubscribe<LayerManagerTopicPayload> {
     private _workbenchSession: WorkbenchSession;
     private _workbenchSettings: WorkbenchSettings;
     private _groupDelegate: GroupDelegate;
     private _queryClient: QueryClient;
-    private _publishSubscribeDelegate = new PublishSubscribeDelegate<LayerManagerTopic>();
+    private _publishSubscribeDelegate = new PublishSubscribeDelegate<LayerManagerTopicPayload>();
     private _itemDelegate: ItemDelegate;
     private _layerDataRevision: number = 0;
     private _globalSettings: GlobalSettings;
@@ -75,15 +79,22 @@ export class LayerManager implements Group, PublishSubscribe<LayerManagerTopic, 
             "workbenchSession",
             this._workbenchSession.subscribe(
                 WorkbenchSessionEvent.EnsembleSetChanged,
-                this.handleEnsembleSetChanged.bind(this)
-            )
+                this.handleEnsembleSetChanged.bind(this),
+            ),
         );
         this._subscriptionsHandler.registerUnsubscribeFunction(
             "workbenchSession",
             this._workbenchSession.subscribe(
                 WorkbenchSessionEvent.RealizationFilterSetChanged,
-                this.handleRealizationFilterSetChanged.bind(this)
-            )
+                this.handleRealizationFilterSetChanged.bind(this),
+            ),
+        );
+        this._subscriptionsHandler.registerUnsubscribeFunction(
+            "workbenchSession",
+            this._workbenchSession
+                .getUserCreatedItems()
+                .getIntersectionPolylines()
+                .subscribe(IntersectionPolylinesEvent.CHANGE, this.handleIntersectionPolylinesChanged.bind(this)),
         );
         this._subscriptionsHandler.registerUnsubscribeFunction(
             "groupDelegate",
@@ -92,7 +103,7 @@ export class LayerManager implements Group, PublishSubscribe<LayerManagerTopic, 
                 .makeSubscriberFunction(GroupDelegateTopic.TREE_REVISION_NUMBER)(() => {
                 this.publishTopic(LayerManagerTopic.LAYER_DATA_REVISION);
                 this.publishTopic(LayerManagerTopic.ITEMS_CHANGED);
-            })
+            }),
         );
     }
 
@@ -166,7 +177,7 @@ export class LayerManager implements Group, PublishSubscribe<LayerManagerTopic, 
         return snapshotGetter;
     }
 
-    getPublishSubscribeDelegate(): PublishSubscribeDelegate<LayerManagerTopic> {
+    getPublishSubscribeDelegate(): PublishSubscribeDelegate<LayerManagerTopicPayload> {
         return this._publishSubscribeDelegate;
     }
 
@@ -199,12 +210,16 @@ export class LayerManager implements Group, PublishSubscribe<LayerManagerTopic, 
             fieldId: null,
             ensembles,
             realizationFilterFunction: createEnsembleRealizationFilterFuncForWorkbenchSession(this._workbenchSession),
+            intersectionPolylines: this._workbenchSession
+                .getUserCreatedItems()
+                .getIntersectionPolylines()
+                .getPolylines(),
         };
     }
 
     private handleRealizationFilterSetChanged() {
         this._globalSettings.realizationFilterFunction = createEnsembleRealizationFilterFuncForWorkbenchSession(
-            this._workbenchSession
+            this._workbenchSession,
         );
 
         this.publishTopic(LayerManagerTopic.GLOBAL_SETTINGS_CHANGED);
@@ -214,6 +229,14 @@ export class LayerManager implements Group, PublishSubscribe<LayerManagerTopic, 
         const ensembles = this._workbenchSession.getEnsembleSet().getRegularEnsembleArray();
         this._globalSettings.ensembles = ensembles;
 
+        this.publishTopic(LayerManagerTopic.GLOBAL_SETTINGS_CHANGED);
+    }
+
+    private handleIntersectionPolylinesChanged() {
+        this._globalSettings.intersectionPolylines = this._workbenchSession
+            .getUserCreatedItems()
+            .getIntersectionPolylines()
+            .getPolylines();
         this.publishTopic(LayerManagerTopic.GLOBAL_SETTINGS_CHANGED);
     }
 }

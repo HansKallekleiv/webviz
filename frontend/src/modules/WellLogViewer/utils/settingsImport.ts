@@ -2,7 +2,7 @@ import { v4 } from "uuid";
 
 import { makeTrackPlot } from "./logViewerTemplate";
 
-import { TemplateTrackConfig } from "../types";
+import type { TemplateTrackConfig } from "../types";
 
 /**
  * Calculates a data-blob download uri from a list of viewer track configuration objects
@@ -33,10 +33,10 @@ function transformToTrackConfig(obj: any): TemplateTrackConfig {
     const requiredFields = {
         title: obj.title,
         plots: obj.plots,
+        _type: obj._type,
     };
 
     const optionalFields = {
-        _id: obj._id,
         required: obj.required,
         width: obj.width,
         scale: obj.scale,
@@ -47,7 +47,8 @@ function transformToTrackConfig(obj: any): TemplateTrackConfig {
 
     return {
         ...optionalFields,
-        _id: optionalFields._id ?? v4(),
+        _key: v4(),
+        _type: requiredFields._type,
         title: requiredFields.title,
         plots: requiredFields.plots.map(makeTrackPlot),
     };
