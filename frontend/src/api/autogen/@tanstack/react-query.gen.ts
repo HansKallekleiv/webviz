@@ -42,7 +42,6 @@ import {
     getRealizationVectorAtTimestamp,
     getRealizationsVectorData,
     getRelpermRealizationsCurveData,
-    getRelpermStatisticalCurveData,
     getRelpermTableInfo,
     getRelpermTableNames,
     getSeismicCubeMetaList,
@@ -116,7 +115,6 @@ import type {
     GetRealizationVectorAtTimestampData_api,
     GetRealizationsVectorDataData_api,
     GetRelpermRealizationsCurveDataData_api,
-    GetRelpermStatisticalCurveDataData_api,
     GetRelpermTableInfoData_api,
     GetRelpermTableNamesData_api,
     GetSeismicCubeMetaListData_api,
@@ -1051,25 +1049,6 @@ export const getRelpermRealizationsCurveDataOptions = (options: Options<GetRelpe
             return data;
         },
         queryKey: getRelpermRealizationsCurveDataQueryKey(options),
-    });
-};
-
-export const getRelpermStatisticalCurveDataQueryKey = (options: Options<GetRelpermStatisticalCurveDataData_api>) => [
-    createQueryKey("getRelpermStatisticalCurveData", options),
-];
-
-export const getRelpermStatisticalCurveDataOptions = (options: Options<GetRelpermStatisticalCurveDataData_api>) => {
-    return queryOptions({
-        queryFn: async ({ queryKey, signal }) => {
-            const { data } = await getRelpermStatisticalCurveData({
-                ...options,
-                ...queryKey[0],
-                signal,
-                throwOnError: true,
-            });
-            return data;
-        },
-        queryKey: getRelpermStatisticalCurveDataQueryKey(options),
     });
 };
 
