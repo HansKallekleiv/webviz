@@ -1,17 +1,36 @@
+import { isDevMode } from "@lib/utils/devMode";
+
 import { GroupDelegate } from "../../delegates/GroupDelegate";
 import { ItemDelegate } from "../../delegates/ItemDelegate";
-import type { Group, SerializedSettingsGroup } from "../../interfaces";
-import { SerializedType } from "../../interfaces";
-import type { LayerManager } from "../LayerManager/LayerManager";
+import type { ItemGroup } from "../../interfacesAndTypes/entities";
+import type { SerializedSettingsGroup } from "../../interfacesAndTypes/serialization";
+import { SerializedType } from "../../interfacesAndTypes/serialization";
+import type { DataLayerManager } from "../DataLayerManager/DataLayerManager";
 
-export class SettingsGroup implements Group {
+export function isSettingsGroup(obj: any): obj is SettingsGroup {
+    if (!isDevMode()) {
+        return obj instanceof SettingsGroup;
+    }
+
+    if (typeof obj !== "object" || obj === null) {
+        return false;
+    }
+    if (obj.constructor.name !== "SettingsGroup") {
+        return false;
+    }
+
+    const settingsGroup: SettingsGroup = obj as SettingsGroup;
+
+    return Boolean(settingsGroup.getGroupDelegate);
+}
+export class SettingsGroup implements ItemGroup {
     private _itemDelegate: ItemDelegate;
     private _groupDelegate: GroupDelegate;
 
-    constructor(name: string, layerManager: LayerManager) {
+    constructor(name: string, layerManager: DataLayerManager) {
         this._groupDelegate = new GroupDelegate(this);
         this._groupDelegate.setColor("rgb(196 181 253)");
-        this._itemDelegate = new ItemDelegate(name, layerManager);
+        this._itemDelegate = new ItemDelegate(name, 1, layerManager);
     }
 
     getItemDelegate(): ItemDelegate {

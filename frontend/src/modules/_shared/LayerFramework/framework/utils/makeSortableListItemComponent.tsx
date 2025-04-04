@@ -1,42 +1,40 @@
-import type { LayersActionGroup } from "../../LayersActions";
-import type { Group, Item } from "../../interfaces";
-import { instanceofLayer } from "../../interfaces";
-import { LayerComponent } from "../../layers/LayerComponent";
-import { ColorScale } from "../ColorScale/ColorScale";
-import { ColorScaleComponent } from "../ColorScale/ColorScaleComponent";
+import type { ActionGroup } from "../../Actions";
+import type { Item, ItemGroup } from "../../interfacesAndTypes/entities";
+import { isDataLayer } from "../DataLayer/DataLayer";
+import { DataLayerComponent } from "../DataLayer/DataLayerComponent";
 import { DeltaSurface } from "../DeltaSurface/DeltaSurface";
 import { DeltaSurfaceComponent } from "../DeltaSurface/DeltaSurfaceComponent";
-import { SettingsGroup } from "../SettingsGroup/SettingsGroup";
+import { isGroup } from "../Group/Group";
+import { GroupComponent } from "../Group/GroupComponent";
+import { isSettingsGroup } from "../SettingsGroup/SettingsGroup";
 import { SettingsGroupComponent } from "../SettingsGroup/SettingsGroupComponent";
-import { SharedSetting } from "../SharedSetting/SharedSetting";
+import { isSharedSetting } from "../SharedSetting/SharedSetting";
 import { SharedSettingComponent } from "../SharedSetting/SharedSettingComponent";
-import { View } from "../View/View";
-import { ViewComponent } from "../View/ViewComponent";
 
 export function makeSortableListItemComponent(
     item: Item,
-    layerActions?: LayersActionGroup[],
-    onActionClick?: (identifier: string, group: Group) => void,
+    makeLayerActionsForGroup: (group: ItemGroup) => ActionGroup[],
+    onActionClick?: (identifier: string, group: ItemGroup) => void,
 ): React.ReactElement {
-    if (instanceofLayer(item)) {
-        return <LayerComponent key={item.getItemDelegate().getId()} layer={item} />;
+    if (isDataLayer(item)) {
+        return <DataLayerComponent key={item.getItemDelegate().getId()} layer={item} />;
     }
-    if (item instanceof SettingsGroup) {
+    if (isSettingsGroup(item)) {
         return (
             <SettingsGroupComponent
                 key={item.getItemDelegate().getId()}
                 group={item}
-                actions={layerActions}
+                makeActionsForGroup={makeLayerActionsForGroup}
                 onActionClick={onActionClick}
             />
         );
     }
-    if (item instanceof View) {
+    if (isGroup(item)) {
         return (
-            <ViewComponent
+            <GroupComponent
                 key={item.getItemDelegate().getId()}
                 group={item}
-                actions={layerActions ? filterAwayViewActions(layerActions) : undefined}
+                makeActionsForGroup={makeLayerActionsForGroup}
                 onActionClick={onActionClick}
             />
         );
@@ -46,47 +44,14 @@ export function makeSortableListItemComponent(
             <DeltaSurfaceComponent
                 key={item.getItemDelegate().getId()}
                 deltaSurface={item}
-                actions={layerActions ? filterAwayNonSurfaceActions(layerActions) : undefined}
+                makeActionsForGroup={makeLayerActionsForGroup}
                 onActionClick={onActionClick}
             />
         );
     }
-    if (item instanceof SharedSetting) {
+    if (isSharedSetting(item)) {
         return <SharedSettingComponent key={item.getItemDelegate().getId()} sharedSetting={item} />;
-    }
-    if (item instanceof ColorScale) {
-        return <ColorScaleComponent key={item.getItemDelegate().getId()} colorScale={item} />;
     }
 
     throw new Error(`Unsupported item type: ${item.constructor.name}`);
-}
-
-function filterAwayViewActions(actions: LayersActionGroup[]): LayersActionGroup[] {
-    return actions.map((group) => ({
-        ...group,
-        children: group.children.filter((child) => child.label !== "View"),
-    }));
-}
-
-function filterAwayNonSurfaceActions(actions: LayersActionGroup[]): LayersActionGroup[] {
-    const result: LayersActionGroup[] = [];
-
-    for (const group of actions) {
-        if (group.label === "Shared Settings") {
-            result.push(group);
-            continue;
-        }
-        if (group.label !== "Layers") {
-            continue;
-        }
-        const children = group.children.filter((child) => child.label.includes("Surface"));
-        if (children.length > 0) {
-            result.push({
-                ...group,
-                children,
-            });
-        }
-    }
-
-    return result;
 }
