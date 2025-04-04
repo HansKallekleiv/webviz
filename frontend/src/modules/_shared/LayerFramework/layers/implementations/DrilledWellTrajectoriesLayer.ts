@@ -1,5 +1,10 @@
-import type { WellboreTrajectory_api } from "@api";
-import { getDrilledWellboreHeadersOptions, getWellTrajectoriesOptions } from "@api";
+import type { FlowVector_api, WellFlowData_api, WellboreTrajectory_api } from "@api";
+import {
+    getDrilledWellboreHeadersOptions,
+    getFlowDataInTimeIntervalOptions,
+    getFlowDataInfoOptions,
+    getWellTrajectoriesOptions,
+} from "@api";
 import type { MakeSettingTypesMap } from "@modules/_shared/LayerFramework/settings/settingsDefinitions";
 import { Setting } from "@modules/_shared/LayerFramework/settings/settingsDefinitions";
 
@@ -11,14 +16,19 @@ import type {
 } from "../../interfacesAndTypes/customDataLayerImplementation";
 import type { DefineDependenciesArgs } from "../../interfacesAndTypes/customSettingsHandler";
 
-const drilledWellTrajectoriesSettings = [Setting.ENSEMBLE, Setting.SMDA_WELLBORE_HEADERS] as const;
+const drilledWellTrajectoriesSettings = [
+    Setting.ENSEMBLE,
+    Setting.SMDA_WELLBORE_HEADERS,
+    Setting.FLOW_TYPES,
+    Setting.DATE_RANGE,
+] as const;
 type DrilledWellTrajectoriesSettings = typeof drilledWellTrajectoriesSettings;
 type SettingsWithTypes = MakeSettingTypesMap<DrilledWellTrajectoriesSettings>;
 
-type DrilledWellTrajectoriesData = WellboreTrajectory_api[];
+export type DrilledWellData = { trajectoryData: WellboreTrajectory_api[]; wellFlowData: WellFlowData_api[] };
 
 export class DrilledWellTrajectoriesLayer
-    implements CustomDataLayerImplementation<DrilledWellTrajectoriesSettings, DrilledWellTrajectoriesData>
+    implements CustomDataLayerImplementation<DrilledWellTrajectoriesSettings, DrilledWellData>
 {
     settings = drilledWellTrajectoriesSettings;
 
@@ -35,33 +45,48 @@ export class DrilledWellTrajectoriesLayer
         getGlobalSetting,
         registerQueryKey,
         queryClient,
-    }: FetchDataParams<
-        DrilledWellTrajectoriesSettings,
-        DrilledWellTrajectoriesData
-    >): Promise<DrilledWellTrajectoriesData> {
+    }: FetchDataParams<DrilledWellTrajectoriesSettings, DrilledWellData>): Promise<{
+        trajectoryData: WellboreTrajectory_api[];
+        wellFlowData: WellFlowData_api[];
+    }> {
         const fieldIdentifier = getGlobalSetting("fieldId");
-        const selectedWellboreHeaders = getSetting(Setting.SMDA_WELLBORE_HEADERS);
-        let selectedWellboreUuids: string[] = [];
-        if (selectedWellboreHeaders) {
-            selectedWellboreUuids = selectedWellboreHeaders.map((header) => header.wellboreUuid);
-        }
-
+        const ensembleIdent = getSetting(Setting.ENSEMBLE);
+        // const realizationNum = getSetting(Setting.REALIZATION);
+        const dateRange = getSetting(Setting.DATE_RANGE) ?? [0, 0];
+        const startTimestamp = dateRange[0];
+        const endTimestamp = dateRange[1];
+        const flowVectors = getSetting(Setting.FLOW_TYPES);
         const queryKey = ["getWellTrajectories", fieldIdentifier];
         registerQueryKey(queryKey);
 
-        const promise = queryClient
-            .fetchQuery({
-                ...getWellTrajectoriesOptions({
-                    query: { field_identifier: fieldIdentifier ?? "" },
-                }),
-                staleTime: 1800000, // TODO: Both stale and gcTime are set to 30 minutes for now since SMDA is quite slow for fields with many wells - this should be adjusted later
-                gcTime: 1800000,
-            })
-            .then((response: DrilledWellTrajectoriesData) => {
-                return response.filter((trajectory) => selectedWellboreUuids.includes(trajectory.wellboreUuid));
-            });
+        const trajectoryPromise = queryClient.fetchQuery({
+            ...getWellTrajectoriesOptions({
+                query: { field_identifier: fieldIdentifier ?? "" },
+            }),
+        });
 
-        return promise;
+        const wellFlowDataPromise = queryClient.fetchQuery({
+            ...getFlowDataInTimeIntervalOptions({
+                query: {
+                    field_identifier: fieldIdentifier ?? "",
+                    case_uuid: ensembleIdent?.getCaseUuid() ?? "",
+                    ensemble_name: ensembleIdent?.getEnsembleName() ?? "",
+                    start_timestamp_utc_ms: startTimestamp,
+                    end_timestamp_utc_ms: endTimestamp,
+                    flow_vectors: flowVectors as FlowVector_api[],
+                    realization: 0,
+                    volume_limit: 0,
+                },
+            }),
+            staleTime: 1800000,
+            gcTime: 1800000,
+        });
+        return Promise.all([trajectoryPromise, wellFlowDataPromise]).then(([trajectoryData, wellFlowData]) => {
+            return {
+                trajectoryData: trajectoryData,
+                wellFlowData: wellFlowData,
+            };
+        });
     }
 
     defineDependencies({
@@ -104,6 +129,34 @@ export class DrilledWellTrajectoriesLayer
                 }),
             });
         });
+        const flowDataInfoDep = helperDependency(async function fetchData({ getLocalSetting, abortSignal }) {
+            const ensembleIdent = getLocalSetting(Setting.ENSEMBLE);
+
+            if (!ensembleIdent) {
+                return null;
+            }
+
+            const ensembleSet = workbenchSession.getEnsembleSet();
+            const ensemble = ensembleSet.findEnsemble(ensembleIdent);
+
+            if (!ensemble) {
+                return null;
+            }
+
+            const fieldIdentifier = ensemble.getFieldIdentifier();
+
+            return await queryClient.fetchQuery({
+                ...getFlowDataInfoOptions({
+                    query: {
+                        field_identifier: fieldIdentifier,
+                        case_uuid: ensemble.getCaseUuid(),
+                        ensemble_name: ensemble.getEnsembleName(),
+                    },
+                    signal: abortSignal,
+                }),
+            });
+        });
+
         availableSettingsUpdater(Setting.SMDA_WELLBORE_HEADERS, ({ getHelperDependency }) => {
             const wellboreHeaders = getHelperDependency(wellboreHeadersDep);
 
@@ -112,6 +165,25 @@ export class DrilledWellTrajectoriesLayer
             }
 
             return wellboreHeaders;
+        });
+        availableSettingsUpdater(Setting.FLOW_TYPES, ({ getHelperDependency }) => {
+            const flowDataInfo = getHelperDependency(flowDataInfoDep);
+
+            if (!flowDataInfo) {
+                return [];
+            }
+
+            return flowDataInfo.flow_vectors;
+        });
+
+        availableSettingsUpdater(Setting.DATE_RANGE, ({ getHelperDependency }) => {
+            const flowDataInfo = getHelperDependency(flowDataInfoDep);
+
+            if (!flowDataInfo) {
+                return [0, 0];
+            }
+
+            return [flowDataInfo.start_timestamp_utc_ms, flowDataInfo.end_timestamp_utc_ms];
         });
     }
 }

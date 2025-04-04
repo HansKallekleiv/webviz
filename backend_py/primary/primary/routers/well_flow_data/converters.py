@@ -2,6 +2,7 @@ from primary.services.well_flow_data_assembler.well_flow_data_assembler import (
     WellFlowData,
     WellFlowDataInfo,
     FlowVector,
+    FlowDataInfo,
 )
 from . import schemas
 
@@ -43,3 +44,14 @@ def to_api_well_flow_data(
         )
         for well in well_production_data
     ]
+
+
+def to_api_flow_info(
+    flow_info: FlowDataInfo,
+) -> schemas.FlowDataInfo:
+
+    return schemas.FlowDataInfo(
+        flow_vectors=[to_api_flow_vector(vector) for vector in flow_info.flow_vectors],
+        start_timestamp_utc_ms=flow_info.start_timestamp_utc_ms,
+        end_timestamp_utc_ms=flow_info.end_timestamp_utc_ms,
+    )

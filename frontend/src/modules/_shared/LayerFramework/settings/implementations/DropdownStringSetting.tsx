@@ -30,6 +30,7 @@ export class DropdownStringSetting implements CustomSettingImplementation<ValueT
                     onChange={props.onValueChange}
                     disabled={props.isOverridden}
                     showArrows
+                    
                 />
             );
         };

@@ -41,9 +41,11 @@ export enum Setting {
     SHOW_GRID_LINES = "showGridLines",
     SMDA_WELLBORE_HEADERS = "smdaWellboreHeaders",
     SMDA_WELLBORE_PICKS = "smdaWellborePicks",
+    FLOW_TYPES = "flowType",
     STATISTIC_FUNCTION = "statisticFunction",
     SURFACE_NAME = "surfaceName",
     TIME_OR_INTERVAL = "timeOrInterval",
+    DATE_RANGE = "timeRange",
 }
 
 export const settingCategories = {
@@ -67,9 +69,11 @@ export const settingCategories = {
     [Setting.SHOW_GRID_LINES]: SettingCategory.BOOLEAN,
     [Setting.SMDA_WELLBORE_HEADERS]: SettingCategory.MULTI_SELECT,
     [Setting.SMDA_WELLBORE_PICKS]: SettingCategory.MULTI_SELECT,
+    [Setting.FLOW_TYPES]: SettingCategory.MULTI_SELECT,
     [Setting.STATISTIC_FUNCTION]: SettingCategory.SINGLE_SELECT,
     [Setting.SURFACE_NAME]: SettingCategory.SINGLE_SELECT,
     [Setting.TIME_OR_INTERVAL]: SettingCategory.SINGLE_SELECT,
+    [Setting.DATE_RANGE]: SettingCategory.RANGE,
 } as const;
 
 export type SettingCategories = typeof settingCategories;
@@ -95,9 +99,11 @@ export type SettingTypes = {
     [Setting.SHOW_GRID_LINES]: boolean;
     [Setting.SMDA_WELLBORE_HEADERS]: WellboreHeader_api[] | null;
     [Setting.SMDA_WELLBORE_PICKS]: string[] | null;
+    [Setting.FLOW_TYPES]: string[];
     [Setting.STATISTIC_FUNCTION]: SurfaceStatisticFunction_api;
     [Setting.SURFACE_NAME]: string | null;
     [Setting.TIME_OR_INTERVAL]: string | null;
+    [Setting.DATE_RANGE]: [number, number] | null;
 };
 
 export type PossibleSettingsForCategory<TCategory extends SettingCategory> = {

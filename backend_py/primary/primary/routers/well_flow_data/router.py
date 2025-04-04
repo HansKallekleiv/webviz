@@ -26,7 +26,7 @@ async def get_flow_data_info(
     field_identifier: Annotated[str, Query(description="Field identifier")],
     case_uuid: Annotated[str, Query(description="Sumo case uuid")],
     ensemble_name: Annotated[str, Query(description="Ensemble name")],
-) -> list[schemas.WellFlowDataInfo]:
+) -> schemas.FlowDataInfo:
 
     perf_metrics = ResponsePerfMetrics(response)
 
@@ -39,10 +39,12 @@ async def get_flow_data_info(
     well_flow_data_assembler = WellFlowDataAssembler(
         field_identifier=field_identifier, summary_access=sumo_summary_access, smda_access=smda_access
     )
-    perf_metrics.record_lap("get_well_flow_data_info")
-    well_info = await well_flow_data_assembler.get_well_flow_data_info_async()
+    # perf_metrics.record_lap("get_well_flow_data_info")
+    # well_info = await well_flow_data_assembler.get_well_flow_data_info_async()
+    flow_info = await well_flow_data_assembler.get_flow_info_async()
+    print(flow_info)
 
-    return converters.to_api_well_flow_data_info(well_info)
+    return converters.to_api_flow_info(flow_info)
 
 
 @router.get("/flow_data_in_time_interval/")
@@ -53,9 +55,10 @@ async def get_flow_data_in_time_interval(
     case_uuid: Annotated[str, Query(description="Sumo case uuid")],
     ensemble_name: Annotated[str, Query(description="Ensemble name")],
     realization: Annotated[int, Query(description="Realization number")],
-    volume_limit: Annotated[float, Query(description="Minimum volume limit")],
+    flow_vectors: Annotated[list[schemas.FlowVector], Query(description="Flow vectors")],
     start_timestamp_utc_ms: Annotated[int, Query(description="Start timestamp in UTC milliseconds")],
     end_timestamp_utc_ms: Annotated[int, Query(description="End timestamp in UTC milliseconds")],
+    volume_limit: Annotated[float | None, Query(description="Minimum volume limit")],
 ) -> list[schemas.WellFlowData]:
 
     perf_metrics = ResponsePerfMetrics(response)
@@ -72,7 +75,7 @@ async def get_flow_data_in_time_interval(
 
     well_production_data = await well_flow_data_assembler.get_well_flow_data_in_interval_async(
         realization=realization,
-        minimum_volume_limit=volume_limit,
+        minimum_volume_limit=volume_limit if volume_limit else 0,
         start_timestamp_utc_ms=start_timestamp_utc_ms,
         end_timestamp_utc_ms=end_timestamp_utc_ms,
     )

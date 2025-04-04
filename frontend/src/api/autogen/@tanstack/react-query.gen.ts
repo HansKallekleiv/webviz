@@ -20,6 +20,8 @@ import {
     getEnsembleDetails,
     getEnsembles,
     getFields,
+    getFlowDataInTimeInterval,
+    getFlowDataInfo,
     getGridModelsInfo,
     getGridParameter,
     getGridSurface,
@@ -90,6 +92,8 @@ import type {
     GetEnsembleDetailsData_api,
     GetEnsemblesData_api,
     GetFieldsData_api,
+    GetFlowDataInTimeIntervalData_api,
+    GetFlowDataInfoData_api,
     GetGridModelsInfoData_api,
     GetGridParameterData_api,
     GetGridSurfaceData_api,
@@ -1365,6 +1369,44 @@ export const getPolygonsDataOptions = (options: Options<GetPolygonsDataData_api>
             return data;
         },
         queryKey: getPolygonsDataQueryKey(options),
+    });
+};
+
+export const getFlowDataInfoQueryKey = (options: Options<GetFlowDataInfoData_api>) => [
+    createQueryKey("getFlowDataInfo", options),
+];
+
+export const getFlowDataInfoOptions = (options: Options<GetFlowDataInfoData_api>) => {
+    return queryOptions({
+        queryFn: async ({ queryKey, signal }) => {
+            const { data } = await getFlowDataInfo({
+                ...options,
+                ...queryKey[0],
+                signal,
+                throwOnError: true,
+            });
+            return data;
+        },
+        queryKey: getFlowDataInfoQueryKey(options),
+    });
+};
+
+export const getFlowDataInTimeIntervalQueryKey = (options: Options<GetFlowDataInTimeIntervalData_api>) => [
+    createQueryKey("getFlowDataInTimeInterval", options),
+];
+
+export const getFlowDataInTimeIntervalOptions = (options: Options<GetFlowDataInTimeIntervalData_api>) => {
+    return queryOptions({
+        queryFn: async ({ queryKey, signal }) => {
+            const { data } = await getFlowDataInTimeInterval({
+                ...options,
+                ...queryKey[0],
+                signal,
+                throwOnError: true,
+            });
+            return data;
+        },
+        queryKey: getFlowDataInTimeIntervalQueryKey(options),
     });
 };
 

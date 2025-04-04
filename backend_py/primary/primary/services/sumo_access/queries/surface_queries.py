@@ -274,7 +274,7 @@ async def _run_query_and_aggregate_time_intervals_async(
 
     response = await sumo_client.post_async("/search", json=search_payload)
     response_dict = response.json()
-
+    print(response_dict)
     # LOGGER.debug("-----------------")
     # _delete_key_from_dict_recursive(response_dict, "parameters")
     # _delete_key_from_dict_recursive(response_dict, "realization_ids")

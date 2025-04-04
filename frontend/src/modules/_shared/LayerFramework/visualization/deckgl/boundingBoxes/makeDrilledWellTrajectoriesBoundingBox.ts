@@ -1,12 +1,13 @@
 import type { WellboreTrajectory_api } from "@api";
 import type { BBox } from "@lib/utils/bbox";
+import { DrilledWellData } from "@modules/_shared/LayerFramework/layers/implementations/DrilledWellTrajectoriesLayer";
 import type { FactoryFunctionArgs } from "@modules/_shared/LayerFramework/visualization/VisualizationFactory";
 
 export function makeDrilledWellTrajectoriesBoundingBox({
     getData,
-}: FactoryFunctionArgs<any, WellboreTrajectory_api[]>): BBox | null {
-    const data = getData();
-    if (!data) {
+}: FactoryFunctionArgs<any, DrilledWellData>): BBox | null {
+    const { trajectoryData } = getData() ?? {};
+    if (!trajectoryData) {
         return null;
     }
 
@@ -23,7 +24,7 @@ export function makeDrilledWellTrajectoriesBoundingBox({
         },
     };
 
-    for (const trajectory of data) {
+    for (const trajectory of trajectoryData) {
         for (const point of trajectory.eastingArr) {
             bbox.min.x = Math.min(bbox.min.x, point);
             bbox.max.x = Math.max(bbox.max.x, point);

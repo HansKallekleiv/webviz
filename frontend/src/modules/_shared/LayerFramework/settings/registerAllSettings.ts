@@ -1,6 +1,7 @@
 import { SettingRegistry } from "./SettingRegistry";
 import { BooleanSetting } from "./implementations/BooleanSetting";
 import { ColorScaleSetting } from "./implementations/ColorScaleSetting";
+import { DateRangeSetting } from "./implementations/DateRangeSetting";
 import { DrilledWellboresSetting } from "./implementations/DrilledWellboresSetting";
 import { DropdownNumberSetting } from "./implementations/DropdownNumberSetting";
 import { DropdownStringSetting } from "./implementations/DropdownStringSetting";
@@ -11,6 +12,7 @@ import { IntersectionSetting } from "./implementations/IntersectionSetting";
 import { SeismicSliceDirection, SeismicSliceSetting } from "./implementations/SeismicSliceSetting";
 import { SensitivitySetting } from "./implementations/SensitivitySetting";
 import { StatisticFunctionSetting } from "./implementations/StatisticFunctionSetting";
+import { TagPickerSetting } from "./implementations/TagPickerSetting";
 import { Setting } from "./settingsDefinitions";
 
 SettingRegistry.registerSetting(Setting.ATTRIBUTE, "Attribute", DropdownStringSetting);
@@ -49,3 +51,5 @@ SettingRegistry.registerSetting(Setting.SMDA_WELLBORE_HEADERS, "SMDA Wellbore He
 SettingRegistry.registerSetting(Setting.STATISTIC_FUNCTION, "Statistic Function", StatisticFunctionSetting);
 SettingRegistry.registerSetting(Setting.SURFACE_NAME, "Surface Name", DropdownStringSetting);
 SettingRegistry.registerSetting(Setting.TIME_OR_INTERVAL, "Time or Interval", DropdownStringSetting);
+SettingRegistry.registerSetting(Setting.FLOW_TYPES, "Flow type", TagPickerSetting);
+SettingRegistry.registerSetting(Setting.DATE_RANGE, "Date Range", DateRangeSetting);

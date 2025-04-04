@@ -1,9 +1,11 @@
-import type { WellboreTrajectory_api } from "@api";
+import type { WellboreHeader_api, WellboreTrajectory_api } from "@api";
 import { AdvancedWellsLayer } from "@modules/_shared/customDeckGlLayers/AdvancedWellsLayer";
 import type { WellsLayer } from "@webviz/subsurface-viewer/dist/layers";
 
 import type { Feature, GeoJsonProperties, GeometryCollection, LineString, Point } from "geojson";
 
+import { DrilledWellData } from "../../layers/implementations/DrilledWellTrajectoriesLayer";
+import { Setting } from "../../settings/settingsDefinitions";
 import type { FactoryFunctionArgs } from "../VisualizationFactory";
 
 function wellTrajectoryToGeojson(
@@ -55,15 +57,25 @@ function zipCoords(xArr: number[], yArr: number[], zArr: number[]): number[][] {
 export function makeDrilledWellTrajectoriesLayer({
     id,
     getData,
-}: FactoryFunctionArgs<any, WellboreTrajectory_api[], any>): WellsLayer | null {
-    const fieldWellboreTrajectoriesData = getData();
+    getSetting,
+}: FactoryFunctionArgs<any, DrilledWellData, any>): WellsLayer | null {
+    const { trajectoryData, wellFlowData } = getData() ?? {};
 
-    if (!fieldWellboreTrajectoriesData) {
+    if (!trajectoryData) {
         return null;
     }
 
+    const selectedWellboreHeaders = getSetting(Setting.SMDA_WELLBORE_HEADERS) as WellboreHeader_api[];
+    const selectedWellboreUuids = selectedWellboreHeaders
+        ? selectedWellboreHeaders.map((header: WellboreHeader_api) => header.wellboreUuid)
+        : [];
+
+    const selectedWellboreTrajectoriesData = trajectoryData.filter((well) =>
+        selectedWellboreUuids.includes(well.wellboreUuid),
+    );
+
     // Filter out some wellbores that are known to be not working - this is a temporary solution
-    const tempWorkingWellsData = fieldWellboreTrajectoriesData.filter(
+    const tempWorkingWellsData = selectedWellboreTrajectoriesData.filter(
         (el) => el.uniqueWellboreIdentifier !== "NO 34/4-K-3 AH",
     );
 

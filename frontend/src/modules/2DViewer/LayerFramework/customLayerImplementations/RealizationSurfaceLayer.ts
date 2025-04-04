@@ -57,7 +57,7 @@ export class RealizationSurfaceLayer
                 ...prevSettings,
                 colorScale: null,
             },
-            { ...newSettings, colorScale: null }
+            { ...newSettings, colorScale: null },
         );
     }
 
@@ -162,8 +162,8 @@ export class RealizationSurfaceLayer
             const availableSurfaceNames = [
                 ...Array.from(
                     new Set(
-                        data.surfaces.filter((surface) => surface.attribute_name === attribute).map((el) => el.name)
-                    )
+                        data.surfaces.filter((surface) => surface.attribute_name === attribute).map((el) => el.name),
+                    ),
                 ),
             ];
 
@@ -185,10 +185,11 @@ export class RealizationSurfaceLayer
                     new Set(
                         data.surfaces
                             .filter((surface) => surface.attribute_name === attribute && surface.name === surfaceName)
-                            .map((el) => el.time_type)
-                    )
+                            .map((el) => el.time_type),
+                    ),
                 ),
             ];
+            console.log(availableTimeTypes);
 
             if (availableTimeTypes.includes(SurfaceTimeType_api.NO_TIME)) {
                 availableTimeOrIntervals.push(SurfaceTimeType_api.NO_TIME);

@@ -39,6 +39,12 @@ import type {
     GetEnsemblesResponse_api,
     GetFieldsData_api,
     GetFieldsResponse_api,
+    GetFlowDataInTimeIntervalData_api,
+    GetFlowDataInTimeIntervalError_api,
+    GetFlowDataInTimeIntervalResponse_api,
+    GetFlowDataInfoData_api,
+    GetFlowDataInfoError_api,
+    GetFlowDataInfoResponse_api,
     GetGridModelsInfoData_api,
     GetGridModelsInfoError_api,
     GetGridModelsInfoResponse_api,
@@ -1086,6 +1092,34 @@ export const getPolygonsData = <ThrowOnError extends boolean = false>(
     return (options?.client ?? client).get<GetPolygonsDataResponse_api, GetPolygonsDataError_api, ThrowOnError>({
         ...options,
         url: "/polygons/polygons_data/",
+    });
+};
+
+/**
+ * Get Flow Data Info
+ */
+export const getFlowDataInfo = <ThrowOnError extends boolean = false>(
+    options: Options<GetFlowDataInfoData_api, ThrowOnError>,
+) => {
+    return (options?.client ?? client).get<GetFlowDataInfoResponse_api, GetFlowDataInfoError_api, ThrowOnError>({
+        ...options,
+        url: "/well_flow_data/flow_data_info",
+    });
+};
+
+/**
+ * Get Flow Data In Time Interval
+ */
+export const getFlowDataInTimeInterval = <ThrowOnError extends boolean = false>(
+    options: Options<GetFlowDataInTimeIntervalData_api, ThrowOnError>,
+) => {
+    return (options?.client ?? client).get<
+        GetFlowDataInTimeIntervalResponse_api,
+        GetFlowDataInTimeIntervalError_api,
+        ThrowOnError
+    >({
+        ...options,
+        url: "/well_flow_data/flow_data_in_time_interval/",
     });
 };
 

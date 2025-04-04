@@ -60,7 +60,7 @@ class SurfaceAccess:
         surf_meta_arr.extend(_build_surface_meta_arr(static_surfs_task.result(), SurfTimeType.NO_TIME, False))
         surf_meta_arr.extend(_build_surface_meta_arr(time_point_surfs_task.result(), SurfTimeType.TIME_POINT, False))
         surf_meta_arr.extend(_build_surface_meta_arr(interval_surfs_task.result(), SurfTimeType.INTERVAL, False))
-
+        print(interval_surfs_task.result())
         src_time_points: list[TimePoint] = time_points_task.result()
         time_points_iso_strings = [timepoint.t0_isostr for timepoint in src_time_points]
 

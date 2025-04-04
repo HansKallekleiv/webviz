@@ -38,7 +38,7 @@ export function makeRealizationGridLayer({
         colorMapFunction: makeColorMapFunctionFromColorScale(
             colorScale,
             gridParameterData.min_grid_prop_value,
-            gridParameterData.max_grid_prop_value
+            gridParameterData.max_grid_prop_value,
         ),
     });
     return grid3dLayer;

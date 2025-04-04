@@ -20,7 +20,6 @@ class FlowInfo(BaseModel):
 
 class WellFlowDataInfo(BaseModel):
     flow_vector_arr: list[FlowVector]
-
     well_uwi: str
     eclipse_well_name: str
 
@@ -35,3 +34,9 @@ class WellFlowData(BaseModel):
     well_uwi: str
     well_uuid: str
     eclipse_well_name: str
+
+
+class FlowDataInfo(BaseModel):
+    start_timestamp_utc_ms: int
+    end_timestamp_utc_ms: int
+    flow_vectors: list[FlowVector]

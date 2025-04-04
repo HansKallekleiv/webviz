@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from primary.services.sumo_access.summary_access import SummaryAccess
 from primary.services.smda_access import SmdaAccess, WellboreHeader
 
+import polars as pl
+
 LOGGER = logging.getLogger(__name__)
 
 
@@ -45,6 +47,13 @@ flow_vectors_eclipse_mapping = {
 }
 
 
+@dataclass
+class FlowDataInfo:
+    start_timestamp_utc_ms: int
+    end_timestamp_utc_ms: int
+    flow_vectors: List[FlowVector]
+
+
 class WellFlowDataAssembler:
     """ """
 
@@ -61,6 +70,33 @@ class WellFlowDataAssembler:
             )
             self._smda_uwis = [header.unique_wellbore_identifier for header in wellbore_headers]
         return self._smda_uwis
+
+    async def get_flow_info_async(self) -> FlowDataInfo:
+        """Get metadata for all flow data, including start and end dates, and flow vectors"""
+
+        available_summary_column_names = await self._summary_access.get_all_available_column_names_async()
+        available_flow_vectors = []
+        for eclkey, flowvec in flow_vectors_eclipse_mapping.items():
+            matching_columns = [col for col in available_summary_column_names if eclkey in col]
+            if len(matching_columns) > 0:
+                available_flow_vectors.append(flowvec)
+
+        smry_realization_data_arrow = await self._summary_access.get_single_real_full_table_async(realization=0)
+        smry_data_pl = pl.from_arrow(smry_realization_data_arrow)
+
+        start_timestamp_utc_ms = smry_data_pl["DATE"].cast(pl.Int64).min()
+        #
+        end_timestamp_utc_ms = smry_data_pl["DATE"].cast(pl.Int64).max()
+        # Print unique values of the DATE column
+        unique_dates = smry_data_pl["DATE"].unique()
+        print(f"Unique dates: {unique_dates}")
+        flow_data_info = FlowDataInfo(
+            start_timestamp_utc_ms=start_timestamp_utc_ms,
+            end_timestamp_utc_ms=end_timestamp_utc_ms,
+            flow_vectors=available_flow_vectors,
+        )
+
+        return flow_data_info
 
     async def get_well_flow_data_info_async(
         self,
@@ -97,10 +133,23 @@ class WellFlowDataAssembler:
         end_timestamp_utc_ms: int,
     ) -> List[WellFlowData]:
 
-        smry_realization_data = await self._summary_access.get_single_real_full_table_async(realization=realization)
-        smda_wellbore_headers = await self._smda_access.get_wellbore_headers_async(
-            field_identifier=self._field_identifier
+        smry_realization_data_arrow = await self._summary_access.get_single_real_full_table_async(
+            realization=realization
         )
+        smry_data_pl = pl.from_arrow(smry_realization_data_arrow)
+        smry_data_pl = smry_data_pl.filter(
+            (pl.col("DATE").cast(pl.Int64) >= start_timestamp_utc_ms)
+            & (pl.col("DATE").cast(pl.Int64) <= end_timestamp_utc_ms)
+        )
+        # Print all columns that has WOPTH:*
+        available_summary_column_names = smry_data_pl.columns
+        matching_columns = [col for col in available_summary_column_names if "WOPTH" in col]
+        for col in matching_columns:
+            print(col, smry_data_pl[col].max())
+        # smda_wellbore_headers = await self._smda_access.get_wellbore_headers_async(
+        #     field_identifier=self._field_identifier
+        # )
+
         flow_data: List[WellFlowData] = []
         return flow_data
 

@@ -189,6 +189,12 @@ export type FieldInfo_api = {
     field_identifier: string;
 };
 
+export type FlowDataInfo_api = {
+    start_timestamp_utc_ms: number;
+    end_timestamp_utc_ms: number;
+    flow_vectors: Array<FlowVector_api>;
+};
+
 export type FlowNetworkData_api = {
     edgeMetadataList: Array<FlowNetworkMetadata_api>;
     nodeMetadataList: Array<FlowNetworkMetadata_api>;
@@ -208,6 +214,15 @@ export enum FlowRateType_api {
     WG = "WG",
     TM = "TM",
     WAT = "WAT",
+}
+
+export enum FlowVector_api {
+    OIL_PRODUCTION = "oil_production",
+    GAS_PRODUCTION = "gas_production",
+    WATER_PRODUCTION = "water_production",
+    WATER_INJECTION = "water_injection",
+    GAS_INJECTION = "gas_injection",
+    CO2_INJECTION = "co2_injection",
 }
 
 export enum FluidZone_api {
@@ -1065,6 +1080,18 @@ export type WellCompletionsWell_api = {
 export type WellCompletionsZone_api = {
     name: string;
     subzones: Array<WellCompletionsZone_api> | null;
+};
+
+export type WellFlowData_api = {
+    oil_production_volume: number | null;
+    gas_production_volume: number | null;
+    water_production_volume: number | null;
+    water_injection_volume: number | null;
+    gas_injection_volume: number | null;
+    co2_injection_volume: number | null;
+    well_uwi: string;
+    well_uuid: string;
+    eclipse_well_name: string;
 };
 
 export enum WellLogCurveSourceEnum_api {
@@ -3507,6 +3534,103 @@ export type GetPolygonsDataResponses_api = {
 };
 
 export type GetPolygonsDataResponse_api = GetPolygonsDataResponses_api[keyof GetPolygonsDataResponses_api];
+
+export type GetFlowDataInfoData_api = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Field identifier
+         */
+        field_identifier: string;
+        /**
+         * Sumo case uuid
+         */
+        case_uuid: string;
+        /**
+         * Ensemble name
+         */
+        ensemble_name: string;
+    };
+    url: "/well_flow_data/flow_data_info";
+};
+
+export type GetFlowDataInfoErrors_api = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError_api;
+};
+
+export type GetFlowDataInfoError_api = GetFlowDataInfoErrors_api[keyof GetFlowDataInfoErrors_api];
+
+export type GetFlowDataInfoResponses_api = {
+    /**
+     * Successful Response
+     */
+    200: FlowDataInfo_api;
+};
+
+export type GetFlowDataInfoResponse_api = GetFlowDataInfoResponses_api[keyof GetFlowDataInfoResponses_api];
+
+export type GetFlowDataInTimeIntervalData_api = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Field identifier
+         */
+        field_identifier: string;
+        /**
+         * Sumo case uuid
+         */
+        case_uuid: string;
+        /**
+         * Ensemble name
+         */
+        ensemble_name: string;
+        /**
+         * Realization number
+         */
+        realization: number;
+        /**
+         * Flow vectors
+         */
+        flow_vectors: Array<FlowVector_api>;
+        /**
+         * Start timestamp in UTC milliseconds
+         */
+        start_timestamp_utc_ms: number;
+        /**
+         * End timestamp in UTC milliseconds
+         */
+        end_timestamp_utc_ms: number;
+        /**
+         * Minimum volume limit
+         */
+        volume_limit: number | null;
+    };
+    url: "/well_flow_data/flow_data_in_time_interval/";
+};
+
+export type GetFlowDataInTimeIntervalErrors_api = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError_api;
+};
+
+export type GetFlowDataInTimeIntervalError_api = GetFlowDataInTimeIntervalErrors_api[keyof GetFlowDataInTimeIntervalErrors_api];
+
+export type GetFlowDataInTimeIntervalResponses_api = {
+    /**
+     * Successful Response
+     */
+    200: Array<WellFlowData_api>;
+};
+
+export type GetFlowDataInTimeIntervalResponse_api =
+    GetFlowDataInTimeIntervalResponses_api[keyof GetFlowDataInTimeIntervalResponses_api];
 
 export type GetUserPhotoData_api = {
     body?: never;
