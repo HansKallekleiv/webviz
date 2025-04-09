@@ -36,7 +36,7 @@ export enum FlowType {
 }
 export type DrilledWellDataWithFlowTypes = {
     trajectoryData: WellboreTrajectory_api;
-    flowType: FlowType;
+    flowType: FlowType | null;
 };
 
 export class DrilledWellTrajectoriesProvider
@@ -103,6 +103,13 @@ export class DrilledWellTrajectoriesProvider
                 if (!trajectory) {
                     return null;
                 }
+                if (!flowVectors || flowVectors.length === 0) {
+                    wellData.push({
+                        trajectoryData: trajectory,
+                        flowType: null,
+                    });
+                    return;
+                }
                 let flowType: FlowType | null = null;
                 if (
                     flowVectors.includes("oil_production") &&
@@ -110,7 +117,11 @@ export class DrilledWellTrajectoriesProvider
                     flowData.oil_production_volume > 0
                 ) {
                     flowType = FlowType.OIL_PROD;
-                } else if (flowData.gas_production_volume && flowData.gas_production_volume > 0) {
+                } else if (
+                    flowVectors.includes("gas_production") &&
+                    flowData.gas_production_volume &&
+                    flowData.gas_production_volume > 0
+                ) {
                     flowType = FlowType.GAS_PROD;
                 } else if (flowData.water_production_volume && flowData.water_production_volume > 0) {
                     flowType = FlowType.WATER_PROD;

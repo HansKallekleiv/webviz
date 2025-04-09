@@ -27,6 +27,7 @@ export type TagPickerProps<T> = {
     onChange?: (value: T[]) => void;
     width?: string | number;
     debounceTimeMs?: number;
+    placeholderLabel?: string;
 } & BaseComponentProps;
 
 const MIN_HEIGHT = 200;
@@ -280,6 +281,7 @@ export function TagPickerComponent<T>(
                         onFocus={handleFocus}
                         onBlur={handleBlur}
                         value={filter ?? ""}
+                        placeholder={props.placeholderLabel ?? "Select tags..."}
                     />
                 </div>
                 <div className="h-8 flex flex-col justify-center cursor-pointer">

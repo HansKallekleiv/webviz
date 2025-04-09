@@ -53,6 +53,7 @@ logging.getLogger("primary.services.user_grid3d_service").setLevel(logging.DEBUG
 logging.getLogger("primary.services.surface_query_service").setLevel(logging.DEBUG)
 logging.getLogger("primary.routers.grid3d").setLevel(logging.DEBUG)
 logging.getLogger("primary.routers.dev").setLevel(logging.DEBUG)
+logging.getLogger("primary.services.well_flow_data_assembler").setLevel(logging.DEBUG)
 # logging.getLogger("uvicorn.error").setLevel(logging.DEBUG)
 # logging.getLogger("uvicorn.access").setLevel(logging.DEBUG)
 

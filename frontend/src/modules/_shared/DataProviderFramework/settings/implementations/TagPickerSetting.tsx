@@ -12,7 +12,15 @@ import type { SettingCategory } from "../settingsDefinitions";
 type ValueType = string[];
 
 export class TagPickerSetting implements CustomSettingImplementation<ValueType, SettingCategory.MULTI_SELECT> {
+    private _label: string = "Select tags...";
+
+    constructor(placeholderLabel?: string) {
+        if (placeholderLabel) {
+            this._label = placeholderLabel;
+        }
+    }
     makeComponent(): (props: SettingComponentProps<ValueType, SettingCategory.MULTI_SELECT>) => React.ReactNode {
+        const placeholderLabel = this._label;
         return function TagPickerSetting(props: SettingComponentProps<ValueType, SettingCategory.MULTI_SELECT>) {
             const availableValues = props.availableValues ?? [];
 
@@ -29,6 +37,7 @@ export class TagPickerSetting implements CustomSettingImplementation<ValueType, 
                     value={props.value || availableValues}
                     onChange={props.onValueChange}
                     disabled={props.isOverridden}
+                    placeholderLabel={props.value.length ? "" : placeholderLabel}
                 />
             );
         };

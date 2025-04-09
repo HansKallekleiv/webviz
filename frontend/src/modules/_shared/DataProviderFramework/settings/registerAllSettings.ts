@@ -51,5 +51,7 @@ SettingRegistry.registerSetting(Setting.SMDA_WELLBORE_HEADERS, "SMDA Wellbore He
 SettingRegistry.registerSetting(Setting.STATISTIC_FUNCTION, "Statistic Function", StatisticFunctionSetting);
 SettingRegistry.registerSetting(Setting.SURFACE_NAME, "Surface Name", DropdownStringSetting);
 SettingRegistry.registerSetting(Setting.TIME_OR_INTERVAL, "Time or Interval", DropdownStringSetting);
-SettingRegistry.registerSetting(Setting.FLOW_TYPES, "Flow type", TagPickerSetting);
+SettingRegistry.registerSetting(Setting.FLOW_TYPES, "Flow type", TagPickerSetting, {
+    customConstructorParameters: ["Select to filter on flow types..."],
+});
 SettingRegistry.registerSetting(Setting.DATE_RANGE, "Date Range", DateRangeSetting);
