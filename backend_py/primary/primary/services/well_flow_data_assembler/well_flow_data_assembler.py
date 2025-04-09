@@ -19,8 +19,7 @@ class WellFlowData:
     water_injection_volume: float | None
     gas_injection_volume: float | None
     co2_injection_volume: float | None
-    well_uwi: str
-    well_uuid: str
+    well_uwi: str | None
     eclipse_well_name: str
 
 
@@ -36,7 +35,7 @@ class FlowVector(StrEnum):
 @dataclass
 class WellFlowDataInfo:
     flow_vector_arr: List[FlowVector]
-    well_uwi: str
+    well_uwi: str | None
     eclipse_well_name: str
 
 
@@ -143,22 +142,52 @@ class WellFlowDataAssembler:
         )
         # Print all columns that has WOPTH:*
         available_summary_column_names = smry_data_pl.columns
-        matching_columns = [col for col in available_summary_column_names if "WOPTH" in col]
+        matching_columns = [
+            col for col in available_summary_column_names if col.split(":")[0] in flow_vectors_eclipse_mapping.keys()
+        ]
+        well_flow_data_dict = {}
         for col in matching_columns:
-            print(col, smry_data_pl[col].max())
-        # smda_wellbore_headers = await self._smda_access.get_wellbore_headers_async(
-        #     field_identifier=self._field_identifier
-        # )
+            well_name = col.split(":")[1]
+            vector = col.split(":")[0]
+            # well_uwi = _eclipse_well_name_to_smda_uwi(well_name, self._smda_uwis)
+            if well_name not in well_flow_data_dict:
+                well_flow_data_dict[well_name] = {
+                    "oil_production_volume": 0,
+                    "gas_production_volume": 0,
+                    "water_production_volume": 0,
+                }
+            well_flow_data_dict[well_name][flow_vectors_eclipse_mapping[vector].value] = smry_data_pl[col].max()
 
+        smda_wellbore_headers = await self._smda_access.get_wellbore_headers_async(
+            field_identifier=self._field_identifier
+        )
+        smda_uwi_arr = [header.unique_wellbore_identifier for header in smda_wellbore_headers]
         flow_data: List[WellFlowData] = []
+        for well_name, flow_data_dict in well_flow_data_dict.items():
+            well_uwi = _eclipse_well_name_to_smda_uwi(well_name, smda_uwi_arr)
+            if well_uwi is None:
+                # LOGGER.warning(f"Could not find a unique match for well name {well_name} in smda uwis ")
+                continue
+            flow_data.append(
+                WellFlowData(
+                    oil_production_volume=flow_data_dict[flow_vectors_eclipse_mapping["WOPTH"].value],
+                    gas_production_volume=flow_data_dict[flow_vectors_eclipse_mapping["WGPTH"].value],
+                    water_production_volume=flow_data_dict[flow_vectors_eclipse_mapping["WWPTH"].value],
+                    water_injection_volume=0,
+                    gas_injection_volume=0,
+                    co2_injection_volume=0,
+                    well_uwi=well_uwi,
+                    eclipse_well_name=well_name,
+                )
+            )
         return flow_data
 
 
-def _eclipse_well_name_to_smda_uwi(eclipse_well_name: str, smda_uwi_arr: List[str]) -> str:
+def _eclipse_well_name_to_smda_uwi(eclipse_well_name: str, smda_uwi_arr: List[str]) -> str | None:
     well_name = eclipse_well_name.replace("_", "-")
     well_uwi_arr = [uwi for uwi in smda_uwi_arr if well_name in uwi]
     if len(well_uwi_arr) == 1:
         return well_uwi_arr[0]
     else:
         LOGGER.warning(f"Could not find a unique match for well name {well_name} in smda uwis ")
-        return eclipse_well_name
+        return None

@@ -39,7 +39,6 @@ def to_api_well_flow_data(
             gas_injection_volume=well.gas_injection_volume,
             co2_injection_volume=well.co2_injection_volume,
             well_uwi=well.well_uwi,
-            well_uuid=well.well_uuid,
             eclipse_well_name=well.eclipse_well_name,
         )
         for well in well_production_data

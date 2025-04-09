@@ -26,9 +26,21 @@ type DrilledWellTrajectoriesSettings = typeof drilledWellTrajectoriesSettings;
 type SettingsWithTypes = MakeSettingTypesMap<DrilledWellTrajectoriesSettings>;
 
 export type DrilledWellData = { trajectoryData: WellboreTrajectory_api[]; wellFlowData: WellFlowData_api[] };
+export enum FlowType {
+    OIL_PROD = "OIL_PROD",
+    GAS_PROD = "GAS_PROD",
+    WATER_PROD = "WATER_PROD",
+    WATER_INJ = "WATER_INJ",
+    GAS_INJ = "GAS_INJ",
+    OIL_INJ = "OIL_INJ",
+}
+export type DrilledWellDataWithFlowTypes = {
+    trajectoryData: WellboreTrajectory_api;
+    flowType: FlowType;
+};
 
 export class DrilledWellTrajectoriesProvider
-    implements CustomDataProviderImplementation<DrilledWellTrajectoriesSettings, DrilledWellData>
+    implements CustomDataProviderImplementation<DrilledWellTrajectoriesSettings, DrilledWellDataWithFlowTypes[]>
 {
     settings = drilledWellTrajectoriesSettings;
 
@@ -45,10 +57,9 @@ export class DrilledWellTrajectoriesProvider
         getGlobalSetting,
         registerQueryKey,
         queryClient,
-    }: FetchDataParams<DrilledWellTrajectoriesSettings, DrilledWellData>): Promise<{
-        trajectoryData: WellboreTrajectory_api[];
-        wellFlowData: WellFlowData_api[];
-    }> {
+    }: FetchDataParams<DrilledWellTrajectoriesSettings, DrilledWellDataWithFlowTypes[]>): Promise<
+        DrilledWellDataWithFlowTypes[]
+    > {
         const fieldIdentifier = getGlobalSetting("fieldId");
         const ensembleIdent = getSetting(Setting.ENSEMBLE);
         // const realizationNum = getSetting(Setting.REALIZATION);
@@ -73,7 +84,7 @@ export class DrilledWellTrajectoriesProvider
                     ensemble_name: ensembleIdent?.getEnsembleName() ?? "",
                     start_timestamp_utc_ms: startTimestamp,
                     end_timestamp_utc_ms: endTimestamp,
-                    flow_vectors: flowVectors as FlowVector_api[],
+                    // flow_vectors: flowVectors as FlowVector_api[],
                     realization: 0,
                     volume_limit: 0,
                 },
@@ -82,10 +93,40 @@ export class DrilledWellTrajectoriesProvider
             gcTime: 1800000,
         });
         return Promise.all([trajectoryPromise, wellFlowDataPromise]).then(([trajectoryData, wellFlowData]) => {
-            return {
-                trajectoryData: trajectoryData,
-                wellFlowData: wellFlowData,
-            };
+            const flowVectors = getSetting(Setting.FLOW_TYPES);
+            // Filter out trajectories that are not in the flow data
+            const wellData: DrilledWellDataWithFlowTypes[] = [];
+            wellFlowData.forEach((flowData) => {
+                const trajectory = trajectoryData.find(
+                    (trajectory) => trajectory.uniqueWellboreIdentifier === flowData.well_uwi,
+                );
+                if (!trajectory) {
+                    return null;
+                }
+                let flowType: FlowType | null = null;
+                if (
+                    flowVectors.includes("oil_production") &&
+                    flowData.oil_production_volume &&
+                    flowData.oil_production_volume > 0
+                ) {
+                    flowType = FlowType.OIL_PROD;
+                } else if (flowData.gas_production_volume && flowData.gas_production_volume > 0) {
+                    flowType = FlowType.GAS_PROD;
+                } else if (flowData.water_production_volume && flowData.water_production_volume > 0) {
+                    flowType = FlowType.WATER_PROD;
+                }
+                if (flowType) {
+                    wellData.push({
+                        trajectoryData: trajectory,
+                        flowType: flowType,
+                    });
+                }
+            });
+            const filteredTrajectoryData = trajectoryData.filter((trajectory) =>
+                wellFlowData.some((flowData) => flowData.well_uwi === trajectory.uniqueWellboreIdentifier),
+            );
+            console.log("Filtered Trajectory Data", filteredTrajectoryData.length);
+            return wellData;
         });
     }
 

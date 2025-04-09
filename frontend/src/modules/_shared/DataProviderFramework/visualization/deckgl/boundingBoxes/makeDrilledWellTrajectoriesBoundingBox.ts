@@ -1,10 +1,14 @@
 import type { WellboreTrajectory_api } from "@api";
 import type { BBox } from "@lib/utils/bbox";
+import {
+    DrilledWellData,
+    DrilledWellDataWithFlowTypes,
+} from "@modules/_shared/DataProviderFramework/dataProviders/implementations/DrilledWellTrajectoriesProvider";
 import type { TransformerArgs } from "@modules/_shared/DataProviderFramework/visualization/VisualizationAssembler";
 
 export function makeDrilledWellTrajectoriesBoundingBox({
     getData,
-}: TransformerArgs<any, WellboreTrajectory_api[]>): BBox | null {
+}: TransformerArgs<any, DrilledWellDataWithFlowTypes[]>): BBox | null {
     const data = getData();
     if (!data) {
         return null;
@@ -23,18 +27,18 @@ export function makeDrilledWellTrajectoriesBoundingBox({
         },
     };
 
-    for (const trajectory of data) {
-        for (const point of trajectory.eastingArr) {
+    for (const well of data) {
+        for (const point of well.trajectoryData.eastingArr) {
             bbox.min.x = Math.min(bbox.min.x, point);
             bbox.max.x = Math.max(bbox.max.x, point);
         }
 
-        for (const point of trajectory.northingArr) {
+        for (const point of well.trajectoryData.northingArr) {
             bbox.min.y = Math.min(bbox.min.y, point);
             bbox.max.y = Math.max(bbox.max.y, point);
         }
 
-        for (const point of trajectory.tvdMslArr) {
+        for (const point of well.trajectoryData.tvdMslArr) {
             bbox.min.z = Math.min(bbox.min.z, point);
             bbox.max.z = Math.max(bbox.max.z, point);
         }

@@ -1089,8 +1089,7 @@ export type WellFlowData_api = {
     water_injection_volume: number | null;
     gas_injection_volume: number | null;
     co2_injection_volume: number | null;
-    well_uwi: string;
-    well_uuid: string;
+    well_uwi: string | null;
     eclipse_well_name: string;
 };
 
@@ -3593,10 +3592,6 @@ export type GetFlowDataInTimeIntervalData_api = {
          * Realization number
          */
         realization: number;
-        /**
-         * Flow vectors
-         */
-        flow_vectors: Array<FlowVector_api>;
         /**
          * Start timestamp in UTC milliseconds
          */

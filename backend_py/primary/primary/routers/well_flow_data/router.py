@@ -55,7 +55,6 @@ async def get_flow_data_in_time_interval(
     case_uuid: Annotated[str, Query(description="Sumo case uuid")],
     ensemble_name: Annotated[str, Query(description="Ensemble name")],
     realization: Annotated[int, Query(description="Realization number")],
-    flow_vectors: Annotated[list[schemas.FlowVector], Query(description="Flow vectors")],
     start_timestamp_utc_ms: Annotated[int, Query(description="Start timestamp in UTC milliseconds")],
     end_timestamp_utc_ms: Annotated[int, Query(description="End timestamp in UTC milliseconds")],
     volume_limit: Annotated[float | None, Query(description="Minimum volume limit")],

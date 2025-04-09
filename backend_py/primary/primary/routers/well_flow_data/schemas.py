@@ -20,7 +20,7 @@ class FlowInfo(BaseModel):
 
 class WellFlowDataInfo(BaseModel):
     flow_vector_arr: list[FlowVector]
-    well_uwi: str
+    well_uwi: str | None
     eclipse_well_name: str
 
 
@@ -31,8 +31,7 @@ class WellFlowData(BaseModel):
     water_injection_volume: float | None
     gas_injection_volume: float | None
     co2_injection_volume: float | None
-    well_uwi: str
-    well_uuid: str
+    well_uwi: str | None
     eclipse_well_name: str
 
 
