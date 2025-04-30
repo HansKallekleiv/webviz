@@ -153,15 +153,15 @@ import type {
     GetWellCompletionsDataData_api,
     GetWellCompletionsDataError_api,
     GetWellCompletionsDataResponse_api,
-    GetWellTrajectoriesData_api,
-    GetWellTrajectoriesError_api,
-    GetWellTrajectoriesResponse_api,
     GetWellboreCasingsData_api,
     GetWellboreCasingsError_api,
     GetWellboreCasingsResponse_api,
     GetWellboreCompletionsData_api,
     GetWellboreCompletionsError_api,
     GetWellboreCompletionsResponse_api,
+    GetWellboreCompletionsSmdaData_api,
+    GetWellboreCompletionsSmdaError_api,
+    GetWellboreCompletionsSmdaResponse_api,
     GetWellboreLogCurveHeadersData_api,
     GetWellboreLogCurveHeadersError_api,
     GetWellboreLogCurveHeadersResponse_api,
@@ -183,6 +183,9 @@ import type {
     GetWellboreStratigraphicColumnsData_api,
     GetWellboreStratigraphicColumnsError_api,
     GetWellboreStratigraphicColumnsResponse_api,
+    GetWellboreSurveysData_api,
+    GetWellboreSurveysError_api,
+    GetWellboreSurveysResponse_api,
     LoginRouteData_api,
     LoginRouteError_api,
     PostGetAggregatedPerRealizationTableDataData_api,
@@ -844,15 +847,32 @@ export const getDrilledWellboreHeaders = <ThrowOnError extends boolean = false>(
 };
 
 /**
- * Get Well Trajectories
+ * Get Wellbore Surveys
  * Get well trajectories for field
  */
-export const getWellTrajectories = <ThrowOnError extends boolean = false>(
-    options: Options<GetWellTrajectoriesData_api, ThrowOnError>,
+export const getWellboreSurveys = <ThrowOnError extends boolean = false>(
+    options: Options<GetWellboreSurveysData_api, ThrowOnError>,
 ) => {
-    return (options?.client ?? client).get<GetWellTrajectoriesResponse_api, GetWellTrajectoriesError_api, ThrowOnError>({
+    return (options?.client ?? client).get<GetWellboreSurveysResponse_api, GetWellboreSurveysError_api, ThrowOnError>({
         ...options,
-        url: "/well/well_trajectories/",
+        url: "/well/wellbore_surveys/",
+    });
+};
+
+/**
+ * Get Wellbore Completions Smda
+ * Get well trajectories for field
+ */
+export const getWellboreCompletionsSmda = <ThrowOnError extends boolean = false>(
+    options: Options<GetWellboreCompletionsSmdaData_api, ThrowOnError>,
+) => {
+    return (options?.client ?? client).get<
+        GetWellboreCompletionsSmdaResponse_api,
+        GetWellboreCompletionsSmdaError_api,
+        ThrowOnError
+    >({
+        ...options,
+        url: "/well/wellbore_completions_smda/",
     });
 };
 

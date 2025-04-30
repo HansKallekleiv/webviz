@@ -12,7 +12,7 @@ import type { SettingCategory } from "../settingsDefinitions";
 type ValueType = string[];
 
 export class TagPickerSetting implements CustomSettingImplementation<ValueType, SettingCategory.MULTI_SELECT> {
-    private _label: string = "Select tags...";
+    private _label: string = "";
 
     constructor(placeholderLabel?: string) {
         if (placeholderLabel) {
@@ -37,7 +37,7 @@ export class TagPickerSetting implements CustomSettingImplementation<ValueType, 
                     value={props.value || availableValues}
                     onChange={props.onValueChange}
                     disabled={props.isOverridden}
-                    placeholderLabel={props.value.length ? "" : placeholderLabel}
+                    placeholderLabel={props.value && props.value.length ? "" : placeholderLabel}
                 />
             );
         };

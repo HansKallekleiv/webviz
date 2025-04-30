@@ -58,9 +58,9 @@ import {
     getVfpTable,
     getVfpTableNames,
     getWellCompletionsData,
-    getWellTrajectories,
     getWellboreCasings,
     getWellboreCompletions,
+    getWellboreCompletionsSmda,
     getWellboreLogCurveHeaders,
     getWellborePerforations,
     getWellborePickIdentifiers,
@@ -68,6 +68,7 @@ import {
     getWellborePicksForWellbore,
     getWellborePicksInStratColumn,
     getWellboreStratigraphicColumns,
+    getWellboreSurveys,
     loginRoute,
     postGetAggregatedPerRealizationTableData,
     postGetAggregatedStatisticalTableData,
@@ -130,9 +131,9 @@ import type {
     GetVfpTableData_api,
     GetVfpTableNamesData_api,
     GetWellCompletionsDataData_api,
-    GetWellTrajectoriesData_api,
     GetWellboreCasingsData_api,
     GetWellboreCompletionsData_api,
+    GetWellboreCompletionsSmdaData_api,
     GetWellboreLogCurveHeadersData_api,
     GetWellborePerforationsData_api,
     GetWellborePickIdentifiersData_api,
@@ -140,6 +141,7 @@ import type {
     GetWellborePicksForWellboreData_api,
     GetWellborePicksInStratColumnData_api,
     GetWellboreStratigraphicColumnsData_api,
+    GetWellboreSurveysData_api,
     LoginRouteData_api,
     PostGetAggregatedPerRealizationTableDataData_api,
     PostGetAggregatedPerRealizationTableDataError_api,
@@ -1031,14 +1033,14 @@ export const getDrilledWellboreHeadersOptions = (options: Options<GetDrilledWell
     });
 };
 
-export const getWellTrajectoriesQueryKey = (options: Options<GetWellTrajectoriesData_api>) => [
-    createQueryKey("getWellTrajectories", options),
+export const getWellboreSurveysQueryKey = (options: Options<GetWellboreSurveysData_api>) => [
+    createQueryKey("getWellboreSurveys", options),
 ];
 
-export const getWellTrajectoriesOptions = (options: Options<GetWellTrajectoriesData_api>) => {
+export const getWellboreSurveysOptions = (options: Options<GetWellboreSurveysData_api>) => {
     return queryOptions({
         queryFn: async ({ queryKey, signal }) => {
-            const { data } = await getWellTrajectories({
+            const { data } = await getWellboreSurveys({
                 ...options,
                 ...queryKey[0],
                 signal,
@@ -1046,7 +1048,26 @@ export const getWellTrajectoriesOptions = (options: Options<GetWellTrajectoriesD
             });
             return data;
         },
-        queryKey: getWellTrajectoriesQueryKey(options),
+        queryKey: getWellboreSurveysQueryKey(options),
+    });
+};
+
+export const getWellboreCompletionsSmdaQueryKey = (options: Options<GetWellboreCompletionsSmdaData_api>) => [
+    createQueryKey("getWellboreCompletionsSmda", options),
+];
+
+export const getWellboreCompletionsSmdaOptions = (options: Options<GetWellboreCompletionsSmdaData_api>) => {
+    return queryOptions({
+        queryFn: async ({ queryKey, signal }) => {
+            const { data } = await getWellboreCompletionsSmda({
+                ...options,
+                ...queryKey[0],
+                signal,
+                throwOnError: true,
+            });
+            return data;
+        },
+        queryKey: getWellboreCompletionsSmdaQueryKey(options),
     });
 };
 

@@ -1,14 +1,23 @@
-import type { FlowVector_api, WellFlowData_api, WellboreTrajectory_api } from "@api";
+import {
+    FlowVector_api,
+    GetWellboreCompletionsSmdaData_api,
+    WellFlowData_api,
+    WellboreCompletionSmda_api,
+    getWellboreSurveysOptions,
+} from "@api";
 import {
     getDrilledWellboreHeadersOptions,
     getFlowDataInTimeIntervalOptions,
     getFlowDataInfoOptions,
-    getWellTrajectoriesOptions,
+    getWellboreCompletionsSmdaOptions,
 } from "@api";
+import { Completion } from "@equinor/esv-intersection";
 import type { MakeSettingTypesMap } from "@modules/_shared/DataProviderFramework/settings/settingsDefinitions";
 import { Setting } from "@modules/_shared/DataProviderFramework/settings/settingsDefinitions";
 
 import { isEqual } from "lodash";
+
+import { WellSurveyCollection } from "./utils/WellSurvey";
 
 import type {
     CustomDataProviderImplementation,
@@ -21,11 +30,11 @@ const drilledWellTrajectoriesSettings = [
     Setting.SMDA_WELLBORE_HEADERS,
     Setting.FLOW_TYPES,
     Setting.DATE_RANGE,
+    Setting.COMPLETION_TYPES,
 ] as const;
 type DrilledWellTrajectoriesSettings = typeof drilledWellTrajectoriesSettings;
 type SettingsWithTypes = MakeSettingTypesMap<DrilledWellTrajectoriesSettings>;
 
-export type DrilledWellData = { trajectoryData: WellboreTrajectory_api[]; wellFlowData: WellFlowData_api[] };
 export enum FlowType {
     OIL_PROD = "OIL_PROD",
     GAS_PROD = "GAS_PROD",
@@ -34,13 +43,45 @@ export enum FlowType {
     GAS_INJ = "GAS_INJ",
     OIL_INJ = "OIL_INJ",
 }
-export type DrilledWellDataWithFlowTypes = {
-    trajectoryData: WellboreTrajectory_api;
+export enum CompletionType {
+    NONE = "None",
+    PERFORATION = "perforation",
+    OPEN_HOLE_GRAVEL_PACK = "open hole gravel pack",
+    OPEN_HOLE_SCREEN = "open hole screen",
+}
+export type WellTrajectoryData = {
+    wellboreUuid: string;
+    uniqueWellboreIdentifier: string;
+    tvdMslArr: Array<number>;
+    mdArr: Array<number>;
+    eastingArr: Array<number>;
+    northingArr: Array<number>;
+    completionArr: Array<CompletionType>;
     flowType: FlowType | null;
 };
-
+// export type WellTrajectoryHeader = {
+//     easting: number;
+//     northing: number;
+//     tvd: number;
+//     rkb?: number;
+// };
+// export type WellTrajectorySegment = {
+//     eastingArr: Array<number>;
+//     northingArr: Array<number>;
+//     mdArr: Array<number>;
+//     tvdMslArr: Array<number>;
+//     completionType: CompletionType;
+// };
+// export type WellTrajectoryData = {
+//     wellboreUuid: string;
+//     uniqueWellboreIdentifier: string;
+//     uniqueWellIdentifier: string;
+//     wellhead: WellTrajectoryHeader;
+//     trajectorySegments: WellTrajectorySegment[];
+//     flowType: FlowType | null;
+// };
 export class DrilledWellTrajectoriesProvider
-    implements CustomDataProviderImplementation<DrilledWellTrajectoriesSettings, DrilledWellDataWithFlowTypes[]>
+    implements CustomDataProviderImplementation<DrilledWellTrajectoriesSettings, WellTrajectoryData[]>
 {
     settings = drilledWellTrajectoriesSettings;
 
@@ -54,12 +95,11 @@ export class DrilledWellTrajectoriesProvider
 
     fetchData({
         getSetting,
+
         getGlobalSetting,
         registerQueryKey,
         queryClient,
-    }: FetchDataParams<DrilledWellTrajectoriesSettings, DrilledWellDataWithFlowTypes[]>): Promise<
-        DrilledWellDataWithFlowTypes[]
-    > {
+    }: FetchDataParams<DrilledWellTrajectoriesSettings, WellTrajectoryData[]>): Promise<WellTrajectoryData[]> {
         const fieldIdentifier = getGlobalSetting("fieldId");
         const ensembleIdent = getSetting(Setting.ENSEMBLE);
         // const realizationNum = getSetting(Setting.REALIZATION);
@@ -67,15 +107,20 @@ export class DrilledWellTrajectoriesProvider
         const startTimestamp = dateRange[0];
         const endTimestamp = dateRange[1];
         const flowVectors = getSetting(Setting.FLOW_TYPES);
-        const queryKey = ["getWellTrajectories", fieldIdentifier];
-        registerQueryKey(queryKey);
+        const completionTypes = getSetting(Setting.COMPLETION_TYPES);
 
-        const trajectoryPromise = queryClient.fetchQuery({
-            ...getWellTrajectoriesOptions({
+        const surveyPromise = queryClient.fetchQuery({
+            ...getWellboreSurveysOptions({
                 query: { field_identifier: fieldIdentifier ?? "" },
             }),
         });
-
+        const completionPromise = queryClient.fetchQuery({
+            ...getWellboreCompletionsSmdaOptions({
+                query: {
+                    field_identifier: fieldIdentifier ?? "",
+                },
+            }),
+        });
         const wellFlowDataPromise = queryClient.fetchQuery({
             ...getFlowDataInTimeIntervalOptions({
                 query: {
@@ -85,60 +130,35 @@ export class DrilledWellTrajectoriesProvider
                     start_timestamp_utc_ms: startTimestamp,
                     end_timestamp_utc_ms: endTimestamp,
                     // flow_vectors: flowVectors as FlowVector_api[],
-                    realization: 0,
+                    realization: 1,
                     volume_limit: 0,
                 },
             }),
             staleTime: 1800000,
             gcTime: 1800000,
         });
-        return Promise.all([trajectoryPromise, wellFlowDataPromise]).then(([trajectoryData, wellFlowData]) => {
-            const flowVectors = getSetting(Setting.FLOW_TYPES);
-            // Filter out trajectories that are not in the flow data
-            const wellData: DrilledWellDataWithFlowTypes[] = [];
-            wellFlowData.forEach((flowData) => {
-                const trajectory = trajectoryData.find(
-                    (trajectory) => trajectory.uniqueWellboreIdentifier === flowData.well_uwi,
-                );
-                if (!trajectory) {
-                    return null;
+        return Promise.all([surveyPromise, wellFlowDataPromise, completionPromise]).then(
+            ([surveyData, wellFlowData, completionData]) => {
+                const surveyCollection = new WellSurveyCollection(surveyData);
+                const flowDataArr = wellFlowData as WellFlowData_api[];
+
+                if (flowVectors.length > 0) {
+                    surveyCollection.filterOnFlowTypes(flowDataArr, flowVectors as FlowVector_api[]);
                 }
-                if (!flowVectors || flowVectors.length === 0) {
-                    wellData.push({
-                        trajectoryData: trajectory,
-                        flowType: null,
-                    });
-                    return;
+
+                if (completionTypes.length > 0) {
+                    surveyCollection.filterOnCompletions(
+                        completionData,
+                        completionTypes as CompletionType[],
+                        null,
+                        null,
+                    );
                 }
-                let flowType: FlowType | null = null;
-                if (
-                    flowVectors.includes("oil_production") &&
-                    flowData.oil_production_volume &&
-                    flowData.oil_production_volume > 0
-                ) {
-                    flowType = FlowType.OIL_PROD;
-                } else if (
-                    flowVectors.includes("gas_production") &&
-                    flowData.gas_production_volume &&
-                    flowData.gas_production_volume > 0
-                ) {
-                    flowType = FlowType.GAS_PROD;
-                } else if (flowData.water_production_volume && flowData.water_production_volume > 0) {
-                    flowType = FlowType.WATER_PROD;
-                }
-                if (flowType) {
-                    wellData.push({
-                        trajectoryData: trajectory,
-                        flowType: flowType,
-                    });
-                }
-            });
-            const filteredTrajectoryData = trajectoryData.filter((trajectory) =>
-                wellFlowData.some((flowData) => flowData.well_uwi === trajectory.uniqueWellboreIdentifier),
-            );
-            console.log("Filtered Trajectory Data", filteredTrajectoryData.length);
-            return wellData;
-        });
+                const wellData = surveyCollection.getData();
+
+                return wellData;
+            },
+        );
     }
 
     defineDependencies({
@@ -208,7 +228,26 @@ export class DrilledWellTrajectoriesProvider
                 }),
             });
         });
-
+        const completionDataDep = helperDependency(async function fetchData({ getLocalSetting, abortSignal }) {
+            const ensembleIdent = getLocalSetting(Setting.ENSEMBLE);
+            if (!ensembleIdent) {
+                return null;
+            }
+            const ensembleSet = workbenchSession.getEnsembleSet();
+            const ensemble = ensembleSet.findEnsemble(ensembleIdent);
+            if (!ensemble) {
+                return null;
+            }
+            const fieldIdentifier = ensemble.getFieldIdentifier();
+            return await queryClient.fetchQuery({
+                ...getWellboreCompletionsSmdaOptions({
+                    query: {
+                        field_identifier: fieldIdentifier,
+                    },
+                    signal: abortSignal,
+                }),
+            });
+        });
         availableSettingsUpdater(Setting.SMDA_WELLBORE_HEADERS, ({ getHelperDependency }) => {
             const wellboreHeaders = getHelperDependency(wellboreHeadersDep);
 
@@ -236,6 +275,17 @@ export class DrilledWellTrajectoriesProvider
             }
 
             return [flowDataInfo.start_timestamp_utc_ms, flowDataInfo.end_timestamp_utc_ms];
+        });
+        availableSettingsUpdater(Setting.COMPLETION_TYPES, ({ getHelperDependency }) => {
+            const completionData = getHelperDependency(completionDataDep);
+
+            if (!completionData) {
+                return [];
+            }
+            const completionTypes = completionData.map((completion) => {
+                return completion.completionType;
+            });
+            return [...new Set(completionTypes)];
         });
     }
 }

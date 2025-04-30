@@ -55,3 +55,6 @@ SettingRegistry.registerSetting(Setting.FLOW_TYPES, "Flow type", TagPickerSettin
     customConstructorParameters: ["Select to filter on flow types..."],
 });
 SettingRegistry.registerSetting(Setting.DATE_RANGE, "Date Range", DateRangeSetting);
+SettingRegistry.registerSetting(Setting.COMPLETION_TYPES, "Completions", TagPickerSetting, {
+    customConstructorParameters: ["Select to filter on completions..."],
+});

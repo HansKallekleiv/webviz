@@ -82,7 +82,7 @@ class WellFlowDataAssembler:
             if len(matching_columns) > 0:
                 available_flow_vectors.append(flowvec)
 
-        smry_realization_data_arrow = await self._summary_access.get_single_real_full_table_async(realization=0)
+        smry_realization_data_arrow = await self._summary_access.get_single_real_full_table_async(realization=1)
         smry_data_pl = pl.from_arrow(smry_realization_data_arrow)
 
         start_timestamp_utc_ms = smry_data_pl["DATE"].cast(pl.Int64).min()

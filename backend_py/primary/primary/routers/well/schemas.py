@@ -16,13 +16,34 @@ class WellboreHeader(BaseModel):
     wellboreStatus: str
 
 
-class WellboreTrajectory(BaseModel):
+class WellboreSurveyPoint(BaseModel):
+    md: float
+    tvdMsl: float
+    easting: float
+    northing: float
+    azimuth: float
+    inclination: float
+    doglegSeverity: float
+
+
+class WellboreSurvey(BaseModel):
     wellboreUuid: str
     uniqueWellboreIdentifier: str
-    tvdMslArr: List[float]
-    mdArr: List[float]
-    eastingArr: List[float]
-    northingArr: List[float]
+    uniqueWellIdentifier: str
+    surveyPoints: List[WellboreSurveyPoint]
+
+
+class WellboreCompletionSmda(BaseModel):
+    wellboreUuid: str
+    uniqueWellboreIdentifier: str
+    completionNo: int | None
+    completionType: str
+    topDepthMd: float
+    baseDepthMd: float
+    topDepthTvd: float
+    baseDepthTvd: float
+    dateOpened: str | None
+    dateClosed: str | None
 
 
 class WellborePick(BaseModel):

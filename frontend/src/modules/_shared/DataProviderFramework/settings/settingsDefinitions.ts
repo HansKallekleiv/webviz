@@ -46,6 +46,7 @@ export enum Setting {
     SURFACE_NAME = "surfaceName",
     TIME_OR_INTERVAL = "timeOrInterval",
     DATE_RANGE = "timeRange",
+    COMPLETION_TYPES = "completionTypes",
 }
 
 export const settingCategories = {
@@ -74,6 +75,7 @@ export const settingCategories = {
     [Setting.SURFACE_NAME]: SettingCategory.SINGLE_SELECT,
     [Setting.TIME_OR_INTERVAL]: SettingCategory.SINGLE_SELECT,
     [Setting.DATE_RANGE]: SettingCategory.RANGE,
+    [Setting.COMPLETION_TYPES]: SettingCategory.MULTI_SELECT,
 } as const;
 
 export type SettingCategories = typeof settingCategories;
@@ -104,6 +106,7 @@ export type SettingTypes = {
     [Setting.SURFACE_NAME]: string | null;
     [Setting.TIME_OR_INTERVAL]: string | null;
     [Setting.DATE_RANGE]: [number, number] | null;
+    [Setting.COMPLETION_TYPES]: string[];
 };
 
 export type PossibleSettingsForCategory<TCategory extends SettingCategory> = {

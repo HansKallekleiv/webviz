@@ -15,7 +15,7 @@ from primary.services.ssdl_access.types import (
     WellborePerforation,
     WellboreLogCurveData,
 )
-
+from primary.services.smda_access.types import WellboreCompletion as WellboreCompletionSmda
 from . import schemas
 from . import utils
 
@@ -55,16 +55,39 @@ def convert_wellbore_header_to_schema(
     )
 
 
+def build_survey_points_from_trajectory(
+    trajectory: WellboreTrajectory,
+) -> list[schemas.WellboreSurveyPoint]:
+    return [
+        schemas.WellboreSurveyPoint(
+            md=md,
+            tvdMsl=tvd_msl,
+            easting=easting,
+            northing=northing,
+            azimuth=azimuth,
+            inclination=inclination,
+            doglegSeverity=dls,
+        )
+        for md, tvd_msl, easting, northing, azimuth, inclination, dls in zip(
+            trajectory.md_arr,
+            trajectory.tvd_msl_arr,
+            trajectory.easting_arr,
+            trajectory.northing_arr,
+            trajectory.azimuth_arr,
+            trajectory.inclination_arr,
+            trajectory.dogleg_severity_arr,
+        )
+    ]
+
+
 def convert_well_trajectory_to_schema(
     well_trajectory: WellboreTrajectory,
-) -> schemas.WellboreTrajectory:
-    return schemas.WellboreTrajectory(
+) -> schemas.WellboreSurvey:
+    return schemas.WellboreSurvey(
         wellboreUuid=well_trajectory.wellbore_uuid,
         uniqueWellboreIdentifier=well_trajectory.unique_wellbore_identifier,
-        tvdMslArr=well_trajectory.tvd_msl_arr,
-        mdArr=well_trajectory.md_arr,
-        eastingArr=well_trajectory.easting_arr,
-        northingArr=well_trajectory.northing_arr,
+        uniqueWellIdentifier=well_trajectory.unique_well_identifier,
+        surveyPoints=build_survey_points_from_trajectory(well_trajectory),
     )
 
 
@@ -79,6 +102,23 @@ def convert_wellbore_completion_to_schema(
         description=wellbore_completion.description,
         symbolName=wellbore_completion.symbol_name,
         comment=wellbore_completion.comment,
+    )
+
+
+def convert_wellbore_completion_smda_to_schema(
+    wellbore_completion: WellboreCompletionSmda,
+) -> schemas.WellboreCompletionSmda:
+    return schemas.WellboreCompletionSmda(
+        wellboreUuid=wellbore_completion.wellbore_uuid,
+        uniqueWellboreIdentifier=wellbore_completion.unique_wellbore_identifier,
+        completionNo=wellbore_completion.completion_no,
+        completionType=wellbore_completion.completion_type,
+        topDepthMd=wellbore_completion.top_depth_md,
+        baseDepthMd=wellbore_completion.base_depth_md,
+        topDepthTvd=wellbore_completion.top_depth_tvd,
+        baseDepthTvd=wellbore_completion.base_depth_tvd,
+        dateOpened=wellbore_completion.date_opened,
+        dateClosed=wellbore_completion.date_closed,
     )
 
 

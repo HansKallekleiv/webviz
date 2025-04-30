@@ -1128,6 +1128,19 @@ export type WellboreCompletion_api = {
     comment: string | null;
 };
 
+export type WellboreCompletionSmda_api = {
+    wellboreUuid: string;
+    uniqueWellboreIdentifier: string;
+    completionNo: number | null;
+    completionType: string;
+    topDepthMd: number;
+    baseDepthMd: number;
+    topDepthTvd: number;
+    baseDepthTvd: number;
+    dateOpened: string | null;
+    dateClosed: string | null;
+};
+
 export type WellboreHeader_api = {
     wellboreUuid: string;
     uniqueWellboreIdentifier: string;
@@ -1197,13 +1210,21 @@ export type WellborePick_api = {
     interpreter: string | null;
 };
 
-export type WellboreTrajectory_api = {
+export type WellboreSurvey_api = {
     wellboreUuid: string;
     uniqueWellboreIdentifier: string;
-    tvdMslArr: Array<number>;
-    mdArr: Array<number>;
-    eastingArr: Array<number>;
-    northingArr: Array<number>;
+    uniqueWellIdentifier: string;
+    surveyPoints: Array<WellboreSurveyPoint_api>;
+};
+
+export type WellboreSurveyPoint_api = {
+    md: number;
+    tvdMsl: number;
+    easting: number;
+    northing: number;
+    azimuth: number;
+    inclination: number;
+    doglegSeverity: number;
 };
 
 export type GetFieldsData_api = {
@@ -2872,7 +2893,7 @@ export type GetDrilledWellboreHeadersResponses_api = {
 export type GetDrilledWellboreHeadersResponse_api =
     GetDrilledWellboreHeadersResponses_api[keyof GetDrilledWellboreHeadersResponses_api];
 
-export type GetWellTrajectoriesData_api = {
+export type GetWellboreSurveysData_api = {
     body?: never;
     path?: never;
     query: {
@@ -2885,26 +2906,61 @@ export type GetWellTrajectoriesData_api = {
          */
         wellbore_uuids?: Array<string> | null;
     };
-    url: "/well/well_trajectories/";
+    url: "/well/wellbore_surveys/";
 };
 
-export type GetWellTrajectoriesErrors_api = {
+export type GetWellboreSurveysErrors_api = {
     /**
      * Validation Error
      */
     422: HttpValidationError_api;
 };
 
-export type GetWellTrajectoriesError_api = GetWellTrajectoriesErrors_api[keyof GetWellTrajectoriesErrors_api];
+export type GetWellboreSurveysError_api = GetWellboreSurveysErrors_api[keyof GetWellboreSurveysErrors_api];
 
-export type GetWellTrajectoriesResponses_api = {
+export type GetWellboreSurveysResponses_api = {
     /**
      * Successful Response
      */
-    200: Array<WellboreTrajectory_api>;
+    200: Array<WellboreSurvey_api>;
 };
 
-export type GetWellTrajectoriesResponse_api = GetWellTrajectoriesResponses_api[keyof GetWellTrajectoriesResponses_api];
+export type GetWellboreSurveysResponse_api = GetWellboreSurveysResponses_api[keyof GetWellboreSurveysResponses_api];
+
+export type GetWellboreCompletionsSmdaData_api = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Official field identifier
+         */
+        field_identifier: string;
+        /**
+         * Optional subset of wellbore uuids
+         */
+        wellbore_uuids?: Array<string> | null;
+    };
+    url: "/well/wellbore_completions_smda/";
+};
+
+export type GetWellboreCompletionsSmdaErrors_api = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError_api;
+};
+
+export type GetWellboreCompletionsSmdaError_api = GetWellboreCompletionsSmdaErrors_api[keyof GetWellboreCompletionsSmdaErrors_api];
+
+export type GetWellboreCompletionsSmdaResponses_api = {
+    /**
+     * Successful Response
+     */
+    200: Array<WellboreCompletionSmda_api>;
+};
+
+export type GetWellboreCompletionsSmdaResponse_api =
+    GetWellboreCompletionsSmdaResponses_api[keyof GetWellboreCompletionsSmdaResponses_api];
 
 export type GetWellborePickIdentifiersData_api = {
     body?: never;
