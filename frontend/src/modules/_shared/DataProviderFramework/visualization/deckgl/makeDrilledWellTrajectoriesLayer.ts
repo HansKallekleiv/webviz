@@ -1,99 +1,101 @@
-import type { WellFlowData_api, WellboreHeader_api, WellboreTrajectory_api } from "@api";
+import type { WellFlowData_api, WellboreCompletionSmda_api, WellboreHeader_api } from "@api";
+import { PathStyleExtension } from "@deck.gl/extensions";
+import { GeoJsonLayer } from "@deck.gl/layers";
 import { AdvancedWellsLayer } from "@modules/_shared/customDeckGlLayers/AdvancedWellsLayer";
-import { F } from "@tanstack/query-core/build/legacy/hydration-DpBMnFDT";
 import type { WellsLayer } from "@webviz/subsurface-viewer/dist/layers";
 
-import type { Feature, GeoJsonProperties, GeometryCollection, LineString, Point } from "geojson";
+import type { Feature, FeatureCollection, GeoJsonProperties, GeometryCollection, LineString, Point } from "geojson";
 
 import {
-    DrilledWellData,
-    DrilledWellDataWithFlowTypes,
+    CompletionType,
     FlowType,
+    WellTrajectoryData,
 } from "../../dataProviders/implementations/DrilledWellTrajectoriesProvider";
+import { WellTrajectorySegment } from "../../dataProviders/implementations/utils/WellTrajectories";
 import { Setting } from "../../settings/settingsDefinitions";
 import type { TransformerArgs } from "../VisualizationAssembler";
 
-function wellTrajectoryToGeojson(
-    wellTrajectory: WellboreTrajectory_api,
-    color: [number, number, number, number] = [100, 100, 100, 100],
-): Feature<GeometryCollection, GeoJsonProperties> {
-    const point: Point = {
-        type: "Point",
-        coordinates: [wellTrajectory.eastingArr[0], wellTrajectory.northingArr[0], -wellTrajectory.tvdMslArr[0]],
-    };
-
-    const coordinates: LineString = {
-        type: "LineString",
-        coordinates: zipCoords(wellTrajectory.eastingArr, wellTrajectory.northingArr, wellTrajectory.tvdMslArr),
-    };
-
-    const lineWidth = 40;
-    const wellHeadSize = 1;
-
-    const geometryCollection: Feature<GeometryCollection, GeoJsonProperties> = {
-        type: "Feature",
-        geometry: {
-            type: "GeometryCollection",
-            geometries: [point, coordinates],
-        },
-        properties: {
-            uuid: wellTrajectory.wellboreUuid,
-            name: wellTrajectory.uniqueWellboreIdentifier,
-            uwi: wellTrajectory.uniqueWellboreIdentifier,
-            color,
-            md: [wellTrajectory.mdArr],
-            lineWidth,
-            wellHeadSize,
-        },
-    };
-
-    return geometryCollection;
-}
-
-function zipCoords(xArr: number[], yArr: number[], zArr: number[]): number[][] {
+// Function to convert one well segment to one GeoJSON LineString feature
+function segmentToGeoJsonFeature(segment: WellTrajectorySegment): Feature<LineString> | null {
     const coords: number[][] = [];
-    for (let i = 0; i < xArr.length; i++) {
-        coords.push([xArr[i], yArr[i], -zArr[i]]);
+    // Ensure Z is negated for visualization if necessary
+    for (let i = 0; i < segment.eastingArr.length; i++) {
+        coords.push([segment.eastingArr[i], segment.northingArr[i], -segment.tvdMslArr[i]]);
     }
 
-    return coords;
+    // Only return a feature if it has enough points for a line
+    if (coords.length < 2) {
+        return null;
+    }
+
+    const line: LineString = { type: "LineString", coordinates: coords };
+
+    // Determine color based on flowType
+    const color = colorOnFlowType(segment.flowType);
+
+    // Determine line width based on completion type
+    const lineWidth = segment.completionType === CompletionType.NONE ? 2 : 4;
+
+    const feature: Feature<LineString> = {
+        type: "Feature",
+        geometry: line,
+        properties: {
+            uuid: segment.wellboreUuid,
+            name: segment.uniqueWellboreIdentifier,
+            segmentId: segment.segmentId,
+            completion: segment.completionType,
+            color: color,
+            lineWidth: lineWidth,
+
+            startMd: segment.mdArr[0],
+            endMd: segment.mdArr[segment.mdArr.length - 1],
+        },
+    };
+    return feature;
+}
+
+function colorOnFlowType(flowType: FlowType | null): [number, number, number, number] {
+    switch (flowType) {
+        case FlowType.OIL_PROD:
+            return [102, 255, 0, 255];
+        case FlowType.GAS_PROD:
+            return [255, 0, 0, 255];
+        case FlowType.WATER_PROD:
+            return [0, 0, 255, 255];
+        default:
+            return [50, 50, 50, 255];
+    }
 }
 
 export function makeDrilledWellTrajectoriesLayer({
     id,
     getData,
-    getSetting,
-}: TransformerArgs<any, DrilledWellDataWithFlowTypes[]>): WellsLayer | null {
-    const data = getData();
+}: TransformerArgs<any, WellTrajectorySegment[]>): GeoJsonLayer | null {
+    const segments = getData();
 
-    if (!data) {
+    if (!segments || segments.length === 0) {
         return null;
     }
-    const flowTypes = getSetting(Setting.FLOW_TYPES);
-    // Filter out some wellbores that are known to be not working - this is a temporary solution
-    const tempWorkingWellsData = data.filter((el) => el.trajectoryData.uniqueWellboreIdentifier !== "NO 34/4-K-3 AH");
 
-    const wellLayerDataFeatures = tempWorkingWellsData.map((well) => {
-        const color: [number, number, number, number] = well.flowType
-            ? well.flowType === FlowType.OIL_PROD
-                ? [0, 128, 0, 255]
-                : well.flowType === FlowType.GAS_PROD
-                  ? [255, 0, 0, 255]
-                  : well.flowType === FlowType.WATER_PROD
-                    ? [0, 0, 255, 255]
-                    : [50, 50, 50, 255]
-            : [50, 50, 50, 255];
-
-        return wellTrajectoryToGeojson(well.trajectoryData, color);
-    });
+    const features = segments.map(segmentToGeoJsonFeature).filter((f) => f !== null) as Feature<LineString>[];
 
     function getLineStyleWidth(object: Feature): number {
         if (object.properties && "lineWidth" in object.properties) {
             return object.properties.lineWidth as number;
         }
-        return 4;
+        return 1;
     }
-
+    // Dash based on completion
+    function getLineStyleDash(object: Feature): any {
+        if (object.properties && "completion" in object.properties) {
+            const completion = object.properties.completion as CompletionType;
+            if (completion === CompletionType.NONE) {
+                return [0, 0];
+            }
+            return [1, 2];
+        }
+        return [0, 0];
+    }
     function getWellHeadStyleWidth(object: Feature): number {
         if (object.properties && "wellHeadSize" in object.properties) {
             return object.properties.wellHeadSize as number;
@@ -109,21 +111,21 @@ export function makeDrilledWellTrajectoriesLayer({
         return [50, 50, 50, 1];
     }
 
-    const wellsLayer = new AdvancedWellsLayer({
+    const wellsLayer = new GeoJsonLayer({
         id: id,
-        data: {
-            type: "FeatureCollection",
-            unit: "m",
-            features: wellLayerDataFeatures,
-        },
-        refine: false,
-        lineStyle: { width: getLineStyleWidth, color: getColor },
-        wellHeadStyle: { size: getWellHeadStyleWidth, color: getColor },
-        wellNameVisible: true,
+        data: features,
+        getLineWidth: getLineStyleWidth,
+        getLineColor: getColor,
+        getDashArray: getLineStyleDash,
+        extensions: [new PathStyleExtension({ dash: true })],
+        lineWidthMinPixels: 6,
+        lineWidthMaxPixels: 10,
+        lineWidthScale: 4,
         pickable: true,
-        ZIncreasingDownwards: false,
-        outline: false,
-        lineWidthScale: 2,
+        autoHighlight: true,
+        highlightColor: [255, 255, 0, 255],
+        depthTest: false,
+        pickingRadius: 10,
     });
 
     return wellsLayer;

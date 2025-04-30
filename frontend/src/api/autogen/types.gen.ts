@@ -189,10 +189,27 @@ export type FieldInfo_api = {
     field_identifier: string;
 };
 
+export type FlowDataInWell_api = {
+    well_uwi: string | null;
+    eclipse_well_name: string;
+    oil_production_volume: number | null;
+    gas_production_volume: number | null;
+    water_production_volume: number | null;
+    water_injection_volume: number | null;
+    gas_injection_volume: number | null;
+    co2_injection_volume: number | null;
+};
+
 export type FlowDataInfo_api = {
     start_timestamp_utc_ms: number;
     end_timestamp_utc_ms: number;
     flow_vectors: Array<FlowVector_api>;
+};
+
+export type FlowDataInterval_api = {
+    start_timestamp_utc_ms: string;
+    end_timestamp_utc_ms: string;
+    well_flow_data_arr: Array<FlowDataInWell_api>;
 };
 
 export type FlowNetworkData_api = {
@@ -1128,6 +1145,19 @@ export type WellboreCompletion_api = {
     comment: string | null;
 };
 
+export type WellboreCompletionSmda_api = {
+    wellboreUuid: string;
+    uniqueWellboreIdentifier: string;
+    completionNo: number | null;
+    completionType: string;
+    topDepthMd: number;
+    baseDepthMd: number;
+    topDepthTvd: number;
+    baseDepthTvd: number;
+    dateOpened: string | null;
+    dateClosed: string | null;
+};
+
 export type WellboreHeader_api = {
     wellboreUuid: string;
     uniqueWellboreIdentifier: string;
@@ -1197,13 +1227,31 @@ export type WellborePick_api = {
     interpreter: string | null;
 };
 
-export type WellboreTrajectory_api = {
+/**
+ * Stratigraphic unit entry/exit md from SMDA
+ */
+export type WellboreStratigraphicUnitEntryExitMd_api = {
+    wellboreUuid: string;
+    stratigraphicDirection: "upward" | "downward";
+    entryMd: number;
+    exitMd: number;
+};
+
+export type WellboreSurvey_api = {
     wellboreUuid: string;
     uniqueWellboreIdentifier: string;
-    tvdMslArr: Array<number>;
-    mdArr: Array<number>;
-    eastingArr: Array<number>;
-    northingArr: Array<number>;
+    uniqueWellIdentifier: string;
+    surveyPoints: Array<WellboreSurveyPoint_api>;
+};
+
+export type WellboreSurveyPoint_api = {
+    md: number;
+    tvdMsl: number;
+    easting: number;
+    northing: number;
+    azimuth: number;
+    inclination: number;
+    doglegSeverity: number;
 };
 
 export type GetFieldsData_api = {
@@ -2872,7 +2920,7 @@ export type GetDrilledWellboreHeadersResponses_api = {
 export type GetDrilledWellboreHeadersResponse_api =
     GetDrilledWellboreHeadersResponses_api[keyof GetDrilledWellboreHeadersResponses_api];
 
-export type GetWellTrajectoriesData_api = {
+export type GetWellboreSurveysData_api = {
     body?: never;
     path?: never;
     query: {
@@ -2885,26 +2933,61 @@ export type GetWellTrajectoriesData_api = {
          */
         wellbore_uuids?: Array<string> | null;
     };
-    url: "/well/well_trajectories/";
+    url: "/well/wellbore_surveys/";
 };
 
-export type GetWellTrajectoriesErrors_api = {
+export type GetWellboreSurveysErrors_api = {
     /**
      * Validation Error
      */
     422: HttpValidationError_api;
 };
 
-export type GetWellTrajectoriesError_api = GetWellTrajectoriesErrors_api[keyof GetWellTrajectoriesErrors_api];
+export type GetWellboreSurveysError_api = GetWellboreSurveysErrors_api[keyof GetWellboreSurveysErrors_api];
 
-export type GetWellTrajectoriesResponses_api = {
+export type GetWellboreSurveysResponses_api = {
     /**
      * Successful Response
      */
-    200: Array<WellboreTrajectory_api>;
+    200: Array<WellboreSurvey_api>;
 };
 
-export type GetWellTrajectoriesResponse_api = GetWellTrajectoriesResponses_api[keyof GetWellTrajectoriesResponses_api];
+export type GetWellboreSurveysResponse_api = GetWellboreSurveysResponses_api[keyof GetWellboreSurveysResponses_api];
+
+export type GetWellboreCompletionsSmdaData_api = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Official field identifier
+         */
+        field_identifier: string;
+        /**
+         * Optional subset of wellbore uuids
+         */
+        wellbore_uuids?: Array<string> | null;
+    };
+    url: "/well/wellbore_completions_smda/";
+};
+
+export type GetWellboreCompletionsSmdaErrors_api = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError_api;
+};
+
+export type GetWellboreCompletionsSmdaError_api = GetWellboreCompletionsSmdaErrors_api[keyof GetWellboreCompletionsSmdaErrors_api];
+
+export type GetWellboreCompletionsSmdaResponses_api = {
+    /**
+     * Successful Response
+     */
+    200: Array<WellboreCompletionSmda_api>;
+};
+
+export type GetWellboreCompletionsSmdaResponse_api =
+    GetWellboreCompletionsSmdaResponses_api[keyof GetWellboreCompletionsSmdaResponses_api];
 
 export type GetWellborePickIdentifiersData_api = {
     body?: never;
@@ -3040,6 +3123,46 @@ export type GetWellborePicksInStratColumnResponses_api = {
 
 export type GetWellborePicksInStratColumnResponse_api =
     GetWellborePicksInStratColumnResponses_api[keyof GetWellborePicksInStratColumnResponses_api];
+
+export type GetMdPairsForStratigraphicUnitInWellboresData_api = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Official field identifier
+         */
+        field_identifier: string;
+        /**
+         * Stratigraphic column identifier
+         */
+        strat_column_identifier: string;
+        /**
+         * Stratigraphic unit identifier
+         */
+        stratigraphic_unit_identifier: string;
+    };
+    url: "/well/md_pairs_for_stratigraphic_unit_in_wellbores";
+};
+
+export type GetMdPairsForStratigraphicUnitInWellboresErrors_api = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError_api;
+};
+
+export type GetMdPairsForStratigraphicUnitInWellboresError_api =
+    GetMdPairsForStratigraphicUnitInWellboresErrors_api[keyof GetMdPairsForStratigraphicUnitInWellboresErrors_api];
+
+export type GetMdPairsForStratigraphicUnitInWellboresResponses_api = {
+    /**
+     * Successful Response
+     */
+    200: Array<WellboreStratigraphicUnitEntryExitMd_api>;
+};
+
+export type GetMdPairsForStratigraphicUnitInWellboresResponse_api =
+    GetMdPairsForStratigraphicUnitInWellboresResponses_api[keyof GetMdPairsForStratigraphicUnitInWellboresResponses_api];
 
 export type GetWellboreCompletionsData_api = {
     body?: never;
@@ -3571,6 +3694,44 @@ export type GetFlowDataInfoResponses_api = {
 };
 
 export type GetFlowDataInfoResponse_api = GetFlowDataInfoResponses_api[keyof GetFlowDataInfoResponses_api];
+
+export type GetAllWellFlowDataData_api = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Field identifier
+         */
+        field_identifier: string;
+        /**
+         * Sumo case uuid
+         */
+        case_uuid: string;
+        /**
+         * Ensemble name
+         */
+        ensemble_name: string;
+    };
+    url: "/well_flow_data/all_well_flow_data";
+};
+
+export type GetAllWellFlowDataErrors_api = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError_api;
+};
+
+export type GetAllWellFlowDataError_api = GetAllWellFlowDataErrors_api[keyof GetAllWellFlowDataErrors_api];
+
+export type GetAllWellFlowDataResponses_api = {
+    /**
+     * Successful Response
+     */
+    200: Array<FlowDataInterval_api>;
+};
+
+export type GetAllWellFlowDataResponse_api = GetAllWellFlowDataResponses_api[keyof GetAllWellFlowDataResponses_api];
 
 export type GetFlowDataInTimeIntervalData_api = {
     body?: never;

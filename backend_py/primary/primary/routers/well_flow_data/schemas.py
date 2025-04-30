@@ -39,3 +39,20 @@ class FlowDataInfo(BaseModel):
     start_timestamp_utc_ms: int
     end_timestamp_utc_ms: int
     flow_vectors: list[FlowVector]
+
+
+class FlowDataInWell(BaseModel):
+    well_uwi: str | None
+    eclipse_well_name: str
+    oil_production_volume: float | None
+    gas_production_volume: float | None
+    water_production_volume: float | None
+    water_injection_volume: float | None
+    gas_injection_volume: float | None
+    co2_injection_volume: float | None
+
+
+class FlowDataInterval(BaseModel):
+    start_timestamp_utc_ms: str
+    end_timestamp_utc_ms: str
+    well_flow_data_arr: list[FlowDataInWell]

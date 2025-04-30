@@ -7,6 +7,9 @@ import type {
     GetAliveProtectedData_api,
     GetAliveProtectedResponse_api,
     GetAliveResponse_api,
+    GetAllWellFlowDataData_api,
+    GetAllWellFlowDataError_api,
+    GetAllWellFlowDataResponse_api,
     GetCasesData_api,
     GetCasesError_api,
     GetCasesResponse_api,
@@ -69,6 +72,9 @@ import type {
     GetLoggedInUserData_api,
     GetLoggedInUserError_api,
     GetLoggedInUserResponse_api,
+    GetMdPairsForStratigraphicUnitInWellboresData_api,
+    GetMdPairsForStratigraphicUnitInWellboresError_api,
+    GetMdPairsForStratigraphicUnitInWellboresResponse_api,
     GetMisfitSurfaceDataData_api,
     GetMisfitSurfaceDataError_api,
     GetMisfitSurfaceDataResponse_api,
@@ -153,15 +159,15 @@ import type {
     GetWellCompletionsDataData_api,
     GetWellCompletionsDataError_api,
     GetWellCompletionsDataResponse_api,
-    GetWellTrajectoriesData_api,
-    GetWellTrajectoriesError_api,
-    GetWellTrajectoriesResponse_api,
     GetWellboreCasingsData_api,
     GetWellboreCasingsError_api,
     GetWellboreCasingsResponse_api,
     GetWellboreCompletionsData_api,
     GetWellboreCompletionsError_api,
     GetWellboreCompletionsResponse_api,
+    GetWellboreCompletionsSmdaData_api,
+    GetWellboreCompletionsSmdaError_api,
+    GetWellboreCompletionsSmdaResponse_api,
     GetWellboreLogCurveHeadersData_api,
     GetWellboreLogCurveHeadersError_api,
     GetWellboreLogCurveHeadersResponse_api,
@@ -183,6 +189,9 @@ import type {
     GetWellboreStratigraphicColumnsData_api,
     GetWellboreStratigraphicColumnsError_api,
     GetWellboreStratigraphicColumnsResponse_api,
+    GetWellboreSurveysData_api,
+    GetWellboreSurveysError_api,
+    GetWellboreSurveysResponse_api,
     LoginRouteData_api,
     LoginRouteError_api,
     PostGetAggregatedPerRealizationTableDataData_api,
@@ -844,15 +853,32 @@ export const getDrilledWellboreHeaders = <ThrowOnError extends boolean = false>(
 };
 
 /**
- * Get Well Trajectories
+ * Get Wellbore Surveys
  * Get well trajectories for field
  */
-export const getWellTrajectories = <ThrowOnError extends boolean = false>(
-    options: Options<GetWellTrajectoriesData_api, ThrowOnError>,
+export const getWellboreSurveys = <ThrowOnError extends boolean = false>(
+    options: Options<GetWellboreSurveysData_api, ThrowOnError>,
 ) => {
-    return (options?.client ?? client).get<GetWellTrajectoriesResponse_api, GetWellTrajectoriesError_api, ThrowOnError>({
+    return (options?.client ?? client).get<GetWellboreSurveysResponse_api, GetWellboreSurveysError_api, ThrowOnError>({
         ...options,
-        url: "/well/well_trajectories/",
+        url: "/well/wellbore_surveys/",
+    });
+};
+
+/**
+ * Get Wellbore Completions Smda
+ * Get well trajectories for field
+ */
+export const getWellboreCompletionsSmda = <ThrowOnError extends boolean = false>(
+    options: Options<GetWellboreCompletionsSmdaData_api, ThrowOnError>,
+) => {
+    return (options?.client ?? client).get<
+        GetWellboreCompletionsSmdaResponse_api,
+        GetWellboreCompletionsSmdaError_api,
+        ThrowOnError
+    >({
+        ...options,
+        url: "/well/wellbore_completions_smda/",
     });
 };
 
@@ -920,6 +946,23 @@ export const getWellborePicksInStratColumn = <ThrowOnError extends boolean = fal
     >({
         ...options,
         url: "/well/wellbore_picks_in_strat_column",
+    });
+};
+
+/**
+ * Get Md Pairs For Stratigraphic Unit In Wellbores
+ * Get md pairs for stratigraphic unit identifier in wellbores
+ */
+export const getMdPairsForStratigraphicUnitInWellbores = <ThrowOnError extends boolean = false>(
+    options: Options<GetMdPairsForStratigraphicUnitInWellboresData_api, ThrowOnError>,
+) => {
+    return (options?.client ?? client).get<
+        GetMdPairsForStratigraphicUnitInWellboresResponse_api,
+        GetMdPairsForStratigraphicUnitInWellboresError_api,
+        ThrowOnError
+    >({
+        ...options,
+        url: "/well/md_pairs_for_stratigraphic_unit_in_wellbores",
     });
 };
 
@@ -1104,6 +1147,18 @@ export const getFlowDataInfo = <ThrowOnError extends boolean = false>(
     return (options?.client ?? client).get<GetFlowDataInfoResponse_api, GetFlowDataInfoError_api, ThrowOnError>({
         ...options,
         url: "/well_flow_data/flow_data_info",
+    });
+};
+
+/**
+ * Get All Well Flow Data
+ */
+export const getAllWellFlowData = <ThrowOnError extends boolean = false>(
+    options: Options<GetAllWellFlowDataData_api, ThrowOnError>,
+) => {
+    return (options?.client ?? client).get<GetAllWellFlowDataResponse_api, GetAllWellFlowDataError_api, ThrowOnError>({
+        ...options,
+        url: "/well_flow_data/all_well_flow_data",
     });
 };
 

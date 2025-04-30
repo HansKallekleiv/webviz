@@ -28,10 +28,24 @@ class WellborePick(BaseModel):
 class WellboreTrajectory(BaseModel):
     wellbore_uuid: str
     unique_wellbore_identifier: str
+    unique_well_identifier: str
     tvd_msl_arr: List[float]
     md_arr: List[float]
     easting_arr: List[float]
     northing_arr: List[float]
+
+
+class WellboreCompletion(BaseModel):
+    wellbore_uuid: str
+    unique_wellbore_identifier: str
+    completion_no: int | None
+    completion_type: str
+    top_depth_md: float
+    base_depth_md: float
+    top_depth_tvd: float
+    base_depth_tvd: float
+    date_opened: str | None
+    date_closed: str | None
 
 
 class WellboreHeader(BaseModel):
@@ -126,6 +140,17 @@ class WellboreStratigraphicUnit(BaseModel):
     source: str
     # Equivalent to OpenWorks data_source, values like STAT, BIOS, NPD, FMB...
     interpreter: str
+
+
+class WellboreStratigraphicUnitEntryExitMd(BaseModel):
+    """
+    Stratigraphic unit entry/exit md from SMDA
+    """
+
+    wellbore_uuid: str
+    stratigraphic_direction: Literal["upward", "downward"]
+    entry_md: float
+    exit_md: float
 
 
 class StratigraphicFeature(str, Enum):

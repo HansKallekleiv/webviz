@@ -16,6 +16,8 @@ from .types import (
     StratigraphicSurface,
     StratigraphicColumn,
     WellboreStratigraphicUnit,
+    WellboreStratigraphicUnitEntryExitMd,
+    WellboreCompletion,
 )
 from .utils.queries import data_model_to_projection_param
 from .stratigraphy_utils import sort_stratigraphic_names_by_hierarchy
@@ -34,6 +36,7 @@ class SmdaEndpoints:
     WELLBORE_SURVEY_SAMPLES = "wellbore-survey-samples"
     WELLBORE_PICKS = "wellbore-picks"
     WELLBORE_PICKS_STRAT_COLUM = "wellbore-picks-columns"
+    WELLBORE_COMPLETIONS = "wellbore-completions"
 
 
 class SmdaAccess:
@@ -125,6 +128,36 @@ class SmdaAccess:
 
         return [WellboreStratigraphicUnit(**result) for result in results]
 
+    async def get_md_pairs_for_stratigraphic_unit_in_wellbores_async(
+        self,
+        field_identifier: str,
+        strat_column_identifier: str,
+        strat_unit_identifier: str,
+        wellbore_uuids: Optional[List[str]] = None,
+    ) -> List[WellboreStratigraphicUnitEntryExitMd]:
+        """
+        Get the md pairs(entry-exit) for a given stratigraphic identifier in a stratigraphic column
+        """
+        endpoint = SmdaEndpoints.WELLBORE_STRATIGRAPHY
+        params = {
+            "_projection": data_model_to_projection_param(WellboreStratigraphicUnitEntryExitMd),
+            "field_identifier": field_identifier,
+            "strat_column_identifier": strat_column_identifier,
+            "strat_unit_identifier": strat_unit_identifier,
+        }
+        if wellbore_uuids:
+            params["wellbore_uuid"] = ", ".join(wellbore_uuids)
+
+        results = await self._smda_get_request_async(endpoint=endpoint, params=params)
+
+        if not results:
+            raise NoDataError(
+                f"No stratigraphic entries found for {strat_unit_identifier=}, {strat_column_identifier=}.",
+                Service.SMDA,
+            )
+
+        return [WellboreStratigraphicUnitEntryExitMd(**result) for result in results]
+
     async def get_wellbore_headers_async(self, field_identifier: str) -> List[WellboreHeader]:
         """
         Get wellbore header information for all wellbores in a field.
@@ -187,7 +220,7 @@ class SmdaAccess:
         Get wellbore trajectories (survey samples) for all wells in a field, optionally with a subset of wellbores.
         """
         params = {
-            "_projection": "wellbore_uuid, unique_wellbore_identifier,easting,northing,tvd_msl,md",
+            "_projection": "wellbore_uuid, unique_wellbore_identifier,unique_well_identifier,easting,northing,tvd_msl,md",
             "_sort": "unique_wellbore_identifier,md",
             "field_identifier": field_identifier,
         }
@@ -203,7 +236,12 @@ class SmdaAccess:
         resultdf = pl.DataFrame(result)
 
         # Identify wellbores with any null values in survey columns
-        columns_to_check = ["tvd_msl", "md", "easting", "northing"]
+        columns_to_check = [
+            "tvd_msl",
+            "md",
+            "easting",
+            "northing",
+        ]
 
         # Warn of any wellbores with null values in survey columns
         wellbores_with_nulls = (
@@ -224,6 +262,7 @@ class SmdaAccess:
         wellbore_data = filtered_df.group_by("unique_wellbore_identifier", maintain_order=True).agg(
             [
                 pl.col("wellbore_uuid").first().alias("wellbore_uuid"),
+                pl.col("unique_well_identifier").first().alias("unique_well_identifier"),
                 pl.col("tvd_msl").alias("tvd_msl_arr"),
                 pl.col("md").alias("md_arr"),
                 pl.col("easting").alias("easting_arr"),
@@ -235,6 +274,7 @@ class SmdaAccess:
             WellboreTrajectory(
                 wellbore_uuid=row["wellbore_uuid"],
                 unique_wellbore_identifier=row["unique_wellbore_identifier"],
+                unique_well_identifier=row["unique_well_identifier"],
                 tvd_msl_arr=row["tvd_msl_arr"],
                 md_arr=row["md_arr"],
                 easting_arr=row["easting_arr"],
@@ -243,6 +283,81 @@ class SmdaAccess:
             for row in wellbore_data.iter_rows(named=True)
         ]
         return wellbore_trajectories
+
+    async def get_wellbore_completions_async(
+        self, field_identifier: str, wellbore_uuids: Optional[List[str]] = None
+    ) -> List[WellboreCompletion]:
+        """
+        Get wellbore trajectories (survey samples) for all wells in a field, optionally with a subset of wellbores.
+        """
+        params = {
+            "_projection": "wellbore_uuid, unique_wellbore_identifier,completion_no,completion_type,top_depth_md,base_depth_md,top_depth_tvd,base_depth_tvd,date_opened,date_closed",
+            "_sort": "unique_wellbore_identifier,completion_no",
+            "field_identifier": field_identifier,
+        }
+        if wellbore_uuids:
+            params["wellbore_uuid"] = ", ".join(wellbore_uuids)
+
+        result = await self._smda_get_request_async(endpoint=SmdaEndpoints.WELLBORE_COMPLETIONS, params=params)
+
+        if not result:
+            raise NoDataError(
+                f"No wellbore completions found for {field_identifier=}, {wellbore_uuids=}.", Service.SMDA
+            )
+
+        # Convert the result to polars for processing
+        resultdf = pl.DataFrame(result)
+
+        # Identify any completions with any null values in depth columns
+        columns_to_check = ["top_depth_md", "base_depth_md", "top_depth_tvd", "base_depth_tvd"]
+
+        # Warn of any completions with null values in depth columns
+        # TODO FIX FIX
+        wellbores_with_nulls = (
+            resultdf.filter(pl.any_horizontal(pl.col(columns_to_check).is_null()))
+            .get_column("unique_wellbore_identifier")
+            .unique()
+            .sort()
+            .to_list()
+        )
+        if wellbores_with_nulls:
+            for wellbore in wellbores_with_nulls:
+                LOGGER.warning(f"Invalid survey samples found for wellbore: {wellbore}. These will be ignored.")
+
+        # Filter out any samples with null values
+        filtered_df = resultdf.filter(pl.all_horizontal(pl.col(columns_to_check).is_not_null()))
+
+        # Group per wellbore, maintaining order
+        wellbore_data = filtered_df.group_by("unique_wellbore_identifier", maintain_order=True).agg(
+            [
+                pl.col("wellbore_uuid").first().alias("wellbore_uuid"),
+                pl.col("completion_no").first().alias("completion_no"),
+                pl.col("completion_type").first().alias("completion_type"),
+                pl.col("top_depth_md").first().alias("top_depth_md"),
+                pl.col("base_depth_md").first().alias("base_depth_md"),
+                pl.col("top_depth_tvd").first().alias("top_depth_tvd"),
+                pl.col("base_depth_tvd").first().alias("base_depth_tvd"),
+                pl.col("date_opened").first().alias("date_opened"),
+                pl.col("date_closed").first().alias("date_closed"),
+            ]
+        )
+
+        wellbore_completions: List[WellboreCompletion] = [
+            WellboreCompletion(
+                wellbore_uuid=row["wellbore_uuid"],
+                unique_wellbore_identifier=row["unique_wellbore_identifier"],
+                completion_no=row["completion_no"],
+                completion_type=row["completion_type"],
+                top_depth_md=row["top_depth_md"],
+                base_depth_md=row["base_depth_md"],
+                top_depth_tvd=row["top_depth_tvd"],
+                base_depth_tvd=row["base_depth_tvd"],
+                date_opened=row["date_opened"],
+                date_closed=row["date_closed"],
+            )
+            for row in wellbore_data.iter_rows(named=True)
+        ]
+        return wellbore_completions
 
     async def get_wellbore_picks_for_wellbore_async(
         self, wellbore_uuid: str, obs_no: Optional[int] = None

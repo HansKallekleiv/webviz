@@ -1,47 +1,57 @@
-import type { WellboreTrajectory_api } from "@api";
 import type { BBox } from "@lib/utils/bbox";
-import {
-    DrilledWellData,
-    DrilledWellDataWithFlowTypes,
-} from "@modules/_shared/DataProviderFramework/dataProviders/implementations/DrilledWellTrajectoriesProvider";
+import type { WellTrajectorySegment } from "@modules/_shared/DataProviderFramework/dataProviders/implementations/utils/WellTrajectories";
 import type { TransformerArgs } from "@modules/_shared/DataProviderFramework/visualization/VisualizationAssembler";
 
 export function makeDrilledWellTrajectoriesBoundingBox({
     getData,
-}: TransformerArgs<any, DrilledWellDataWithFlowTypes[]>): BBox | null {
-    const data = getData();
-    if (!data) {
+}: TransformerArgs<any, WellTrajectorySegment[]>): BBox | null {
+    const segments = getData();
+
+    // Handle cases where data is null, undefined, or empty
+    if (!segments || segments.length === 0) {
         return null;
     }
 
     const bbox: BBox = {
         min: {
-            x: Number.MAX_SAFE_INTEGER,
-            y: Number.MAX_SAFE_INTEGER,
-            z: Number.MAX_SAFE_INTEGER,
+            x: Infinity,
+            y: Infinity,
+            z: Infinity,
         },
         max: {
-            x: Number.MIN_SAFE_INTEGER,
-            y: Number.MIN_SAFE_INTEGER,
-            z: Number.MIN_SAFE_INTEGER,
+            x: -Infinity,
+            y: -Infinity,
+            z: -Infinity,
         },
     };
 
-    for (const well of data) {
-        for (const point of well.trajectoryData.eastingArr) {
+    let hasPoints = false;
+
+    // Iterate over each SEGMENT
+    for (const segment of segments) {
+        // Iterate over points within the segment's coordinate arrays
+        for (const point of segment.eastingArr) {
             bbox.min.x = Math.min(bbox.min.x, point);
             bbox.max.x = Math.max(bbox.max.x, point);
+            hasPoints = true;
         }
 
-        for (const point of well.trajectoryData.northingArr) {
+        for (const point of segment.northingArr) {
             bbox.min.y = Math.min(bbox.min.y, point);
             bbox.max.y = Math.max(bbox.max.y, point);
+            hasPoints = true;
         }
 
-        for (const point of well.trajectoryData.tvdMslArr) {
+        for (const point of segment.tvdMslArr) {
             bbox.min.z = Math.min(bbox.min.z, point);
             bbox.max.z = Math.max(bbox.max.z, point);
+            hasPoints = true;
         }
+    }
+
+    // If no valid points were found across all segments, return null
+    if (!hasPoints) {
+        return null;
     }
 
     return bbox;

@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Optional, TypeAlias
+from typing import List, Optional, TypeAlias, Literal
 from pydantic import BaseModel
 
 
@@ -16,13 +16,31 @@ class WellboreHeader(BaseModel):
     wellboreStatus: str
 
 
-class WellboreTrajectory(BaseModel):
+class WellboreSurveyPoint(BaseModel):
+    md: float
+    tvdMsl: float
+    easting: float
+    northing: float
+
+
+class WellboreSurvey(BaseModel):
     wellboreUuid: str
     uniqueWellboreIdentifier: str
-    tvdMslArr: List[float]
-    mdArr: List[float]
-    eastingArr: List[float]
-    northingArr: List[float]
+    uniqueWellIdentifier: str
+    surveyPoints: List[WellboreSurveyPoint]
+
+
+class WellboreCompletionSmda(BaseModel):
+    wellboreUuid: str
+    uniqueWellboreIdentifier: str
+    completionNo: int | None
+    completionType: str
+    topDepthMd: float
+    baseDepthMd: float
+    topDepthTvd: float
+    baseDepthTvd: float
+    dateOpened: str | None
+    dateClosed: str | None
 
 
 class WellborePick(BaseModel):
@@ -89,6 +107,17 @@ class WellLogCurveTypeEnum(str, Enum):
     CONTINUOUS = "continuous"
     DISCRETE = "discrete"
     FLAG = "flag"
+
+
+class WellboreStratigraphicUnitEntryExitMd(BaseModel):
+    """
+    Stratigraphic unit entry/exit md from SMDA
+    """
+
+    wellboreUuid: str
+    stratigraphicDirection: Literal["upward", "downward"]
+    entryMd: float
+    exitMd: float
 
 
 class WellboreLogCurveHeader(BaseModel):

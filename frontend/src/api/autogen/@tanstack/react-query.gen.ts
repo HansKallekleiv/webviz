@@ -9,6 +9,7 @@ import {
     client,
     getAlive,
     getAliveProtected,
+    getAllWellFlowData,
     getCases,
     getCrosslineSlice,
     getDeltaEnsembleRealizationsVectorData,
@@ -30,6 +31,7 @@ import {
     getIsSensitivityRun,
     getLogCurveData,
     getLoggedInUser,
+    getMdPairsForStratigraphicUnitInWellbores,
     getMisfitSurfaceData,
     getObservations,
     getObservedSurfacesMetadata,
@@ -58,9 +60,9 @@ import {
     getVfpTable,
     getVfpTableNames,
     getWellCompletionsData,
-    getWellTrajectories,
     getWellboreCasings,
     getWellboreCompletions,
+    getWellboreCompletionsSmda,
     getWellboreLogCurveHeaders,
     getWellborePerforations,
     getWellborePickIdentifiers,
@@ -68,6 +70,7 @@ import {
     getWellborePicksForWellbore,
     getWellborePicksInStratColumn,
     getWellboreStratigraphicColumns,
+    getWellboreSurveys,
     loginRoute,
     postGetAggregatedPerRealizationTableData,
     postGetAggregatedStatisticalTableData,
@@ -81,6 +84,7 @@ import type {
     AuthorizedCallbackRouteData_api,
     GetAliveData_api,
     GetAliveProtectedData_api,
+    GetAllWellFlowDataData_api,
     GetCasesData_api,
     GetCrosslineSliceData_api,
     GetDeltaEnsembleRealizationsVectorDataData_api,
@@ -102,6 +106,7 @@ import type {
     GetIsSensitivityRunData_api,
     GetLogCurveDataData_api,
     GetLoggedInUserData_api,
+    GetMdPairsForStratigraphicUnitInWellboresData_api,
     GetMisfitSurfaceDataData_api,
     GetObservationsData_api,
     GetObservedSurfacesMetadataData_api,
@@ -130,9 +135,9 @@ import type {
     GetVfpTableData_api,
     GetVfpTableNamesData_api,
     GetWellCompletionsDataData_api,
-    GetWellTrajectoriesData_api,
     GetWellboreCasingsData_api,
     GetWellboreCompletionsData_api,
+    GetWellboreCompletionsSmdaData_api,
     GetWellboreLogCurveHeadersData_api,
     GetWellborePerforationsData_api,
     GetWellborePickIdentifiersData_api,
@@ -140,6 +145,7 @@ import type {
     GetWellborePicksForWellboreData_api,
     GetWellborePicksInStratColumnData_api,
     GetWellboreStratigraphicColumnsData_api,
+    GetWellboreSurveysData_api,
     LoginRouteData_api,
     PostGetAggregatedPerRealizationTableDataData_api,
     PostGetAggregatedPerRealizationTableDataError_api,
@@ -1031,14 +1037,14 @@ export const getDrilledWellboreHeadersOptions = (options: Options<GetDrilledWell
     });
 };
 
-export const getWellTrajectoriesQueryKey = (options: Options<GetWellTrajectoriesData_api>) => [
-    createQueryKey("getWellTrajectories", options),
+export const getWellboreSurveysQueryKey = (options: Options<GetWellboreSurveysData_api>) => [
+    createQueryKey("getWellboreSurveys", options),
 ];
 
-export const getWellTrajectoriesOptions = (options: Options<GetWellTrajectoriesData_api>) => {
+export const getWellboreSurveysOptions = (options: Options<GetWellboreSurveysData_api>) => {
     return queryOptions({
         queryFn: async ({ queryKey, signal }) => {
-            const { data } = await getWellTrajectories({
+            const { data } = await getWellboreSurveys({
                 ...options,
                 ...queryKey[0],
                 signal,
@@ -1046,7 +1052,26 @@ export const getWellTrajectoriesOptions = (options: Options<GetWellTrajectoriesD
             });
             return data;
         },
-        queryKey: getWellTrajectoriesQueryKey(options),
+        queryKey: getWellboreSurveysQueryKey(options),
+    });
+};
+
+export const getWellboreCompletionsSmdaQueryKey = (options: Options<GetWellboreCompletionsSmdaData_api>) => [
+    createQueryKey("getWellboreCompletionsSmda", options),
+];
+
+export const getWellboreCompletionsSmdaOptions = (options: Options<GetWellboreCompletionsSmdaData_api>) => {
+    return queryOptions({
+        queryFn: async ({ queryKey, signal }) => {
+            const { data } = await getWellboreCompletionsSmda({
+                ...options,
+                ...queryKey[0],
+                signal,
+                throwOnError: true,
+            });
+            return data;
+        },
+        queryKey: getWellboreCompletionsSmdaQueryKey(options),
     });
 };
 
@@ -1123,6 +1148,27 @@ export const getWellborePicksInStratColumnOptions = (options: Options<GetWellbor
             return data;
         },
         queryKey: getWellborePicksInStratColumnQueryKey(options),
+    });
+};
+
+export const getMdPairsForStratigraphicUnitInWellboresQueryKey = (
+    options: Options<GetMdPairsForStratigraphicUnitInWellboresData_api>,
+) => [createQueryKey("getMdPairsForStratigraphicUnitInWellbores", options)];
+
+export const getMdPairsForStratigraphicUnitInWellboresOptions = (
+    options: Options<GetMdPairsForStratigraphicUnitInWellboresData_api>,
+) => {
+    return queryOptions({
+        queryFn: async ({ queryKey, signal }) => {
+            const { data } = await getMdPairsForStratigraphicUnitInWellbores({
+                ...options,
+                ...queryKey[0],
+                signal,
+                throwOnError: true,
+            });
+            return data;
+        },
+        queryKey: getMdPairsForStratigraphicUnitInWellboresQueryKey(options),
     });
 };
 
@@ -1388,6 +1434,25 @@ export const getFlowDataInfoOptions = (options: Options<GetFlowDataInfoData_api>
             return data;
         },
         queryKey: getFlowDataInfoQueryKey(options),
+    });
+};
+
+export const getAllWellFlowDataQueryKey = (options: Options<GetAllWellFlowDataData_api>) => [
+    createQueryKey("getAllWellFlowData", options),
+];
+
+export const getAllWellFlowDataOptions = (options: Options<GetAllWellFlowDataData_api>) => {
+    return queryOptions({
+        queryFn: async ({ queryKey, signal }) => {
+            const { data } = await getAllWellFlowData({
+                ...options,
+                ...queryKey[0],
+                signal,
+                throwOnError: true,
+            });
+            return data;
+        },
+        queryKey: getAllWellFlowDataQueryKey(options),
     });
 };
 
