@@ -7,6 +7,9 @@ import type {
     GetAliveProtectedData_api,
     GetAliveProtectedResponse_api,
     GetAliveResponse_api,
+    GetAllWellFlowDataData_api,
+    GetAllWellFlowDataError_api,
+    GetAllWellFlowDataResponse_api,
     GetCasesData_api,
     GetCasesError_api,
     GetCasesResponse_api,
@@ -1144,6 +1147,18 @@ export const getFlowDataInfo = <ThrowOnError extends boolean = false>(
     return (options?.client ?? client).get<GetFlowDataInfoResponse_api, GetFlowDataInfoError_api, ThrowOnError>({
         ...options,
         url: "/well_flow_data/flow_data_info",
+    });
+};
+
+/**
+ * Get All Well Flow Data
+ */
+export const getAllWellFlowData = <ThrowOnError extends boolean = false>(
+    options: Options<GetAllWellFlowDataData_api, ThrowOnError>,
+) => {
+    return (options?.client ?? client).get<GetAllWellFlowDataResponse_api, GetAllWellFlowDataError_api, ThrowOnError>({
+        ...options,
+        url: "/well_flow_data/all_well_flow_data",
     });
 };
 

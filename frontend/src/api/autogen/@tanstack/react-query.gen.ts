@@ -9,6 +9,7 @@ import {
     client,
     getAlive,
     getAliveProtected,
+    getAllWellFlowData,
     getCases,
     getCrosslineSlice,
     getDeltaEnsembleRealizationsVectorData,
@@ -83,6 +84,7 @@ import type {
     AuthorizedCallbackRouteData_api,
     GetAliveData_api,
     GetAliveProtectedData_api,
+    GetAllWellFlowDataData_api,
     GetCasesData_api,
     GetCrosslineSliceData_api,
     GetDeltaEnsembleRealizationsVectorDataData_api,
@@ -1432,6 +1434,25 @@ export const getFlowDataInfoOptions = (options: Options<GetFlowDataInfoData_api>
             return data;
         },
         queryKey: getFlowDataInfoQueryKey(options),
+    });
+};
+
+export const getAllWellFlowDataQueryKey = (options: Options<GetAllWellFlowDataData_api>) => [
+    createQueryKey("getAllWellFlowData", options),
+];
+
+export const getAllWellFlowDataOptions = (options: Options<GetAllWellFlowDataData_api>) => {
+    return queryOptions({
+        queryFn: async ({ queryKey, signal }) => {
+            const { data } = await getAllWellFlowData({
+                ...options,
+                ...queryKey[0],
+                signal,
+                throwOnError: true,
+            });
+            return data;
+        },
+        queryKey: getAllWellFlowDataQueryKey(options),
     });
 };
 

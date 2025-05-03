@@ -189,10 +189,27 @@ export type FieldInfo_api = {
     field_identifier: string;
 };
 
+export type FlowDataInWell_api = {
+    well_uwi: string | null;
+    eclipse_well_name: string;
+    oil_production_volume: number | null;
+    gas_production_volume: number | null;
+    water_production_volume: number | null;
+    water_injection_volume: number | null;
+    gas_injection_volume: number | null;
+    co2_injection_volume: number | null;
+};
+
 export type FlowDataInfo_api = {
     start_timestamp_utc_ms: number;
     end_timestamp_utc_ms: number;
     flow_vectors: Array<FlowVector_api>;
+};
+
+export type FlowDataInterval_api = {
+    start_timestamp_utc_ms: string;
+    end_timestamp_utc_ms: string;
+    well_flow_data_arr: Array<FlowDataInWell_api>;
 };
 
 export type FlowNetworkData_api = {
@@ -3677,6 +3694,44 @@ export type GetFlowDataInfoResponses_api = {
 };
 
 export type GetFlowDataInfoResponse_api = GetFlowDataInfoResponses_api[keyof GetFlowDataInfoResponses_api];
+
+export type GetAllWellFlowDataData_api = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Field identifier
+         */
+        field_identifier: string;
+        /**
+         * Sumo case uuid
+         */
+        case_uuid: string;
+        /**
+         * Ensemble name
+         */
+        ensemble_name: string;
+    };
+    url: "/well_flow_data/all_well_flow_data";
+};
+
+export type GetAllWellFlowDataErrors_api = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError_api;
+};
+
+export type GetAllWellFlowDataError_api = GetAllWellFlowDataErrors_api[keyof GetAllWellFlowDataErrors_api];
+
+export type GetAllWellFlowDataResponses_api = {
+    /**
+     * Successful Response
+     */
+    200: Array<FlowDataInterval_api>;
+};
+
+export type GetAllWellFlowDataResponse_api = GetAllWellFlowDataResponses_api[keyof GetAllWellFlowDataResponses_api];
 
 export type GetFlowDataInTimeIntervalData_api = {
     body?: never;

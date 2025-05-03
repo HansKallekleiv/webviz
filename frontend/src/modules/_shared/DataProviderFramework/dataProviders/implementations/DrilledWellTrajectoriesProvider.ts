@@ -6,6 +6,7 @@ import {
     WellborePick_api,
     WellboreStratigraphicUnitEntryExitMd_api,
     WellboreSurvey_api,
+    getAllWellFlowDataOptions,
     getMdPairsForStratigraphicUnitInWellboresOptions,
     getStratigraphicUnitsOptions,
     getWellborePicksForPickIdentifierOptions,
@@ -123,9 +124,19 @@ export class DrilledWellTrajectoriesProvider
         const flowVectors = getSetting(Setting.FLOW_TYPES);
         const completionTypes = getSetting(Setting.COMPLETION_TYPES);
         const wellboreHeaders = getSetting(Setting.SMDA_WELLBORE_HEADERS);
-
+        const newFlowDataPromise = queryClient.fetchQuery({
+            ...getAllWellFlowDataOptions({
+                query: {
+                    field_identifier: fieldIdentifier ?? "",
+                    case_uuid: ensembleIdent?.getCaseUuid() ?? "",
+                    ensemble_name: ensembleIdent?.getEnsembleName() ?? "",
+                },
+            }),
+        });
         const surveyPromise = queryClient.fetchQuery({
             ...getWellboreSurveysOptions({ query: { field_identifier: fieldIdentifier ?? "" } }),
+            staleTime: 1800000,
+            gcTime: 1800000,
         });
         const completionPromise = queryClient.fetchQuery({
             ...getWellboreCompletionsSmdaOptions({ query: { field_identifier: fieldIdentifier ?? "" } }),
@@ -146,27 +157,28 @@ export class DrilledWellTrajectoriesProvider
             gcTime: 1800000,
         });
         let wellStratUnitEntryExitPromise: Promise<WellboreStratigraphicUnitEntryExitMd_api[]>;
-        if (true) {
+        if (false) {
             //todo
             wellStratUnitEntryExitPromise = queryClient.fetchQuery({
                 ...getMdPairsForStratigraphicUnitInWellboresOptions({
                     query: {
                         field_identifier: fieldIdentifier ?? "",
                         strat_column_identifier: stratColumn ?? "",
-                        stratigraphic_unit_identifier: "Aasgard Fm.",
+                        stratigraphic_unit_identifier: "SNORRE LL SN04",
                     },
                 }),
             });
         } else {
             wellStratUnitEntryExitPromise = Promise.resolve([]);
         }
-        const [surveyData, wellFlowData, completionData, wellStratUnitEntryExitData] = await Promise.all([
+        const [surveyData, wellFlowData, completionData, wellStratUnitEntryExitData, newFlowData] = await Promise.all([
             surveyPromise,
             wellFlowDataPromise,
             completionPromise,
             wellStratUnitEntryExitPromise,
+            newFlowDataPromise,
         ]);
-
+        console.log("newFlowData", newFlowData);
         const selectedWellboreUuids = new Set(wellboreHeaders?.map((h) => h.wellboreUuid) ?? []);
 
         const filteredSurveyData = surveyData.filter((survey) => selectedWellboreUuids.has(survey.wellboreUuid));

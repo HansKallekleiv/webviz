@@ -21,9 +21,6 @@ class WellboreSurveyPoint(BaseModel):
     tvdMsl: float
     easting: float
     northing: float
-    azimuth: float
-    inclination: float
-    doglegSeverity: float
 
 
 class WellboreSurvey(BaseModel):

@@ -33,9 +33,6 @@ class WellboreTrajectory(BaseModel):
     md_arr: List[float]
     easting_arr: List[float]
     northing_arr: List[float]
-    azimuth_arr: List[float]
-    inclination_arr: List[float]
-    dogleg_severity_arr: List[float]
 
 
 class WellboreCompletion(BaseModel):

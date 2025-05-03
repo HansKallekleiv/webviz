@@ -65,18 +65,12 @@ def build_survey_points_from_trajectory(
             tvdMsl=tvd_msl,
             easting=easting,
             northing=northing,
-            azimuth=azimuth,
-            inclination=inclination,
-            doglegSeverity=dls,
         )
-        for md, tvd_msl, easting, northing, azimuth, inclination, dls in zip(
+        for md, tvd_msl, easting, northing in zip(
             trajectory.md_arr,
             trajectory.tvd_msl_arr,
             trajectory.easting_arr,
             trajectory.northing_arr,
-            trajectory.azimuth_arr,
-            trajectory.inclination_arr,
-            trajectory.dogleg_severity_arr,
         )
     ]
 

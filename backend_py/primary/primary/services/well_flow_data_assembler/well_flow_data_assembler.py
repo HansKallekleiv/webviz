@@ -2,10 +2,12 @@ from enum import StrEnum
 import logging
 from typing import List, Dict, Optional
 from dataclasses import dataclass
+from datetime import datetime
 import asyncio
 
 from webviz_pkg.core_utils.perf_metrics import PerfMetrics
 from primary.services.sumo_access.summary_access import SummaryAccess
+from primary.services.sumo_access.surface_access import SurfaceAccess
 from primary.services.smda_access import SmdaAccess, WellboreHeader
 
 import polars as pl
@@ -55,12 +57,38 @@ class FlowDataInfo:
     flow_vectors: List[FlowVector]
 
 
+@dataclass
+class FlowDataInWell:
+    well_uwi: str | None
+    eclipse_well_name: str
+    oil_production_volume: float | None
+    gas_production_volume: float | None
+    water_production_volume: float | None
+    water_injection_volume: float | None
+    gas_injection_volume: float | None
+    co2_injection_volume: float | None
+
+
+@dataclass
+class FlowDataInterval:
+    start_timestamp_utc_ms: str
+    end_timestamp_utc_ms: str
+    well_flow_data_arr: List[FlowDataInWell]
+
+
 class WellFlowDataAssembler:
     """ """
 
-    def __init__(self, field_identifier: str, summary_access: SummaryAccess, smda_access: SmdaAccess):
+    def __init__(
+        self,
+        field_identifier: str,
+        summary_access: SummaryAccess,
+        surface_access: SurfaceAccess,
+        smda_access: SmdaAccess,
+    ):
         self._field_identifier = field_identifier
         self._summary_access = summary_access
+        self._surface_access = surface_access
         self._smda_access = smda_access
         self._smda_uwis: Optional[List[str]] = None
 
@@ -101,30 +129,133 @@ class WellFlowDataAssembler:
 
     async def get_well_flow_data_info_async(
         self,
-    ) -> List[WellFlowDataInfo]:
-        available_summary_column_names = await self._summary_access.get_all_available_column_names_async()
+    ) -> List[FlowDataInterval]:
+        """Get metadata for all flow data, including start and end dates, and flow vectors"""
 
-        smda_uwis = await self._get_smda_well_uwis_async()
+        async with asyncio.TaskGroup() as tg:
+            smry_realization_data_task = tg.create_task(
+                self._summary_access.get_single_real_full_table_async(realization=1)
+            )
+            smda_wellbore_headers_task = tg.create_task(
+                self._smda_access.get_wellbore_headers_async(field_identifier=self._field_identifier)
+            )
+            observed_surfaces_time_intervals_task = tg.create_task(
+                self._surface_access.get_time_intervals_for_observed_surfaces_async()
+            )
+        smry_realization_data_arrow = smry_realization_data_task.result()
+        smda_wellbore_headers = smda_wellbore_headers_task.result()
+        observed_surfaces_time_intervals = observed_surfaces_time_intervals_task.result()
 
-        flow_vectors: List[WellFlowDataInfo] = []
-        flow_vector_arr_for_well_mapping: Dict[str, List[FlowVector]] = {}
+        smry_data_pl = pl.DataFrame(smry_realization_data_arrow)
 
-        for eclkey, flowvec in flow_vectors_eclipse_mapping.items():
-            matching_columns = [col for col in available_summary_column_names if eclkey in col]
-            ecl_well_names = [col.split(":")[1] for col in matching_columns]
+        matching_columns = [
+            col for col in smry_data_pl.columns if col.split(":")[0] in flow_vectors_eclipse_mapping.keys()
+        ]
+        columns_to_keep = ["DATE"] + matching_columns
+        smry_data_pl_filtered_cols = smry_data_pl.select(columns_to_keep)
 
-            for ecl_well_name in ecl_well_names:
-                if ecl_well_name not in flow_vector_arr_for_well_mapping:
-                    flow_vector_arr_for_well_mapping[ecl_well_name] = []
-                flow_vector_arr_for_well_mapping[ecl_well_name].append(flowvec)
+        interval_data_results = []
+        for interval in observed_surfaces_time_intervals:
 
-        for ecl_well_name, flow_vector_arr in flow_vector_arr_for_well_mapping.items():
-            smda_uwi = _eclipse_well_name_to_smda_uwi(ecl_well_name, smda_uwis)
-            flow_vectors.append(
-                WellFlowDataInfo(flow_vector_arr=flow_vector_arr, well_uwi=smda_uwi, eclipse_well_name=ecl_well_name)
+            start_time = pl.lit(datetime.strptime(interval.t0_isostr, "%Y-%m-%dT%H:%M:%S.%fZ")).cast(pl.Datetime)
+            end_time = pl.lit(datetime.strptime(interval.t1_isostr, "%Y-%m-%dT%H:%M:%S.%fZ")).cast(pl.Datetime)
+
+            tmp_data = smry_data_pl_filtered_cols.filter(
+                (pl.col("DATE").is_between(start_time, end_time, closed="both"))
             )
 
-        return flow_vectors
+            if tmp_data.height == 0:
+                print(f"Warning: No data found for interval {interval.t0_isostr} to {interval.t1_isostr}")
+                # Optionally create an empty FlowDataInterval or skip
+                # For now, we create an empty one:
+                interval_data_results.append(
+                    FlowDataInterval(
+                        start_timestamp_utc_ms=interval.t0_isostr,
+                        end_timestamp_utc_ms=interval.t1_isostr,
+                        well_flow_data_arr=[],
+                    )
+                )
+                continue
+
+            # Create expressions for min and max for each column
+            min_max_exprs = []
+            for col in matching_columns:
+                min_max_exprs.append(pl.min(col).alias(f"{col}_min"))
+                min_max_exprs.append(pl.max(col).alias(f"{col}_max"))
+
+            aggregations = tmp_data.select(min_max_exprs)
+            # Aggregations DataFrame should have exactly one row
+            if aggregations.height != 1:
+                # This shouldn't happen with min/max on non-empty data, but good to check
+                print(f"Warning: Aggregation did not return a single row for interval {interval.t0_isostr}")
+                continue
+
+            # Extract results efficiently from the single row
+            agg_results = aggregations.row(0, named=True)  # Get results as a dictionary
+
+            # Create a dict containing volumes for each well and fill with total volume
+            # As we are working with total vectors, we can just take the difference between max and min
+            well_flow_data_dict = {}
+            for col in matching_columns:
+                vector, well_name = col.split(":", 1)
+
+                # Get the mapped output key (e.g., "oil_production_volume")
+                output_key = flow_vectors_eclipse_mapping.get(vector)
+                if not output_key:
+                    print(f"Warning: Vector '{vector}' not found in mapping for column '{col}'. Skipping.")
+                    continue
+
+                min_val = agg_results.get(f"{col}_min")
+                max_val = agg_results.get(f"{col}_max")
+
+                # Check if min/max returned None (can happen if all values in interval were null)
+                if min_val is None or max_val is None:
+                    volume_diff = 0.0  # Or handle as NaN or skip? Depends on requirements.
+                    print(f"Warning: Null values encountered for column '{col}' in interval {interval.t0_isostr}")
+                else:
+                    volume_diff = max_val - min_val
+
+                # Initialize well dict if not present
+                if well_name not in well_flow_data_dict:
+                    well_flow_data_dict[well_name] = {
+                        "oil_production_volume": 0.0,
+                        "gas_production_volume": 0.0,
+                        "water_production_volume": 0.0,
+                        # Initialize other potential types if necessary
+                    }
+
+                well_flow_data_dict[well_name][flow_vectors_eclipse_mapping[vector].value] = volume_diff
+                # Attempt to map Eclipse names in to SMDA well UWI and only keep those that are found
+            # Alternative we could do this on the frontend as we already have all the uwis there
+
+            smda_uwi_arr = [header.unique_wellbore_identifier for header in smda_wellbore_headers]
+            flow_data: List[FlowDataInWell] = []
+            for well_name, flow_data_dict in well_flow_data_dict.items():
+                well_uwi = _eclipse_well_name_to_smda_uwi(well_name, smda_uwi_arr)
+                if well_uwi is None:
+                    # LOGGER.warning(f"Could not find a unique match for well name {well_name} in smda uwis ")
+                    continue
+                flow_data.append(
+                    FlowDataInWell(
+                        oil_production_volume=flow_data_dict[flow_vectors_eclipse_mapping["WOPTH"].value],
+                        gas_production_volume=flow_data_dict[flow_vectors_eclipse_mapping["WGPTH"].value],
+                        water_production_volume=flow_data_dict[flow_vectors_eclipse_mapping["WWPTH"].value],
+                        water_injection_volume=0,
+                        gas_injection_volume=0,
+                        co2_injection_volume=0,
+                        well_uwi=well_uwi,
+                        eclipse_well_name=well_name,
+                    )
+                )
+            interval_data_results.append(
+                FlowDataInterval(
+                    start_timestamp_utc_ms=interval.t0_isostr,
+                    end_timestamp_utc_ms=interval.t1_isostr,
+                    well_flow_data_arr=flow_data,
+                )
+            )
+
+        return interval_data_results
 
     async def get_well_flow_data_in_interval_async(
         self,
@@ -139,12 +270,13 @@ class WellFlowDataAssembler:
         # Good candidate for caching, or we can do this on the frontend
         async with asyncio.TaskGroup() as tg:
             smry_realization_data_task = tg.create_task(
-                self._summary_access.get_single_real_full_table_async(realization=realization)
+                self._summary_access.get_single_real_full_table_async(realization=1)
             )
             smda_wellbore_headers_task = tg.create_task(
                 self._smda_access.get_wellbore_headers_async(field_identifier=self._field_identifier)
             )
         smry_realization_data_arrow = smry_realization_data_task.result()
+
         smda_wellbore_headers = smda_wellbore_headers_task.result()
 
         perf_metrics.record_lap("fetch data")
@@ -163,7 +295,8 @@ class WellFlowDataAssembler:
         matching_columns = [
             col for col in available_summary_column_names if col.split(":")[0] in flow_vectors_eclipse_mapping.keys()
         ]
-
+        columns_to_keep = ["DATE"] + matching_columns
+        smry_data_pl_filtered_cols = smry_data_pl.select(columns_to_keep)
         # Create a dict containing volumes for each well and fill with total volume
         # As we are working with total vectors, we can just take the difference between max and min
         well_flow_data_dict = {}
@@ -176,10 +309,10 @@ class WellFlowDataAssembler:
                     "gas_production_volume": 0,
                     "water_production_volume": 0,
                 }
-            max_value = smry_data_pl.select(pl.col(col).max()).row(0)[0]
-            min_value = smry_data_pl.select(pl.col(col).min()).row(0)[0]
+            max_value = smry_data_pl_filtered_cols.select(pl.col(col).max()).row(0)[0]
+            min_value = smry_data_pl_filtered_cols.select(pl.col(col).min()).row(0)[0]
             well_flow_data_dict[well_name][flow_vectors_eclipse_mapping[vector].value] = max_value - min_value
-
+        print(f"Well flow data dict: {well_flow_data_dict}")
         # Attempt to map Eclipse names in to SMDA well UWI and only keep those that are found
         # Alternative we could do this on the frontend as we already have all the uwis there
         smda_uwi_arr = [header.unique_wellbore_identifier for header in smda_wellbore_headers]
@@ -212,6 +345,12 @@ class WellFlowDataAssembler:
 
 def _eclipse_well_name_to_smda_uwi(eclipse_well_name: str, smda_uwi_arr: List[str]) -> str | None:
     well_name = eclipse_well_name.replace("_", "").replace("-", "")
+    # Snorre hack
+    if well_name.endswith("W") or well_name.endswith("P") or well_name.endswith("G"):
+        well_name = well_name[:-1]
+    if well_name.endswith("WG") or well_name.endswith("PG"):
+        well_name = well_name[:-2]
+
     well_short_names = [get_short_wellname(uwi) for uwi in smda_uwi_arr]
     well_uwi_arr = []
     for i, well_short_name in enumerate(well_short_names):

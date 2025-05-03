@@ -461,9 +461,9 @@ export function segmentDataByCompletionAndStratigraphy( // Renamed
         // Retrieve strat intervals for the current well (might be undefined if none exist)
         const wellStratIntervals = stratIntervalsByWellbore.get(wellData.wellboreUuid);
         // If no strat intervals exist for this well, skip the well
-        if (!wellStratIntervals) {
-            return [];
-        }
+        // if (!wellStratIntervals) {
+        //     return [];
+        // }
         // Call the single-well processor, passing the strat intervals
         return processSingleWellForSegments_Interpolated(
             wellData,

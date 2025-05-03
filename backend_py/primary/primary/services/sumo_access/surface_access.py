@@ -1,7 +1,9 @@
 import asyncio
 import logging
 from io import BytesIO
-from typing import Sequence
+from datetime import datetime
+from typing import Sequence, List
+from dataclasses import dataclass
 
 import xtgeo
 
@@ -20,6 +22,12 @@ from .queries.surface_queries import RealizationSurfQueries, ObservedSurfQueries
 from .sumo_client_factory import create_sumo_client
 
 LOGGER = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class TimeIntervalIso:
+    t0_isostr: str
+    t1_isostr: str
 
 
 class SurfaceAccess:
@@ -60,7 +68,7 @@ class SurfaceAccess:
         surf_meta_arr.extend(_build_surface_meta_arr(static_surfs_task.result(), SurfTimeType.NO_TIME, False))
         surf_meta_arr.extend(_build_surface_meta_arr(time_point_surfs_task.result(), SurfTimeType.TIME_POINT, False))
         surf_meta_arr.extend(_build_surface_meta_arr(interval_surfs_task.result(), SurfTimeType.INTERVAL, False))
-        print(interval_surfs_task.result())
+
         src_time_points: list[TimePoint] = time_points_task.result()
         time_points_iso_strings = [timepoint.t0_isostr for timepoint in src_time_points]
 
@@ -107,7 +115,7 @@ class SurfaceAccess:
             time_points_iso_str=time_points_iso_strings,
             time_intervals_iso_str=intervals_iso_strings,
         )
-
+        await self.get_time_intervals_for_observed_surfaces_async()
         perf_metrics.record_lap("build-meta")
 
         LOGGER.debug(
@@ -115,6 +123,26 @@ class SurfaceAccess:
         )
 
         return surf_meta_set
+
+    async def get_time_intervals_for_observed_surfaces_async(self) -> list[TimeIntervalIso]:
+
+        sc = SearchContext(self._sumo_client)
+        time_filter = TimeFilter(TimeType.INTERVAL)
+        sc = sc.surfaces.filter(
+            uuid=self._case_uuid,
+            is_observation=False,
+            time=time_filter,
+        )
+        intervals_iso_tuples = await sc.intervals_async
+        intervals_iso = [
+            TimeIntervalIso(
+                t0_isostr=interval[0],
+                t1_isostr=interval[1],
+            )
+            for interval in intervals_iso_tuples
+        ]
+
+        return intervals_iso
 
     async def get_realization_surface_data_async(
         self, real_num: int, name: str, attribute: str, time_or_interval_str: str | None = None

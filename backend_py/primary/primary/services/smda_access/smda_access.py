@@ -220,7 +220,7 @@ class SmdaAccess:
         Get wellbore trajectories (survey samples) for all wells in a field, optionally with a subset of wellbores.
         """
         params = {
-            "_projection": "wellbore_uuid, unique_wellbore_identifier,unique_well_identifier,easting,northing,tvd_msl,md,azimuth,inclination,dogleg_severity",
+            "_projection": "wellbore_uuid, unique_wellbore_identifier,unique_well_identifier,easting,northing,tvd_msl,md",
             "_sort": "unique_wellbore_identifier,md",
             "field_identifier": field_identifier,
         }
@@ -236,7 +236,12 @@ class SmdaAccess:
         resultdf = pl.DataFrame(result)
 
         # Identify wellbores with any null values in survey columns
-        columns_to_check = ["tvd_msl", "md", "easting", "northing", "azimuth", "inclination"]
+        columns_to_check = [
+            "tvd_msl",
+            "md",
+            "easting",
+            "northing",
+        ]
 
         # Warn of any wellbores with null values in survey columns
         wellbores_with_nulls = (
@@ -262,9 +267,6 @@ class SmdaAccess:
                 pl.col("md").alias("md_arr"),
                 pl.col("easting").alias("easting_arr"),
                 pl.col("northing").alias("northing_arr"),
-                pl.col("azimuth").alias("azimuth_arr"),
-                pl.col("inclination").alias("inclination_arr"),
-                pl.col("dogleg_severity").alias("dogleg_severity_arr"),
             ]
         )
 
@@ -277,9 +279,6 @@ class SmdaAccess:
                 md_arr=row["md_arr"],
                 easting_arr=row["easting_arr"],
                 northing_arr=row["northing_arr"],
-                azimuth_arr=row["azimuth_arr"],
-                inclination_arr=row["inclination_arr"],
-                dogleg_severity_arr=row["dogleg_severity_arr"],
             )
             for row in wellbore_data.iter_rows(named=True)
         ]

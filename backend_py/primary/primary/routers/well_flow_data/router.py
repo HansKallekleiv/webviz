@@ -7,8 +7,13 @@ from primary.auth.auth_helper import AuthHelper
 from primary.services.utils.authenticated_user import AuthenticatedUser
 from primary.utils.response_perf_metrics import ResponsePerfMetrics
 from primary.services.sumo_access.summary_access import SummaryAccess
+from primary.services.sumo_access.surface_access import SurfaceAccess
 from primary.services.smda_access import SmdaAccess
-from primary.services.well_flow_data_assembler.well_flow_data_assembler import WellFlowDataAssembler
+from primary.services.well_flow_data_assembler.well_flow_data_assembler import (
+    WellFlowDataAssembler,
+    FlowDataInterval,
+    FlowDataInWell,
+)
 
 
 from . import schemas, converters
@@ -35,16 +40,73 @@ async def get_flow_data_info(
     sumo_summary_access = SummaryAccess.from_iteration_name(
         authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name
     )
+    sumo_surface_access = SurfaceAccess.from_iteration_name(
+        authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name
+    )
 
     well_flow_data_assembler = WellFlowDataAssembler(
-        field_identifier=field_identifier, summary_access=sumo_summary_access, smda_access=smda_access
+        field_identifier=field_identifier,
+        summary_access=sumo_summary_access,
+        surface_access=sumo_surface_access,
+        smda_access=smda_access,
     )
     # perf_metrics.record_lap("get_well_flow_data_info")
     # well_info = await well_flow_data_assembler.get_well_flow_data_info_async()
     flow_info = await well_flow_data_assembler.get_flow_info_async()
-    print(flow_info)
 
     return converters.to_api_flow_info(flow_info)
+
+
+@router.get("/all_well_flow_data")
+async def get_all_well_flow_data(
+    response: Response,
+    authenticated_user: Annotated[AuthenticatedUser, Depends(AuthHelper.get_authenticated_user)],
+    field_identifier: Annotated[str, Query(description="Field identifier")],
+    case_uuid: Annotated[str, Query(description="Sumo case uuid")],
+    ensemble_name: Annotated[str, Query(description="Ensemble name")],
+) -> list[schemas.FlowDataInterval]:
+
+    perf_metrics = ResponsePerfMetrics(response)
+
+    smda_access = SmdaAccess(authenticated_user.get_smda_access_token())
+
+    sumo_summary_access = SummaryAccess.from_iteration_name(
+        authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name
+    )
+    sumo_surface_access = SurfaceAccess.from_iteration_name(
+        authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name
+    )
+
+    well_flow_data_assembler = WellFlowDataAssembler(
+        field_identifier=field_identifier,
+        summary_access=sumo_summary_access,
+        surface_access=sumo_surface_access,
+        smda_access=smda_access,
+    )
+
+    test = await well_flow_data_assembler.get_well_flow_data_info_async()
+    data = []
+    for i in test:
+        data.append(
+            schemas.FlowDataInterval(
+                start_timestamp_utc_ms=i.start_timestamp_utc_ms,
+                end_timestamp_utc_ms=i.end_timestamp_utc_ms,
+                well_flow_data_arr=[
+                    schemas.FlowDataInWell(
+                        well_uwi=i.well_uwi,
+                        eclipse_well_name=i.eclipse_well_name,
+                        oil_production_volume=i.oil_production_volume,
+                        gas_production_volume=i.gas_production_volume,
+                        water_production_volume=i.water_production_volume,
+                        water_injection_volume=i.water_injection_volume,
+                        gas_injection_volume=i.gas_injection_volume,
+                        co2_injection_volume=i.co2_injection_volume,
+                    )
+                    for i in i.well_flow_data_arr
+                ],
+            )
+        )
+    return data
 
 
 @router.get("/flow_data_in_time_interval/")
@@ -67,9 +129,14 @@ async def get_flow_data_in_time_interval(
     sumo_summary_access = SummaryAccess.from_iteration_name(
         authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name
     )
-
+    sumo_surface_access = SurfaceAccess.from_iteration_name(
+        authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name
+    )
     well_flow_data_assembler = WellFlowDataAssembler(
-        field_identifier=field_identifier, summary_access=sumo_summary_access, smda_access=smda_access
+        field_identifier=field_identifier,
+        summary_access=sumo_summary_access,
+        surface_access=sumo_surface_access,
+        smda_access=smda_access,
     )
 
     well_production_data = await well_flow_data_assembler.get_well_flow_data_in_interval_async(
