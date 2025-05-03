@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Optional, TypeAlias
+from typing import List, Optional, TypeAlias, Literal
 from pydantic import BaseModel
 
 
@@ -110,6 +110,17 @@ class WellLogCurveTypeEnum(str, Enum):
     CONTINUOUS = "continuous"
     DISCRETE = "discrete"
     FLAG = "flag"
+
+
+class WellboreStratigraphicUnitEntryExitMd(BaseModel):
+    """
+    Stratigraphic unit entry/exit md from SMDA
+    """
+
+    wellboreUuid: str
+    stratigraphicDirection: Literal["upward", "downward"]
+    entryMd: float
+    exitMd: float
 
 
 class WellboreLogCurveHeader(BaseModel):

@@ -145,6 +145,17 @@ class WellboreStratigraphicUnit(BaseModel):
     interpreter: str
 
 
+class WellboreStratigraphicUnitEntryExitMd(BaseModel):
+    """
+    Stratigraphic unit entry/exit md from SMDA
+    """
+
+    wellbore_uuid: str
+    stratigraphic_direction: Literal["upward", "downward"]
+    entry_md: float
+    exit_md: float
+
+
 class StratigraphicFeature(str, Enum):
     """The stratigraphic feature of a surface"""
 

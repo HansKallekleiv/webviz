@@ -30,6 +30,7 @@ import {
     getIsSensitivityRun,
     getLogCurveData,
     getLoggedInUser,
+    getMdPairsForStratigraphicUnitInWellbores,
     getMisfitSurfaceData,
     getObservations,
     getObservedSurfacesMetadata,
@@ -103,6 +104,7 @@ import type {
     GetIsSensitivityRunData_api,
     GetLogCurveDataData_api,
     GetLoggedInUserData_api,
+    GetMdPairsForStratigraphicUnitInWellboresData_api,
     GetMisfitSurfaceDataData_api,
     GetObservationsData_api,
     GetObservedSurfacesMetadataData_api,
@@ -1144,6 +1146,27 @@ export const getWellborePicksInStratColumnOptions = (options: Options<GetWellbor
             return data;
         },
         queryKey: getWellborePicksInStratColumnQueryKey(options),
+    });
+};
+
+export const getMdPairsForStratigraphicUnitInWellboresQueryKey = (
+    options: Options<GetMdPairsForStratigraphicUnitInWellboresData_api>,
+) => [createQueryKey("getMdPairsForStratigraphicUnitInWellbores", options)];
+
+export const getMdPairsForStratigraphicUnitInWellboresOptions = (
+    options: Options<GetMdPairsForStratigraphicUnitInWellboresData_api>,
+) => {
+    return queryOptions({
+        queryFn: async ({ queryKey, signal }) => {
+            const { data } = await getMdPairsForStratigraphicUnitInWellbores({
+                ...options,
+                ...queryKey[0],
+                signal,
+                throwOnError: true,
+            });
+            return data;
+        },
+        queryKey: getMdPairsForStratigraphicUnitInWellboresQueryKey(options),
     });
 };
 

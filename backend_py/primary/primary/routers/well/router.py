@@ -189,6 +189,30 @@ async def get_wellbore_picks_in_strat_column(
     return [converters.convert_wellbore_pick_to_schema(wellbore_pick) for wellbore_pick in wellbore_picks]
 
 
+@router.get("/md_pairs_for_stratigraphic_unit_in_wellbores")
+async def get_md_pairs_for_stratigraphic_unit_in_wellbores(
+    authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user),
+    field_identifier: str = Query(description="Official field identifier"),
+    strat_column_identifier: str = Query(description="Stratigraphic column identifier"),
+    stratigraphic_unit_identifier: str = Query(description="Stratigraphic unit identifier"),
+) -> List[schemas.WellboreStratigraphicUnitEntryExitMd]:
+    """Get md pairs for stratigraphic unit identifier in wellbores"""
+    well_access: Union[SmdaAccess, DrogonSmdaAccess]
+
+    if is_drogon_identifier(strat_column_identifier=stratigraphic_unit_identifier):
+        return []
+
+    well_access = SmdaAccess(authenticated_user.get_smda_access_token())
+
+    md_pairs = await well_access.get_md_pairs_for_stratigraphic_unit_in_wellbores_async(
+        strat_unit_identifier=stratigraphic_unit_identifier,
+        field_identifier=field_identifier,
+        strat_column_identifier=strat_column_identifier,
+    )
+
+    return converters.convert_strat_unit_md_pairs_to_schema(md_pairs)
+
+
 @router.get("/wellbore_completions/")
 async def get_wellbore_completions(
     # fmt:off

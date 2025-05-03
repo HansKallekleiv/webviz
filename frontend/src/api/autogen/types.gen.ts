@@ -1210,6 +1210,16 @@ export type WellborePick_api = {
     interpreter: string | null;
 };
 
+/**
+ * Stratigraphic unit entry/exit md from SMDA
+ */
+export type WellboreStratigraphicUnitEntryExitMd_api = {
+    wellboreUuid: string;
+    stratigraphicDirection: "upward" | "downward";
+    entryMd: number;
+    exitMd: number;
+};
+
 export type WellboreSurvey_api = {
     wellboreUuid: string;
     uniqueWellboreIdentifier: string;
@@ -3096,6 +3106,46 @@ export type GetWellborePicksInStratColumnResponses_api = {
 
 export type GetWellborePicksInStratColumnResponse_api =
     GetWellborePicksInStratColumnResponses_api[keyof GetWellborePicksInStratColumnResponses_api];
+
+export type GetMdPairsForStratigraphicUnitInWellboresData_api = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Official field identifier
+         */
+        field_identifier: string;
+        /**
+         * Stratigraphic column identifier
+         */
+        strat_column_identifier: string;
+        /**
+         * Stratigraphic unit identifier
+         */
+        stratigraphic_unit_identifier: string;
+    };
+    url: "/well/md_pairs_for_stratigraphic_unit_in_wellbores";
+};
+
+export type GetMdPairsForStratigraphicUnitInWellboresErrors_api = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError_api;
+};
+
+export type GetMdPairsForStratigraphicUnitInWellboresError_api =
+    GetMdPairsForStratigraphicUnitInWellboresErrors_api[keyof GetMdPairsForStratigraphicUnitInWellboresErrors_api];
+
+export type GetMdPairsForStratigraphicUnitInWellboresResponses_api = {
+    /**
+     * Successful Response
+     */
+    200: Array<WellboreStratigraphicUnitEntryExitMd_api>;
+};
+
+export type GetMdPairsForStratigraphicUnitInWellboresResponse_api =
+    GetMdPairsForStratigraphicUnitInWellboresResponses_api[keyof GetMdPairsForStratigraphicUnitInWellboresResponses_api];
 
 export type GetWellboreCompletionsData_api = {
     body?: never;

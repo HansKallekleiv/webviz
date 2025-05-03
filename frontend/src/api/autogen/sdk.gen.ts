@@ -69,6 +69,9 @@ import type {
     GetLoggedInUserData_api,
     GetLoggedInUserError_api,
     GetLoggedInUserResponse_api,
+    GetMdPairsForStratigraphicUnitInWellboresData_api,
+    GetMdPairsForStratigraphicUnitInWellboresError_api,
+    GetMdPairsForStratigraphicUnitInWellboresResponse_api,
     GetMisfitSurfaceDataData_api,
     GetMisfitSurfaceDataError_api,
     GetMisfitSurfaceDataResponse_api,
@@ -940,6 +943,23 @@ export const getWellborePicksInStratColumn = <ThrowOnError extends boolean = fal
     >({
         ...options,
         url: "/well/wellbore_picks_in_strat_column",
+    });
+};
+
+/**
+ * Get Md Pairs For Stratigraphic Unit In Wellbores
+ * Get md pairs for stratigraphic unit identifier in wellbores
+ */
+export const getMdPairsForStratigraphicUnitInWellbores = <ThrowOnError extends boolean = false>(
+    options: Options<GetMdPairsForStratigraphicUnitInWellboresData_api, ThrowOnError>,
+) => {
+    return (options?.client ?? client).get<
+        GetMdPairsForStratigraphicUnitInWellboresResponse_api,
+        GetMdPairsForStratigraphicUnitInWellboresError_api,
+        ThrowOnError
+    >({
+        ...options,
+        url: "/well/md_pairs_for_stratigraphic_unit_in_wellbores",
     });
 };
 

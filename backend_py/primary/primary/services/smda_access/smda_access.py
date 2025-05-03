@@ -16,6 +16,7 @@ from .types import (
     StratigraphicSurface,
     StratigraphicColumn,
     WellboreStratigraphicUnit,
+    WellboreStratigraphicUnitEntryExitMd,
     WellboreCompletion,
 )
 from .utils.queries import data_model_to_projection_param
@@ -126,6 +127,36 @@ class SmdaAccess:
             )
 
         return [WellboreStratigraphicUnit(**result) for result in results]
+
+    async def get_md_pairs_for_stratigraphic_unit_in_wellbores_async(
+        self,
+        field_identifier: str,
+        strat_column_identifier: str,
+        strat_unit_identifier: str,
+        wellbore_uuids: Optional[List[str]] = None,
+    ) -> List[WellboreStratigraphicUnitEntryExitMd]:
+        """
+        Get the md pairs(entry-exit) for a given stratigraphic identifier in a stratigraphic column
+        """
+        endpoint = SmdaEndpoints.WELLBORE_STRATIGRAPHY
+        params = {
+            "_projection": data_model_to_projection_param(WellboreStratigraphicUnitEntryExitMd),
+            "field_identifier": field_identifier,
+            "strat_column_identifier": strat_column_identifier,
+            "strat_unit_identifier": strat_unit_identifier,
+        }
+        if wellbore_uuids:
+            params["wellbore_uuid"] = ", ".join(wellbore_uuids)
+
+        results = await self._smda_get_request_async(endpoint=endpoint, params=params)
+
+        if not results:
+            raise NoDataError(
+                f"No stratigraphic entries found for {strat_unit_identifier=}, {strat_column_identifier=}.",
+                Service.SMDA,
+            )
+
+        return [WellboreStratigraphicUnitEntryExitMd(**result) for result in results]
 
     async def get_wellbore_headers_async(self, field_identifier: str) -> List[WellboreHeader]:
         """

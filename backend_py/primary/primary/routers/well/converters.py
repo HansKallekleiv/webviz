@@ -7,6 +7,7 @@ from primary.services.smda_access.types import (
     WellboreGeoHeader,
     WellboreGeoData,
     WellboreStratigraphicUnit,
+    WellboreStratigraphicUnitEntryExitMd,
 )
 from primary.services.ssdl_access.types import (
     WellboreCasing,
@@ -193,6 +194,20 @@ def convert_strat_column_to_well_log_header(column: StratigraphicColumn) -> sche
         curveName=type_or_default,
         curveUnit=None,
     )
+
+
+def convert_strat_unit_md_pairs_to_schema(
+    strat_unit_md_pairs: list[WellboreStratigraphicUnitEntryExitMd],
+) -> list[schemas.WellboreStratigraphicUnitEntryExitMd]:
+    return [
+        schemas.WellboreStratigraphicUnitEntryExitMd(
+            wellboreUuid=unit.wellbore_uuid,
+            stratigraphicDirection=unit.stratigraphic_direction,
+            entryMd=unit.entry_md,
+            exitMd=unit.exit_md,
+        )
+        for unit in strat_unit_md_pairs
+    ]
 
 
 def convert_wellbore_log_curve_data_to_schema(
