@@ -43,7 +43,6 @@ class ParameterAccess:
         table_context = self._ensemble_context.filter(
             aggregation="collection",
             name="parameters",
-            tagname="all",
         )
         if await table_context.length_async() == 0:
             raise NoDataError(f"No parameter tables found {self._case_uuid, self._iteration_name}", Service.SUMO)
