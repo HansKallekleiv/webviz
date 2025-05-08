@@ -1249,9 +1249,6 @@ export type WellboreSurveyPoint_api = {
     tvdMsl: number;
     easting: number;
     northing: number;
-    azimuth: number;
-    inclination: number;
-    doglegSeverity: number;
 };
 
 export type GetFieldsData_api = {

@@ -47,7 +47,6 @@ flow_vectors_eclipse_mapping = {
     "WOPTH": FlowVector.OIL_PRODUCTION,
     "WGPTH": FlowVector.GAS_PRODUCTION,
     "WWPTH": FlowVector.WATER_PRODUCTION,
-    ""
 }
 
 
@@ -207,9 +206,9 @@ class WellFlowDataAssembler:
                 min_val = agg_results.get(f"{col}_min")
                 max_val = agg_results.get(f"{col}_max")
 
-                # Check if min/max returned None 
+                # Check if min/max returned None
                 if min_val is None or max_val is None:
-                    volume_diff = 0.0 
+                    volume_diff = 0.0
 
                     print(f"Warning: Null values encountered for column '{col}' in interval {interval.t0_isostr}")
                 else:
@@ -221,7 +220,6 @@ class WellFlowDataAssembler:
                         "oil_production_volume": 0.0,
                         "gas_production_volume": 0.0,
                         "water_production_volume": 0.0,
-                 
                     }
 
                 well_flow_data_dict[well_name][flow_vectors_eclipse_mapping[vector].value] = volume_diff
