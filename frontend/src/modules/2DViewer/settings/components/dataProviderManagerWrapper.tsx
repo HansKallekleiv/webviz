@@ -106,6 +106,14 @@ export function DataProviderManagerWrapper(props: LayerManagerComponentWrapperPr
                     ),
                 );
                 return;
+            case "simulation-well":
+                groupDelegate.prependChild(
+                    DataProviderRegistry.makeDataProvider(
+                        CustomDataProviderType.SIMULATION_WELL,
+                        props.dataProviderManager,
+                    ),
+                );
+                return;
             case "drilled-wellbore-trajectories":
                 groupDelegate.prependChild(
                     DataProviderRegistry.makeDataProvider(
@@ -308,6 +316,12 @@ const ACTIONS: ActionGroup[] = [
             {
                 label: "Wells",
                 children: [
+                    {
+                        identifier: "simulation-well",
+                        icon: <Icon data={wellbore} fontSize="small" />,
+                        label: "Simulation Wells",
+                    },
+
                     {
                         identifier: "drilled-wellbore-trajectories",
                         icon: <Icon data={wellbore} fontSize="small" />,

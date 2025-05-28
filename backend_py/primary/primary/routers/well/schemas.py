@@ -141,3 +141,15 @@ class WellboreLogCurveData(BaseModel):
     curveUnitDesc: str | None
     dataPoints: list[tuple[float, float | str | None]]
     discreteValueMetadata: list[DiscreteValueMetadata] | None
+
+
+class SimulationWell(BaseModel):
+    well_name: str
+    realization: int
+    i_arr: List[int]
+    j_arr: List[int]
+    k_arr: List[int]
+    x_arr: List[float]
+    y_arr: List[float]
+    z_arr: List[float]
+    open_shut: List[str]

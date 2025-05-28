@@ -149,6 +149,9 @@ import type {
     GetLogCurveDataData_api,
     GetLogCurveDataResponse_api,
     GetLogCurveDataError_api,
+    GetSimulationGridWellboreGeometriesData_api,
+    GetSimulationGridWellboreGeometriesResponse_api,
+    GetSimulationGridWellboreGeometriesError_api,
     GetSeismicCubeMetaListData_api,
     GetSeismicCubeMetaListResponse_api,
     GetSeismicCubeMetaListError_api,
@@ -1000,6 +1003,23 @@ export const getLogCurveData = <ThrowOnError extends boolean = false>(
     return (options?.client ?? client).get<GetLogCurveDataResponse_api, GetLogCurveDataError_api, ThrowOnError>({
         ...options,
         url: "/well/log_curve_data/",
+    });
+};
+
+/**
+ * Get Simulation Grid Wellbore Geometries
+ * Get wellbore geometry for the simulation grid
+ */
+export const getSimulationGridWellboreGeometries = <ThrowOnError extends boolean = false>(
+    options: Options<GetSimulationGridWellboreGeometriesData_api, ThrowOnError>,
+) => {
+    return (options?.client ?? client).get<
+        GetSimulationGridWellboreGeometriesResponse_api,
+        GetSimulationGridWellboreGeometriesError_api,
+        ThrowOnError
+    >({
+        ...options,
+        url: "/well/simulation_grid_wellbore_geometries/",
     });
 };
 

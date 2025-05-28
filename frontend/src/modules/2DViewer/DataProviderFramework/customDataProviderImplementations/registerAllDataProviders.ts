@@ -6,9 +6,11 @@ import { RealizationGridProvider } from "./RealizationGridProvider";
 import { RealizationPolygonsProvider } from "./RealizationPolygonsProvider";
 import { RealizationSurfaceProvider } from "./RealizationSurfaceProvider";
 import { StatisticalSurfaceProvider } from "./StatisticalSurfaceProvider";
+import { SimulationWellProvider } from "./SimulationWellProvider";
 
 DataProviderRegistry.registerDataProvider(CustomDataProviderType.OBSERVED_SURFACE, ObservedSurfaceProvider);
 DataProviderRegistry.registerDataProvider(CustomDataProviderType.REALIZATION_GRID, RealizationGridProvider);
 DataProviderRegistry.registerDataProvider(CustomDataProviderType.REALIZATION_POLYGONS, RealizationPolygonsProvider);
 DataProviderRegistry.registerDataProvider(CustomDataProviderType.REALIZATION_SURFACE, RealizationSurfaceProvider);
 DataProviderRegistry.registerDataProvider(CustomDataProviderType.STATISTICAL_SURFACE, StatisticalSurfaceProvider);
+DataProviderRegistry.registerDataProvider(CustomDataProviderType.SIMULATION_WELL, SimulationWellProvider);

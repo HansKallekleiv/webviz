@@ -46,6 +46,9 @@ import type { ViewportTypeExtended, ViewsTypeExtended } from "./SubsurfaceViewer
 import { SubsurfaceViewerWrapper } from "./SubsurfaceViewerWrapper";
 
 import "../../DataProviderFramework/customDataProviderImplementations/registerAllDataProviders";
+import { SimulationWellProvider } from "@modules/2DViewer/DataProviderFramework/customDataProviderImplementations/SimulationWellProvider";
+import { makeSimulationWellsBoundingBox } from "@modules/2DViewer/DataProviderFramework/boundingBoxes/makeSimulationWellsBoundingBox";
+import { makeSimulationWellsLayer } from "@modules/2DViewer/DataProviderFramework/visualization/makeSimulationWellsLayer";
 
 export type LayersWrapperProps = {
     layerManager: DataProviderManager;
@@ -62,6 +65,15 @@ VISUALIZATION_ASSEMBLER.registerDataProviderTransformers(
         transformToVisualization: makeObservedSurfaceLayer,
         transformToBoundingBox: makeSurfaceLayerBoundingBox,
         transformToAnnotations: makeColorScaleAnnotation,
+    },
+);
+VISUALIZATION_ASSEMBLER.registerDataProviderTransformers(
+    CustomDataProviderType.SIMULATION_WELL,
+    SimulationWellProvider,
+    {
+        transformToVisualization: makeSimulationWellsLayer,
+        transformToBoundingBox: makeSimulationWellsBoundingBox,
+        // transformToAnnotations: makeColorScaleAnnotation,
     },
 );
 VISUALIZATION_ASSEMBLER.registerDataProviderTransformers(

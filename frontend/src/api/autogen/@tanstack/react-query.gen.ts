@@ -54,6 +54,7 @@ import {
     getWellborePerforations,
     getWellboreLogCurveHeaders,
     getLogCurveData,
+    getSimulationGridWellboreGeometries,
     getSeismicCubeMetaList,
     getInlineSlice,
     getCrosslineSlice,
@@ -136,6 +137,7 @@ import type {
     GetWellborePerforationsData_api,
     GetWellboreLogCurveHeadersData_api,
     GetLogCurveDataData_api,
+    GetSimulationGridWellboreGeometriesData_api,
     GetSeismicCubeMetaListData_api,
     GetInlineSliceData_api,
     GetCrosslineSliceData_api,
@@ -1219,6 +1221,27 @@ export const getLogCurveDataOptions = (options: Options<GetLogCurveDataData_api>
             return data;
         },
         queryKey: getLogCurveDataQueryKey(options),
+    });
+};
+
+export const getSimulationGridWellboreGeometriesQueryKey = (
+    options: Options<GetSimulationGridWellboreGeometriesData_api>,
+) => [createQueryKey("getSimulationGridWellboreGeometries", options)];
+
+export const getSimulationGridWellboreGeometriesOptions = (
+    options: Options<GetSimulationGridWellboreGeometriesData_api>,
+) => {
+    return queryOptions({
+        queryFn: async ({ queryKey, signal }) => {
+            const { data } = await getSimulationGridWellboreGeometries({
+                ...options,
+                ...queryKey[0],
+                signal,
+                throwOnError: true,
+            });
+            return data;
+        },
+        queryKey: getSimulationGridWellboreGeometriesQueryKey(options),
     });
 };
 

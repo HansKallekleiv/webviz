@@ -700,6 +700,18 @@ export enum SensitivityType_api {
     SCENARIO = "scenario",
 }
 
+export type SimulationWell_api = {
+    well_name: string;
+    realization: number;
+    i_arr: Array<number>;
+    j_arr: Array<number>;
+    k_arr: Array<number>;
+    x_arr: Array<number>;
+    y_arr: Array<number>;
+    z_arr: Array<number>;
+    open_shut: Array<string>;
+};
+
 export enum StatisticFunction_api {
     MEAN = "MEAN",
     MIN = "MIN",
@@ -3186,6 +3198,46 @@ export type GetLogCurveDataResponses_api = {
 };
 
 export type GetLogCurveDataResponse_api = GetLogCurveDataResponses_api[keyof GetLogCurveDataResponses_api];
+
+export type GetSimulationGridWellboreGeometriesData_api = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Sumo case uuid
+         */
+        case_uuid: string;
+        /**
+         * Ensemble name
+         */
+        ensemble_name: string;
+        /**
+         * Realization number
+         */
+        realization_num: number;
+    };
+    url: "/well/simulation_grid_wellbore_geometries/";
+};
+
+export type GetSimulationGridWellboreGeometriesErrors_api = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError_api;
+};
+
+export type GetSimulationGridWellboreGeometriesError_api =
+    GetSimulationGridWellboreGeometriesErrors_api[keyof GetSimulationGridWellboreGeometriesErrors_api];
+
+export type GetSimulationGridWellboreGeometriesResponses_api = {
+    /**
+     * Successful Response
+     */
+    200: Array<SimulationWell_api>;
+};
+
+export type GetSimulationGridWellboreGeometriesResponse_api =
+    GetSimulationGridWellboreGeometriesResponses_api[keyof GetSimulationGridWellboreGeometriesResponses_api];
 
 export type GetSeismicCubeMetaListData_api = {
     body?: never;

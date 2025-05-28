@@ -14,9 +14,9 @@ from primary.utils.drogon import is_drogon_identifier
 
 from primary.services.ssdl_access.well_access import WellAccess as SsdlWellAccess
 from primary.services.ssdl_access.drogon import DrogonWellAccess
+from primary.services.sumo_access.simulation_well_access import SimulationWellAccess
 
-
-from primary.middleware.add_browser_cache import add_custom_cache_time
+from primary.middleware.add_browser_cache import add_custom_cache_time, no_cache
 from . import schemas
 from . import converters
 
@@ -417,3 +417,24 @@ async def get_log_curve_data(
         return converters.convert_survey_sample_to_log_curve_schemas(survey_samples, survey_header, curve_name)
 
     raise ValueError(f"Unknown source {source}")
+
+
+@router.get("/simulation_grid_wellbore_geometries/")
+@no_cache
+async def get_simulation_grid_wellbore_geometries(
+    # fmt:off
+    authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user),
+        case_uuid: str = Query(description="Sumo case uuid"),
+    ensemble_name: str = Query(description="Ensemble name"),
+    realization_num: int = Query(description="Realization number")
+    # fmt:on
+) -> List[schemas.SimulationWell]:
+    """Get wellbore geometry for the simulation grid"""
+
+    sim_well_access = SimulationWellAccess.from_iteration_name(
+        access_token=authenticated_user.get_sumo_access_token(),
+        case_uuid=case_uuid,
+        iteration_name=ensemble_name,
+    )
+    well_geometries = await sim_well_access.get_well_geometries(realization_num=realization_num)
+    return [converters.convert_simulation_well_to_schema(well) for well in well_geometries]

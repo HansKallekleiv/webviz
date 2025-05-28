@@ -18,6 +18,8 @@ from primary.services.ssdl_access.types import (
     WellboreLogCurveData,
 )
 
+from primary.services.sumo_access.simulation_well_access import SimulationWell
+
 from . import schemas
 from . import utils
 
@@ -391,6 +393,20 @@ def convert_survey_sample_to_log_curve_schemas(
         curveUnitDesc=None,
         dataPoints=data_points,
         discreteValueMetadata=None,
+    )
+
+
+def convert_simulation_well_to_schema(simulation_well: SimulationWell) -> schemas.SimulationWell:
+    return schemas.SimulationWell(
+        well_name=simulation_well.well_name,
+        realization=simulation_well.realization,
+        i_arr=simulation_well.i_arr,
+        j_arr=simulation_well.j_arr,
+        k_arr=simulation_well.k_arr,
+        x_arr=simulation_well.x_arr,
+        y_arr=simulation_well.y_arr,
+        z_arr=simulation_well.z_arr,
+        open_shut=simulation_well.open_shut,
     )
 
 
