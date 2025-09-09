@@ -27,6 +27,7 @@ RESOURCE_SCOPES_DICT = {
     "sumo": [f"api://{sumo_app_reg[SUMO_ENV]['RESOURCE_ID']}/access_as_user"],
     "smda": [SMDA_RESOURCE_SCOPE],
     "ssdl": [SSDL_RESOURCE_SCOPE],
+    "pdm": ["f2e415dc-d400-4cd4-a801-fa707138a49c/user_impersonation"],
 }
 
 DEFAULT_CACHE_MAX_AGE = 3600  # 1 hour

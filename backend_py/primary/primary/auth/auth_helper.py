@@ -19,7 +19,7 @@ from primary.services.utils.authenticated_user import AuthenticatedUser
 LOGGER = logging.getLogger(__name__)
 
 # Alias for the literal that lists the resource names we use
-_ResourceName: TypeAlias = Literal["graph", "sumo", "smda", "ssdl"]
+_ResourceName: TypeAlias = Literal["graph", "sumo", "smda", "ssdl", "pdm"]
 
 
 class _TokenEntry(BaseModel):
@@ -39,15 +39,25 @@ class _UserAuthInfo(BaseModel):
         sumo_token_entry = self.access_tokens.get("sumo")
         smda_token_entry = self.access_tokens.get("smda")
         ssdl_token_entry = self.access_tokens.get("ssdl")
+        pdm_token_entry = self.access_tokens.get("pdm")
 
         authenticated_user_obj = AuthenticatedUser(
             user_id=self.user_id,
             username=self.user_name,
             access_tokens={
-                "graph_access_token": graph_token_entry.token if graph_token_entry else None,
-                "sumo_access_token": sumo_token_entry.token if sumo_token_entry else None,
-                "smda_access_token": smda_token_entry.token if smda_token_entry else None,
-                "ssdl_access_token": ssdl_token_entry.token if ssdl_token_entry else None,
+                "graph_access_token": graph_token_entry.token
+                if graph_token_entry
+                else None,
+                "sumo_access_token": sumo_token_entry.token
+                if sumo_token_entry
+                else None,
+                "smda_access_token": smda_token_entry.token
+                if smda_token_entry
+                else None,
+                "ssdl_access_token": ssdl_token_entry.token
+                if ssdl_token_entry
+                else None,
+                "pdm_access_token": pdm_token_entry.token if pdm_token_entry else None,
             },
         )
 
@@ -57,35 +67,49 @@ class _UserAuthInfo(BaseModel):
 class AuthHelper:
     def __init__(self) -> None:
         self.router = APIRouter()
-        self.router.add_api_route(path="/login", endpoint=self._login_route, methods=["GET"])
-        self.router.add_api_route(path="/auth-callback", endpoint=self._authorized_callback_route, methods=["GET"])
+        self.router.add_api_route(
+            path="/login", endpoint=self._login_route, methods=["GET"]
+        )
+        self.router.add_api_route(
+            path="/auth-callback",
+            endpoint=self._authorized_callback_route,
+            methods=["GET"],
+        )
 
     @no_cache
-    async def _login_route(self, request: Request, redirect_url_after_login: Optional[str] = None) -> RedirectResponse:
+    async def _login_route(
+        self, request: Request, redirect_url_after_login: Optional[str] = None
+    ) -> RedirectResponse:
         await starsessions.load_session(request)
         request.session.clear()
 
         all_scopes_list = config.GRAPH_SCOPES.copy()
-        for value in config.RESOURCE_SCOPES_DICT.values():
-            all_scopes_list.extend(value)
+        # for value in config.RESOURCE_SCOPES_DICT.values():
+        #     all_scopes_list.extend(value)
 
         if "CODESPACE_NAME" in os.environ:
             # Developer is using GitHub codespace, so we use the GitHub codespace port forward URL
             redirect_uri = f"https://{os.environ['CODESPACE_NAME']}-8080.app.github.dev/api/auth-callback"
-            print(f"You are using GitHub codespace. Remember to allow app registration redirect URI {redirect_uri}")
+            print(
+                f"You are using GitHub codespace. Remember to allow app registration redirect URI {redirect_uri}"
+            )
         else:
             redirect_uri = str(request.url_for("_authorized_callback_route"))
 
         cca = _create_msal_confidential_client_app(token_cache=None)
-        flow_dict = cca.initiate_auth_code_flow(scopes=all_scopes_list, redirect_uri=redirect_uri)
+        flow_dict = cca.initiate_auth_code_flow(
+            scopes=all_scopes_list, redirect_uri=redirect_uri
+        )
 
         request.session["flow"] = flow_dict
-
+        print(flow_dict)
         # If a final redirect url was specified, store it in session storage so we can
         # redirect once we get the auth callback. Note that the redirect_url_after_login
         # query parameter is base64 encoded
         if redirect_url_after_login is not None:
-            target_url_str_after_auth = base64.urlsafe_b64decode(redirect_url_after_login.encode()).decode()
+            target_url_str_after_auth = base64.urlsafe_b64decode(
+                redirect_url_after_login.encode()
+            ).decode()
             request.session["target_url_str_after_auth"] = target_url_str_after_auth
 
         return RedirectResponse(flow_dict["auth_uri"])
@@ -112,7 +136,10 @@ class AuthHelper:
             )
 
             if "error" in token_dict:
-                return Response(f"Error validating redirected auth response, error: {token_dict['error']}", 400)
+                return Response(
+                    f"Error validating redirected auth response, error: {token_dict['error']}",
+                    400,
+                )
 
             _save_token_cache_in_session(request, token_cache)
 
@@ -127,15 +154,23 @@ class AuthHelper:
         return Response("Login OK")
 
     @staticmethod
-    def get_authenticated_user(request_with_session: Request) -> Optional[AuthenticatedUser]:
+    def get_authenticated_user(
+        request_with_session: Request,
+    ) -> Optional[AuthenticatedUser]:
         perf_metrics = PerfMetrics()
 
         # We may already have created and stored the AuthenticatedUser object in the request's state
         # one a previous call to this function. If so, we can just return it.
         try:
-            maybe_authenticated_user_obj = request_with_session.state.authenticated_user_obj
-            if maybe_authenticated_user_obj and isinstance(maybe_authenticated_user_obj, AuthenticatedUser):
-                LOGGER.debug("get_authenticated_user() found cached AuthenticatedUser object in request's state")
+            maybe_authenticated_user_obj = (
+                request_with_session.state.authenticated_user_obj
+            )
+            if maybe_authenticated_user_obj and isinstance(
+                maybe_authenticated_user_obj, AuthenticatedUser
+            ):
+                LOGGER.debug(
+                    "get_authenticated_user() found cached AuthenticatedUser object in request's state"
+                )
                 return maybe_authenticated_user_obj
         except:  # nosec # pylint: disable=bare-except
             pass
@@ -143,10 +178,14 @@ class AuthHelper:
         if not starsessions.is_loaded(request_with_session):
             raise ValueError("Session data has not been loaded for this request")
 
-        user_auth_info_from_session: _UserAuthInfo | None = _load_user_auth_info_from_session(request_with_session)
+        user_auth_info_from_session: _UserAuthInfo | None = (
+            _load_user_auth_info_from_session(request_with_session)
+        )
         perf_metrics.record_lap("load-user-auth-info")
         if user_auth_info_from_session:
-            first_item_expires_in = user_auth_info_from_session.earliest_expiry_time - time.time()
+            first_item_expires_in = (
+                user_auth_info_from_session.earliest_expiry_time - time.time()
+            )
             if first_item_expires_in >= 5 * 60:
                 authenticated_user = user_auth_info_from_session.to_authenticated_user()
 
@@ -164,8 +203,10 @@ class AuthHelper:
             return None
         perf_metrics.record_lap("load-token-cache")
 
-        new_user_auth_info: _UserAuthInfo | None = _acquire_refreshed_identity_and_tokens(
-            token_cache, user_auth_info_from_session
+        new_user_auth_info: _UserAuthInfo | None = (
+            _acquire_refreshed_identity_and_tokens(
+                token_cache, user_auth_info_from_session
+            )
         )
         if not new_user_auth_info:
             return None
@@ -183,7 +224,9 @@ class AuthHelper:
         # session store if this function is called multiple times during the processing of a single request.
         request_with_session.state.authenticated_user_obj = authenticated_user
 
-        LOGGER.debug(f"get_authenticated_user() create/refresh took: {perf_metrics.to_string()}")
+        LOGGER.debug(
+            f"get_authenticated_user() create/refresh took: {perf_metrics.to_string()}"
+        )
 
         return authenticated_user
 
@@ -210,7 +253,9 @@ def _acquire_access_token_for_resource_scopes(
     try:
         expires_at = int(jwt_payload_dict["exp"])
     except ValueError:
-        LOGGER.error(f"Error getting expiration time claim (exp) from access token ({resource_name=})")
+        LOGGER.error(
+            f"Error getting expiration time claim (exp) from access token ({resource_name=})"
+        )
         return None
 
     return _TokenEntry(token=access_token, expires_at=expires_at)
@@ -245,14 +290,18 @@ def _acquire_refreshed_identity_and_tokens(
     # so we try and avoid forcing a refresh of the ID token unless it is getting close to expiring.
     # Similar to msal we will consider it expired if it expires is less than 5 minutes.
     time_now = time.time()
-    identity_expires_in = curr_auth_info.user_identity_expires_at - time_now if curr_auth_info else 0
+    identity_expires_in = (
+        curr_auth_info.user_identity_expires_at - time_now if curr_auth_info else 0
+    )
     if curr_auth_info and identity_expires_in >= 5 * 60:
         # Still more than 5 minutes left on the ID token, so we can just re-use the values from the current auth info
         user_id = curr_auth_info.user_id
         user_name = curr_auth_info.user_name
         id_token_expiry_time = curr_auth_info.user_identity_expires_at
     else:
-        token_dict = cca.acquire_token_silent(scopes=config.GRAPH_SCOPES, account=account, force_refresh=True)
+        token_dict = cca.acquire_token_silent(
+            scopes=config.GRAPH_SCOPES, account=account, force_refresh=True
+        )
         id_token = token_dict.get("id_token") if token_dict else None
         if not id_token:
             LOGGER.error("Error acquiring ID token")
@@ -291,7 +340,9 @@ def _acquire_refreshed_identity_and_tokens(
     # Iterate over the resource names and get the access tokens for each of them
     resource_name: _ResourceName
     for resource_name in get_args(_ResourceName):
-        token_entry = _acquire_access_token_for_resource_scopes(cca, resource_name, account)
+        token_entry = _acquire_access_token_for_resource_scopes(
+            cca, resource_name, account
+        )
         if token_entry:
             new_auth_info.access_tokens[resource_name] = token_entry
 
@@ -306,12 +357,16 @@ def _acquire_refreshed_identity_and_tokens(
 
     perf_metrics.record_lap("get-access_tokens")
 
-    LOGGER.debug(f"_acquire_refreshed_identity_and_tokens() took: {perf_metrics.to_string()}")
+    LOGGER.debug(
+        f"_acquire_refreshed_identity_and_tokens() took: {perf_metrics.to_string()}"
+    )
 
     return new_auth_info
 
 
-def _create_msal_confidential_client_app(token_cache: msal.TokenCache) -> msal.ConfidentialClientApplication:
+def _create_msal_confidential_client_app(
+    token_cache: msal.TokenCache,
+) -> msal.ConfidentialClientApplication:
     authority = f"https://login.microsoftonline.com/{config.TENANT_ID}"
     return msal.ConfidentialClientApplication(
         client_id=config.CLIENT_ID,
@@ -322,7 +377,9 @@ def _create_msal_confidential_client_app(token_cache: msal.TokenCache) -> msal.C
     )
 
 
-def _load_user_auth_info_from_session(request_with_session: Request) -> _UserAuthInfo | None:
+def _load_user_auth_info_from_session(
+    request_with_session: Request,
+) -> _UserAuthInfo | None:
     serialized_user_auth_info = request_with_session.session.get("user_auth_info")
     if not serialized_user_auth_info:
         return None
@@ -335,11 +392,15 @@ def _load_user_auth_info_from_session(request_with_session: Request) -> _UserAut
     return user_auth_info
 
 
-def _save_user_auth_info_in_session(request_with_session: Request, user_auth_info: _UserAuthInfo) -> None:
+def _save_user_auth_info_in_session(
+    request_with_session: Request, user_auth_info: _UserAuthInfo
+) -> None:
     request_with_session.session["user_auth_info"] = user_auth_info.model_dump_json()
 
 
-def _load_token_cache_from_session(request_with_session: Request) -> msal.SerializableTokenCache:
+def _load_token_cache_from_session(
+    request_with_session: Request,
+) -> msal.SerializableTokenCache:
     token_cache = msal.SerializableTokenCache()
 
     serialized_token_cache = request_with_session.session.get("token_cache")
@@ -349,10 +410,14 @@ def _load_token_cache_from_session(request_with_session: Request) -> msal.Serial
     return token_cache
 
 
-def _save_token_cache_in_session(request_with_session: Request, token_cache: msal.SerializableTokenCache) -> None:
+def _save_token_cache_in_session(
+    request_with_session: Request, token_cache: msal.SerializableTokenCache
+) -> None:
     if token_cache.has_state_changed:
         request_with_session.session["token_cache"] = token_cache.serialize()
 
 
 def _decode_jwt(jwt_str: str) -> dict:
-    return jwt.decode(jwt_str, algorithms=["RS256"], options={"verify_signature": False})
+    return jwt.decode(
+        jwt_str, algorithms=["RS256"], options={"verify_signature": False}
+    )
