@@ -79,9 +79,7 @@ if os.environ.get("APPLICATIONINSIGHTS_CONNECTION_STRING"):
     LOGGER.info("Configuring Azure Monitor telemetry for primary backend")
     setup_azure_monitor_telemetry(app)
 else:
-    LOGGER.warning(
-        "Skipping telemetry configuration, APPLICATIONINSIGHTS_CONNECTION_STRING env variable not set."
-    )
+    LOGGER.warning("Skipping telemetry configuration, APPLICATIONINSIGHTS_CONNECTION_STRING env variable not set.")
 
 
 # Start the httpx client on startup and stop it on shutdown of the app
@@ -99,23 +97,17 @@ async def shutdown_event_async() -> None:
 # providing some grouping when viewing the openapi documentation.
 app.include_router(explore_router, tags=["explore"])
 app.include_router(timeseries_router, prefix="/timeseries", tags=["timeseries"])
-app.include_router(
-    inplace_volumes_router, prefix="/inplace_volumes", tags=["inplace_volumes"]
-)
+app.include_router(inplace_volumes_router, prefix="/inplace_volumes", tags=["inplace_volumes"])
 app.include_router(surface_router, prefix="/surface", tags=["surface"])
 app.include_router(parameters_router, prefix="/parameters", tags=["parameters"])
 app.include_router(grid3d_router, prefix="/grid3d", tags=["grid3d"])
 app.include_router(flow_network_router, prefix="/flow_network", tags=["flow_network"])
 app.include_router(pvt_router, prefix="/pvt", tags=["pvt"])
-app.include_router(
-    well_completions_router, prefix="/well_completions", tags=["well_completions"]
-)
+app.include_router(well_completions_router, prefix="/well_completions", tags=["well_completions"])
 app.include_router(well_router, prefix="/well", tags=["well"])
 app.include_router(seismic_router, prefix="/seismic", tags=["seismic"])
 app.include_router(polygons_router, prefix="/polygons", tags=["polygons"])
-app.include_router(
-    production_data_router, prefix="/production_data", tags=["production_data"]
-)
+app.include_router(production_data_router, prefix="/production_data", tags=["production_data"])
 app.include_router(graph_router, prefix="/graph", tags=["graph"])
 app.include_router(observations_router, prefix="/observations", tags=["observations"])
 app.include_router(rft_router, prefix="/rft", tags=["rft"])
@@ -131,9 +123,7 @@ override_default_fastapi_exception_handlers(app)
 
 
 # This middleware instance approximately measures execution time of the route handler itself
-app.add_middleware(
-    AddProcessTimeToServerTimingMiddleware, metric_name="total-exec-route"
-)
+app.add_middleware(AddProcessTimeToServerTimingMiddleware, metric_name="total-exec-route")
 
 # Add out custom middleware to enforce that user is logged in
 # Also redirects to /login endpoint for some select paths

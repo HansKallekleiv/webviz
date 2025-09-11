@@ -15,9 +15,7 @@ from primary.services.service_exceptions import (
 LOGGER = logging.getLogger(__name__)
 
 
-async def pdm_get_request_async(
-    access_token: str, endpoint: str, params: Optional[dict] = None
-) -> List[dict]:
+async def pdm_get_request_async(access_token: str, endpoint: str, params: Optional[dict] = None) -> List[dict]:
     """
     Generic GET request to PDM API.
     """
@@ -30,9 +28,7 @@ async def pdm_get_request_async(
     }
     timer = PerfTimer()
 
-    response = await HTTPX_ASYNC_CLIENT_WRAPPER.client.get(
-        urlstring, params=params, headers=headers, timeout=60
-    )
+    response = await HTTPX_ASYNC_CLIENT_WRAPPER.client.get(urlstring, params=params, headers=headers, timeout=60)
     results = []
     if response.status_code == 200:
         results = response.json()
@@ -52,12 +48,8 @@ async def pdm_get_request_async(
 
     # Capture other errors
     else:
-        LOGGER.debug(
-            f"Error fetching from PDM endpoint {endpoint} (status {response.status_code}): {response.text}"
-        )
-        raise InvalidParameterError(
-            f"Can not fetch data from endpoint {endpoint}", Service.PDM
-        )
+        LOGGER.debug(f"Error fetching from PDM endpoint {endpoint} (status {response.status_code}): {response.text}")
+        raise InvalidParameterError(f"Can not fetch data from endpoint {endpoint}", Service.PDM)
 
     LOGGER.debug(f"TIME PDM fetch {endpoint} took {timer.lap_s():.2f} seconds")
     return results

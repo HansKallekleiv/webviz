@@ -9,9 +9,7 @@ from ..types import (
 )
 
 
-def calculate_total_production_from_daily(
-    api_results, start_date: str, end_date: str
-) -> list[WellProductionData]:
+def calculate_total_production_from_daily(api_results, start_date: str, end_date: str) -> list[WellProductionData]:
     polars_df = pl.DataFrame(api_results)
 
     # Group per well and sum oil,gas,water, then convert to structs
@@ -44,9 +42,7 @@ def calculate_total_production_from_daily(
     ]
 
 
-def calculate_total_injection_from_daily(
-    api_results, start_date: str, end_date: str
-) -> list[WellInjectionData]:
+def calculate_total_injection_from_daily(api_results, start_date: str, end_date: str) -> list[WellInjectionData]:
     polars_df = pl.DataFrame(api_results)
 
     # Group per well and sum injection volumes by type
