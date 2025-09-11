@@ -43,16 +43,11 @@ async def get_drilled_wellbore_headers(
 
     wellbore_headers = await well_access.get_wellbore_headers_async(field_identifier)
 
-    return [
-        converters.convert_wellbore_header_to_schema(wellbore_header)
-        for wellbore_header in wellbore_headers
-    ]
+    return [converters.convert_wellbore_header_to_schema(wellbore_header) for wellbore_header in wellbore_headers]
 
 
 @router.get("/well_trajectories/")
-@add_custom_cache_time(
-    3600 * 24 * 7, 3600 * 24 * 7 * 10
-)  # 1 week cache, 10 week stale-while-revalidate
+@add_custom_cache_time(3600 * 24 * 7, 3600 * 24 * 7 * 10)  # 1 week cache, 10 week stale-while-revalidate
 async def get_well_trajectories(
     # fmt:off
     authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user),
@@ -95,10 +90,8 @@ async def get_wellbore_pick_identifiers(
     else:
         well_access = SmdaAccess(authenticated_user.get_smda_access_token())
 
-    wellbore_picks = (
-        await well_access.get_wellbore_pick_identifiers_in_stratigraphic_column_async(
-            strat_column_identifier=strat_column_identifier
-        )
+    wellbore_picks = await well_access.get_wellbore_pick_identifiers_in_stratigraphic_column_async(
+        strat_column_identifier=strat_column_identifier
     )
     return [wellbore_pick.name for wellbore_pick in wellbore_picks]
 
@@ -128,10 +121,7 @@ async def get_wellbore_picks_for_pick_identifier(
         field_identifier=field_identifier,
         pick_identifier=pick_identifier,
     )
-    return [
-        converters.convert_wellbore_pick_to_schema(wellbore_pick)
-        for wellbore_pick in wellbore_picks
-    ]
+    return [converters.convert_wellbore_pick_to_schema(wellbore_pick) for wellbore_pick in wellbore_picks]
 
 
 @router.get("/deprecated_wellbore_picks_for_wellbore/")
@@ -154,13 +144,8 @@ async def deprecated_get_wellbore_picks_for_wellbore(
     else:
         well_access = SmdaAccess(authenticated_user.get_smda_access_token())
 
-    wellbore_picks = await well_access.get_wellbore_picks_for_wellbore_async(
-        wellbore_uuid=wellbore_uuid
-    )
-    return [
-        converters.convert_wellbore_pick_to_schema(wellbore_pick)
-        for wellbore_pick in wellbore_picks
-    ]
+    wellbore_picks = await well_access.get_wellbore_picks_for_wellbore_async(wellbore_uuid=wellbore_uuid)
+    return [converters.convert_wellbore_pick_to_schema(wellbore_pick) for wellbore_pick in wellbore_picks]
 
 
 @router.get("/wellbore_picks_in_strat_column")
@@ -184,10 +169,7 @@ async def get_wellbore_picks_in_strat_column(
         wellbore_uuid=wellbore_uuid, strat_column_identifier=strat_column_identifier
     )
 
-    return [
-        converters.convert_wellbore_pick_to_schema(wellbore_pick)
-        for wellbore_pick in wellbore_picks
-    ]
+    return [converters.convert_wellbore_pick_to_schema(wellbore_pick) for wellbore_pick in wellbore_picks]
 
 
 @router.get("/wellbore_stratigraphic_columns/")
@@ -203,9 +185,7 @@ async def get_wellbore_stratigraphic_columns(
     else:
         smda_access = SmdaAccess(authenticated_user.get_smda_access_token())
 
-    strat_columns = await smda_access.get_stratigraphic_columns_for_wellbore_async(
-        wellbore_uuid
-    )
+    strat_columns = await smda_access.get_stratigraphic_columns_for_wellbore_async(wellbore_uuid)
 
     return [converters.to_api_stratigraphic_column(col) for col in strat_columns]
 
@@ -225,9 +205,7 @@ async def get_wellbore_completions(
 
     well_access = SsdlWellAccess(authenticated_user.get_ssdl_access_token())
 
-    wellbore_completions = await well_access.get_completions_for_wellbore_async(
-        wellbore_uuid=wellbore_uuid
-    )
+    wellbore_completions = await well_access.get_completions_for_wellbore_async(wellbore_uuid=wellbore_uuid)
     return [
         converters.convert_wellbore_completion_to_schema(wellbore_completion)
         for wellbore_completion in wellbore_completions
@@ -249,14 +227,9 @@ async def get_wellbore_casings(
 
     well_access = SsdlWellAccess(authenticated_user.get_ssdl_access_token())
 
-    wellbore_casings = await well_access.get_casings_for_wellbore_async(
-        wellbore_uuid=wellbore_uuid
-    )
+    wellbore_casings = await well_access.get_casings_for_wellbore_async(wellbore_uuid=wellbore_uuid)
 
-    return [
-        converters.convert_wellbore_casing_to_schema(wellbore_casing)
-        for wellbore_casing in wellbore_casings
-    ]
+    return [converters.convert_wellbore_casing_to_schema(wellbore_casing) for wellbore_casing in wellbore_casings]
 
 
 @router.get("/wellbore_perforations/")
@@ -274,9 +247,7 @@ async def get_wellbore_perforations(
 
     well_access = SsdlWellAccess(authenticated_user.get_ssdl_access_token())
 
-    wellbore_perforations = await well_access.get_perforations_for_wellbore_async(
-        wellbore_uuid=wellbore_uuid
-    )
+    wellbore_perforations = await well_access.get_perforations_for_wellbore_async(wellbore_uuid=wellbore_uuid)
 
     return [
         converters.convert_wellbore_perforation_to_schema(wellbore_perforation)
@@ -306,24 +277,16 @@ async def get_wellbore_log_curve_headers(
     curve_headers = []
 
     if schemas.WellLogCurveSourceEnum.SSDL_WELL_LOG in sources:
-        curve_headers += await _get_headers_from_ssdl_well_log_async(
-            authenticated_user, wellbore_uuid
-        )
+        curve_headers += await _get_headers_from_ssdl_well_log_async(authenticated_user, wellbore_uuid)
 
     if schemas.WellLogCurveSourceEnum.SMDA_GEOLOGY in sources:
-        curve_headers += await _get_headers_from_smda_geology_async(
-            authenticated_user, wellbore_uuid
-        )
+        curve_headers += await _get_headers_from_smda_geology_async(authenticated_user, wellbore_uuid)
 
     if schemas.WellLogCurveSourceEnum.SMDA_STRATIGRAPHY in sources:
-        curve_headers += await _get_headers_from_smda_stratigraghpy_async(
-            authenticated_user, wellbore_uuid
-        )
+        curve_headers += await _get_headers_from_smda_stratigraghpy_async(authenticated_user, wellbore_uuid)
 
     if schemas.WellLogCurveSourceEnum.SMDA_SURVEY in sources:
-        curve_headers += await _get_headers_from_smda_survey_async(
-            authenticated_user, wellbore_uuid
-        )
+        curve_headers += await _get_headers_from_smda_survey_async(authenticated_user, wellbore_uuid)
 
     return curve_headers
 
@@ -331,21 +294,14 @@ async def get_wellbore_log_curve_headers(
 async def _get_headers_from_ssdl_well_log_async(
     authenticated_user: AuthenticatedUser, wellbore_uuid: str
 ) -> list[schemas.WellboreLogCurveHeader]:
-    well_access_cls = (
-        DrogonWellAccess
-        if is_drogon_identifier(wellbore_uuid=wellbore_uuid)
-        else SsdlWellAccess
-    )
+    well_access_cls = DrogonWellAccess if is_drogon_identifier(wellbore_uuid=wellbore_uuid) else SsdlWellAccess
     well_access = well_access_cls(authenticated_user.get_ssdl_access_token())
 
     headers = await well_access.get_log_curve_headers_for_wellbore_async(wellbore_uuid)
 
     # Missing log name implies garbage data, so we drop them
     valid_headers = filter(lambda header: header.log_name is not None, headers)
-    return [
-        converters.convert_wellbore_log_curve_header_to_schema(head)
-        for head in valid_headers
-    ]
+    return [converters.convert_wellbore_log_curve_header_to_schema(head) for head in valid_headers]
 
 
 async def _get_headers_from_smda_geology_async(
@@ -354,16 +310,11 @@ async def _get_headers_from_smda_geology_async(
     geol_access = SmdaGeologyAccess(authenticated_user.get_smda_access_token())
 
     try:
-        geo_headers = await geol_access.get_wellbore_geology_headers_async(
-            wellbore_uuid
-        )
+        geo_headers = await geol_access.get_wellbore_geology_headers_async(wellbore_uuid)
     except NoDataError:
         geo_headers = []
 
-    return [
-        converters.convert_wellbore_geo_header_to_well_log_header(header)
-        for header in geo_headers
-    ]
+    return [converters.convert_wellbore_geo_header_to_well_log_header(header) for header in geo_headers]
 
 
 async def _get_headers_from_smda_stratigraghpy_async(
@@ -372,17 +323,11 @@ async def _get_headers_from_smda_stratigraghpy_async(
     strat_access = SmdaAccess(authenticated_user.get_smda_access_token())
 
     try:
-        strat_columns = await strat_access.get_stratigraphic_columns_for_wellbore_async(
-            wellbore_uuid
-        )
+        strat_columns = await strat_access.get_stratigraphic_columns_for_wellbore_async(wellbore_uuid)
     except NoDataError:
         strat_columns = []
 
-    return [
-        converters.convert_strat_column_to_well_log_header(col)
-        for col in strat_columns
-        if col.strat_column_type
-    ]
+    return [converters.convert_strat_column_to_well_log_header(col) for col in strat_columns if col.strat_column_type]
 
 
 async def _get_headers_from_smda_survey_async(
@@ -391,16 +336,12 @@ async def _get_headers_from_smda_survey_async(
     survey_access = SmdaAccess(authenticated_user.get_smda_access_token())
 
     try:
-        survey_headers = await survey_access.get_survey_headers_for_wellbore_async(
-            wellbore_uuid
-        )
+        survey_headers = await survey_access.get_survey_headers_for_wellbore_async(wellbore_uuid)
     except NoDataError:
         return []
 
     # Unsure if there can ever be more than one; will make more robust handling when implementing the data provider framework, but for now we just take the first (most recent one)
-    log_headers = converters.convert_survey_header_to_well_log_headers(
-        survey_headers[0]
-    )
+    log_headers = converters.convert_survey_header_to_well_log_headers(survey_headers[0])
 
     return log_headers
 
@@ -422,20 +363,14 @@ async def get_log_curve_data(
 
     # Handle DROGON
     if is_drogon_identifier(wellbore_uuid=wellbore_uuid):
-        well_access_drogon = DrogonWellAccess(
-            authenticated_user.get_ssdl_access_token()
-        )
-        curve_data = await well_access_drogon.get_log_curve_data_async(
-            wellbore_uuid, curve_name, log_name
-        )
+        well_access_drogon = DrogonWellAccess(authenticated_user.get_ssdl_access_token())
+        curve_data = await well_access_drogon.get_log_curve_data_async(wellbore_uuid, curve_name, log_name)
 
         return converters.convert_wellbore_log_curve_data_to_schema(curve_data)
 
     if source == schemas.WellLogCurveSourceEnum.SSDL_WELL_LOG:
         well_access = SsdlWellAccess(authenticated_user.get_ssdl_access_token())
-        log_curve = await well_access.get_log_curve_data_async(
-            wellbore_uuid, curve_name, log_name
-        )
+        log_curve = await well_access.get_log_curve_data_async(wellbore_uuid, curve_name, log_name)
 
         return converters.convert_wellbore_log_curve_data_to_schema(log_curve)
 
@@ -444,23 +379,15 @@ async def get_log_curve_data(
 
         geol_access = SmdaGeologyAccess(authenticated_user.get_smda_access_token())
 
-        geo_headers = await geol_access.get_wellbore_geology_headers_async(
-            wellbore_uuid
-        )
-        geo_headers = [
-            h
-            for h in geo_headers
-            if h.identifier == curve_name and h.interpreter == log_name
-        ]
+        geo_headers = await geol_access.get_wellbore_geology_headers_async(wellbore_uuid)
+        geo_headers = [h for h in geo_headers if h.identifier == curve_name and h.interpreter == log_name]
 
         if not geo_headers:
             raise ValueError("Could not find matching geology header")
 
         geo_header = geo_headers[0]
 
-        geo_data = await geol_access.get_wellbore_geology_data_async(
-            wellbore_uuid, geo_header.uuid
-        )
+        geo_data = await geol_access.get_wellbore_geology_data_async(wellbore_uuid, geo_header.uuid)
 
         return converters.convert_geology_data_to_log_curve_schema(geo_header, geo_data)
 
@@ -468,24 +395,16 @@ async def get_log_curve_data(
         # Here, the log name is the strat column. curve name is not used
         smda_access = SmdaAccess(authenticated_user.get_smda_access_token())
 
-        wellbore_strat_units = (
-            await smda_access.get_stratigraphy_for_wellbore_and_column_async(
-                wellbore_uuid, log_name
-            )
-        )
+        wellbore_strat_units = await smda_access.get_stratigraphy_for_wellbore_and_column_async(wellbore_uuid, log_name)
 
-        return converters.convert_strat_unit_data_to_log_curve_schema(
-            wellbore_strat_units
-        )
+        return converters.convert_strat_unit_data_to_log_curve_schema(wellbore_strat_units)
 
     if source == schemas.WellLogCurveSourceEnum.SMDA_SURVEY:
         # Here, the log name is a single survey identifier, and the curve name is **either AZI, INCL, or DSL**, which are within that sample
         smda_access = SmdaAccess(authenticated_user.get_smda_access_token())
 
         # Header needed again to get curve units, and the correct samples (incase there's multiple surveys)
-        survey_headers = await smda_access.get_survey_headers_for_wellbore_async(
-            wellbore_uuid
-        )
+        survey_headers = await smda_access.get_survey_headers_for_wellbore_async(wellbore_uuid)
         # As mentioned in the header endpoint, we assume there's only one
         survey_header = survey_headers[0]
         if not survey_header:
@@ -495,8 +414,6 @@ async def get_log_curve_data(
             wellbore_uuid, survey_header.survey_identifier
         )
 
-        return converters.convert_survey_sample_to_log_curve_schemas(
-            survey_samples, survey_header, curve_name
-        )
+        return converters.convert_survey_sample_to_log_curve_schemas(survey_samples, survey_header, curve_name)
 
     raise ValueError(f"Unknown source {source}")
