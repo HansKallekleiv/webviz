@@ -106,6 +106,14 @@ export function DataProviderManagerWrapper(props: LayerManagerComponentWrapperPr
                     ),
                 );
                 return;
+            case "rich-drilled-wellbore-trajectories":
+                groupDelegate.prependChild(
+                    DataProviderRegistry.makeDataProvider(
+                        CustomDataProviderType.RICH_DRILLED_WELL_TRAJECTORIES,
+                        props.dataProviderManager,
+                    ),
+                );
+                return;
             case "drilled-wellbore-trajectories":
                 groupDelegate.prependChild(
                     DataProviderRegistry.makeDataProvider(
@@ -312,6 +320,11 @@ const ACTIONS: ActionGroup[] = [
                         identifier: "drilled-wellbore-trajectories",
                         icon: <Icon data={wellbore} fontSize="small" />,
                         label: "Drilled Wellbore Trajectories",
+                    },
+                    {
+                        identifier: "rich-drilled-wellbore-trajectories",
+                        icon: <Icon data={wellbore} fontSize="small" />,
+                        label: "Rich Drilled Wellbore Trajectories",
                     },
                     {
                         identifier: "drilled-wellbore-picks",

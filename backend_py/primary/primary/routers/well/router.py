@@ -197,7 +197,7 @@ async def get_wellbore_completions(
     # fmt:on
 ) -> List[schemas.WellboreCompletion]:
     """Get wellbore completions"""
-
+    print("Getting wellbore completions for", wellbore_uuids)
     # Handle DROGON (if any of the wellbores are from drogon, return empty list)
     if any(is_drogon_identifier(wellbore_uuid=uuid) for uuid in wellbore_uuids):
         return []

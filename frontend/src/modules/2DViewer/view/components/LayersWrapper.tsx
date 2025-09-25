@@ -115,6 +115,14 @@ VISUALIZATION_ASSEMBLER.registerDataProviderTransformers(
         transformToBoundingBox: makeDrilledWellTrajectoriesBoundingBox,
     },
 );
+VISUALIZATION_ASSEMBLER.registerDataProviderTransformers(
+    CustomDataProviderType.RICH_DRILLED_WELL_TRAJECTORIES,
+    DrilledWellTrajectoriesProvider,
+    {
+        transformToVisualization: makeDrilledWellTrajectoriesLayer,
+        transformToBoundingBox: makeDrilledWellTrajectoriesBoundingBox,
+    },
+);
 
 export function LayersWrapper(props: LayersWrapperProps): React.ReactNode {
     const [prevBoundingBox, setPrevBoundingBox] = React.useState<bbox.BBox | null>(null);
