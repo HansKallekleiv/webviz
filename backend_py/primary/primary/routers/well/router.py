@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query
 from primary.services.smda_access.drogon import DrogonSmdaAccess
 from primary.services.smda_access import SmdaAccess
 from primary.services.smda_access import GeologyAccess as SmdaGeologyAccess
-from primary.services.service_exceptions import NoDataError
+from primary.services.service_exceptions import NoDataError, Service
 
 from primary.services.utils.authenticated_user import AuthenticatedUser
 from primary.auth.auth_helper import AuthHelper
@@ -30,9 +30,10 @@ async def get_drilled_wellbore_headers(
     # fmt:off
     authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user),
     field_identifier: str = Query(description="Official field identifier"),
+    include_completions: bool = Query(default=True, description="Include perforation and screen completion data"),
     # fmt:on
-) -> List[schemas.WellboreHeader]:
-    """Get wellbore headers for all wells in the field"""
+) -> List[schemas.EnhancedWellboreHeader]:
+    """Get wellbore headers for all wells in the field, optionally including completion data"""
     well_access: Union[SmdaAccess, DrogonSmdaAccess]
     if is_drogon_identifier(field_identifier=field_identifier):
         # Handle DROGON
@@ -42,7 +43,77 @@ async def get_drilled_wellbore_headers(
 
     wellbore_headers = await well_access.get_wellbore_headers_async(field_identifier)
 
-    return [converters.convert_wellbore_header_to_schema(wellbore_header) for wellbore_header in wellbore_headers]
+    if not include_completions:
+        # Return basic headers converted to enhanced format (with empty completion arrays)
+        return [
+            schemas.EnhancedWellboreHeader(
+                **converters.convert_wellbore_header_to_schema(wellbore_header).model_dump(),
+                perforations=[],
+                screens=[],
+            )
+            for wellbore_header in wellbore_headers
+        ]
+
+    # Fetch completion data in parallel
+    perforations_task = None
+    screens_task = None
+
+    if not is_drogon_identifier(field_identifier=field_identifier):
+        # Only fetch completions for non-DROGON fields
+        well_access_ssdl = SsdlWellAccess(authenticated_user.get_ssdl_access_token())
+
+        # Get field UUID first
+        fields = await well_access_ssdl.get_fields_async()
+        field_uuid = next((field.field_uuid for field in fields if field.field_identifier == field_identifier), None)
+
+        if field_uuid:
+            import asyncio
+
+            perforations_task = asyncio.create_task(
+                well_access_ssdl.get_field_perforations_async(field_uuid=field_uuid)
+            )
+            screens_task = asyncio.create_task(well_access_ssdl.get_field_screens_async(field_uuid=field_uuid))
+
+    # Wait for completion data
+    field_perforations = []
+    field_screens = []
+
+    if perforations_task:
+        field_perforations = await perforations_task
+    if screens_task:
+        field_screens = await screens_task
+
+    # Create lookup dictionaries for completion data by wellbore UUID
+    perforations_by_wellbore: dict[str, list[schemas.WellborePerforationNested]] = {}
+    for perf in field_perforations:
+        if perf.wellbore_uuid not in perforations_by_wellbore:
+            perforations_by_wellbore[perf.wellbore_uuid] = []
+        perforations_by_wellbore[perf.wellbore_uuid].append(
+            converters.convert_wellbore_perforation_to_nested_schema(perf)
+        )
+
+    screens_by_wellbore: dict[str, list[schemas.WellboreCompletionNested]] = {}
+    for screen in field_screens:
+        if screen.wellbore_uuid not in screens_by_wellbore:
+            screens_by_wellbore[screen.wellbore_uuid] = []
+        screens_by_wellbore[screen.wellbore_uuid].append(
+            converters.convert_wellbore_completion_to_nested_schema(screen)
+        )
+
+    # Combine header data with completion data
+    enhanced_headers = []
+    for wellbore_header in wellbore_headers:
+        basic_header = converters.convert_wellbore_header_to_schema(wellbore_header)
+        wellbore_uuid = basic_header.wellboreUuid
+
+        enhanced_header = schemas.EnhancedWellboreHeader(
+            **basic_header.model_dump(),
+            perforations=perforations_by_wellbore.get(wellbore_uuid, []),
+            screens=screens_by_wellbore.get(wellbore_uuid, []),
+        )
+        enhanced_headers.append(enhanced_header)
+
+    return enhanced_headers
 
 
 @router.get("/well_trajectories/")
@@ -189,22 +260,77 @@ async def get_wellbore_stratigraphic_columns(
     return [converters.to_api_stratigraphic_column(col) for col in strat_columns]
 
 
-@router.get("/wellbore_completions/")
-async def get_wellbore_completions(
-    # fmt:off
+@router.get("/field_perforations/")
+async def get_field_perforations(
     authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user),
-    wellbore_uuids: List[str] = Query(description="List of wellbore uuids"),
-    # fmt:on
-) -> List[schemas.WellboreCompletion]:
-    """Get wellbore completions"""
-    print("Getting wellbore completions for", wellbore_uuids)
-    # Handle DROGON (if any of the wellbores are from drogon, return empty list)
-    if any(is_drogon_identifier(wellbore_uuid=uuid) for uuid in wellbore_uuids):
+    field_identifier: str = Query(description="Official field identifier"),
+) -> List[schemas.WellborePerforation]:
+    """Get perforations for all well bores in a field"""
+
+    # Handle DROGON
+    if is_drogon_identifier(field_identifier=field_identifier):
         return []
 
     well_access = SsdlWellAccess(authenticated_user.get_ssdl_access_token())
 
-    wellbore_completions = await well_access.get_completions_for_wellbores_async(wellbore_uuids=wellbore_uuids)
+    # Retrieve field uuid
+    fields = await well_access.get_fields_async()
+
+    field_uuid = next((field.field_uuid for field in fields if field.field_identifier == field_identifier), None)
+    if not field_uuid:
+        raise NoDataError(f"Field not found: {field_identifier}", Service.SSDL)
+
+    all_perforations = await well_access.get_field_perforations_async(field_uuid=field_uuid)
+
+    return [
+        converters.convert_wellbore_perforation_to_schema(wellbore_perforation)
+        for wellbore_perforation in all_perforations
+    ]
+
+
+@router.get("/field_screens/")
+async def get_field_screens(
+    authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user),
+    field_identifier: str = Query(description="Official field identifier"),
+) -> List[schemas.WellboreCompletion]:
+    """Get screens for all well bores in a field"""
+
+    # Handle DROGON
+    if is_drogon_identifier(field_identifier=field_identifier):
+        return []
+
+    well_access = SsdlWellAccess(authenticated_user.get_ssdl_access_token())
+
+    # Retrieve field uuid
+    fields = await well_access.get_fields_async()
+
+    field_uuid = next((field.field_uuid for field in fields if field.field_identifier == field_identifier), None)
+    if not field_uuid:
+        raise NoDataError(f"Field not found: {field_identifier}", Service.SSDL)
+
+    all_completions = await well_access.get_field_screens_async(field_uuid=field_uuid)
+
+    return [
+        converters.convert_wellbore_completion_to_schema(wellbore_completion) for wellbore_completion in all_completions
+    ]
+
+
+@router.get("/wellbore_completions/")
+async def get_wellbore_completions(
+    # fmt:off
+    authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user),
+    wellbore_uuid: str = Query(description="Wellbore uuid"),
+    # fmt:on
+) -> List[schemas.WellboreCompletion]:
+    """Get well bore completions for a single well bore"""
+
+    # Handle DROGON
+    if is_drogon_identifier(wellbore_uuid=wellbore_uuid):
+        return []
+
+    well_access = SsdlWellAccess(authenticated_user.get_ssdl_access_token())
+
+    wellbore_completions = await well_access.get_completions_for_wellbore_async(wellbore_uuid=wellbore_uuid)
     return [
         converters.convert_wellbore_completion_to_schema(wellbore_completion)
         for wellbore_completion in wellbore_completions
@@ -215,18 +341,18 @@ async def get_wellbore_completions(
 async def get_wellbore_casings(
     # fmt:off
     authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user),
-    wellbore_uuids: List[str] = Query(description="List of wellbore uuids"),
+    wellbore_uuid: str = Query(description="Wellbore uuid"),
     # fmt:on
 ) -> List[schemas.WellboreCasing]:
-    """Get wellbore casings"""
+    """Get well bore casings for a single well bore"""
 
-    # Handle DROGON (if any of the wellbores are from drogon, return empty list)
-    if any(is_drogon_identifier(wellbore_uuid=uuid) for uuid in wellbore_uuids):
+    # Handle DROGON
+    if is_drogon_identifier(wellbore_uuid=wellbore_uuid):
         return []
 
     well_access = SsdlWellAccess(authenticated_user.get_ssdl_access_token())
 
-    wellbore_casings = await well_access.get_casings_for_wellbores_async(wellbore_uuids=wellbore_uuids)
+    wellbore_casings = await well_access.get_casings_for_wellbore_async(wellbore_uuid=wellbore_uuid)
 
     return [converters.convert_wellbore_casing_to_schema(wellbore_casing) for wellbore_casing in wellbore_casings]
 
@@ -235,18 +361,19 @@ async def get_wellbore_casings(
 async def get_wellbore_perforations(
     # fmt:off
     authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user),
-    wellbore_uuids: List[str] = Query(description="List of wellbore uuids"),
+    wellbore_uuid: str = Query(description="Wellbore uuid"),
     # fmt:on
 ) -> List[schemas.WellborePerforation]:
-    """Get wellbore perforations"""
+    """Get well bore casing for a single well bore"""
 
-    # Handle DROGON (if any of the wellbores are from drogon, return empty list)
-    if any(is_drogon_identifier(wellbore_uuid=uuid) for uuid in wellbore_uuids):
+    # Handle DROGON
+    if is_drogon_identifier(wellbore_uuid=wellbore_uuid):
         return []
 
     well_access = SsdlWellAccess(authenticated_user.get_ssdl_access_token())
 
-    wellbore_perforations = await well_access.get_perforations_for_wellbores_async(wellbore_uuids=wellbore_uuids)
+    wellbore_perforations = await well_access.get_perforations_for_wellbore_async(wellbore_uuid=wellbore_uuid)
+
     return [
         converters.convert_wellbore_perforation_to_schema(wellbore_perforation)
         for wellbore_perforation in wellbore_perforations

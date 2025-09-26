@@ -84,8 +84,23 @@ def convert_wellbore_completion_to_schema(
     wellbore_completion: WellboreCompletion,
 ) -> schemas.WellboreCompletion:
     return schemas.WellboreCompletion(
-        wellboreUuid=wellbore_completion.wellbore_uuid,
         uniqueWellboreIdentifier=wellbore_completion.wellbore_id,
+        wellboreUuid=wellbore_completion.wellbore_uuid,
+        mdTop=wellbore_completion.md_top,
+        mdBottom=wellbore_completion.md_bottom,
+        tvdTop=wellbore_completion.tvd_top,
+        tvdBottom=wellbore_completion.tvd_bottom,
+        description=wellbore_completion.description,
+        symbolName=wellbore_completion.symbol_name,
+        comment=wellbore_completion.comment,
+    )
+
+
+def convert_wellbore_completion_to_nested_schema(
+    wellbore_completion: WellboreCompletion,
+) -> schemas.WellboreCompletionNested:
+    """Convert completion to nested schema (without wellbore identifiers)"""
+    return schemas.WellboreCompletionNested(
         mdTop=wellbore_completion.md_top,
         mdBottom=wellbore_completion.md_bottom,
         tvdTop=wellbore_completion.tvd_top,
@@ -100,8 +115,6 @@ def convert_wellbore_casing_to_schema(
     wellbore_casing: WellboreCasing,
 ) -> schemas.WellboreCasing:
     return schemas.WellboreCasing(
-        wellboreUuid=wellbore_casing.wellbore_uuid,
-        uniqueWellboreIdentifier=wellbore_casing.wellbore_id,
         itemType=wellbore_casing.item_type,
         diameterNumeric=wellbore_casing.diameter_numeric,
         diameterInner=wellbore_casing.diameter_inner,
@@ -119,14 +132,32 @@ def convert_wellbore_perforation_to_schema(
     wellbore_perforation: WellborePerforation,
 ) -> schemas.WellborePerforation:
     return schemas.WellborePerforation(
-        wellboreUuid=wellbore_perforation.wellbore_uuid,
         uniqueWellboreIdentifier=wellbore_perforation.wellbore_id,
+        wellboreUuid=wellbore_perforation.wellbore_uuid,
         mdTop=wellbore_perforation.md_top,
         mdBottom=wellbore_perforation.md_bottom,
         tvdTop=wellbore_perforation.tvd_top,
         tvdBottom=wellbore_perforation.tvd_bottom,
         status=wellbore_perforation.status,
         completionMode=wellbore_perforation.completion_mode,
+        dateShot=wellbore_perforation.date_shot,
+        dateClosed=wellbore_perforation.date_closed,
+    )
+
+
+def convert_wellbore_perforation_to_nested_schema(
+    wellbore_perforation: WellborePerforation,
+) -> schemas.WellborePerforationNested:
+    """Convert perforation to nested schema (without wellbore identifiers)"""
+    return schemas.WellborePerforationNested(
+        mdTop=wellbore_perforation.md_top,
+        mdBottom=wellbore_perforation.md_bottom,
+        tvdTop=wellbore_perforation.tvd_top,
+        tvdBottom=wellbore_perforation.tvd_bottom,
+        status=wellbore_perforation.status,
+        completionMode=wellbore_perforation.completion_mode,
+        dateShot=wellbore_perforation.date_shot,
+        dateClosed=wellbore_perforation.date_closed,
     )
 
 

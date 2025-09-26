@@ -16,6 +16,24 @@ class WellboreHeader(BaseModel):
     wellboreStatus: str
 
 
+class EnhancedWellboreHeader(BaseModel):
+    """Enhanced wellbore header that includes completion data (perforations and screens)"""
+
+    wellboreUuid: str
+    uniqueWellboreIdentifier: str
+    wellUuid: str
+    uniqueWellIdentifier: str
+    wellEasting: float
+    wellNorthing: float
+    depthReferencePoint: str
+    depthReferenceElevation: float
+    wellborePurpose: str
+    wellboreStatus: str
+    # Completion data
+    perforations: List["WellborePerforationNested"] = []
+    screens: List["WellboreCompletionNested"] = []
+
+
 class WellboreTrajectory(BaseModel):
     wellboreUuid: str
     uniqueWellboreIdentifier: str
@@ -60,8 +78,20 @@ class WellborePick(BaseModel):
 
 
 class WellboreCompletion(BaseModel):
-    wellboreUuid: str
     uniqueWellboreIdentifier: str
+    wellboreUuid: str
+    mdTop: float
+    mdBottom: float
+    tvdTop: float | None
+    tvdBottom: float | None
+    description: str | None
+    symbolName: str | None
+    comment: str | None
+
+
+class WellboreCompletionNested(BaseModel):
+    """Simplified completion schema for use in nested structures (without wellbore identifiers)"""
+
     mdTop: float
     mdBottom: float
     tvdTop: float | None
@@ -72,8 +102,6 @@ class WellboreCompletion(BaseModel):
 
 
 class WellboreCasing(BaseModel):
-    wellboreUuid: str
-    uniqueWellboreIdentifier: str
     itemType: str  # Casing type
     diameterNumeric: float
     diameterInner: float
@@ -87,14 +115,29 @@ class WellboreCasing(BaseModel):
 
 
 class WellborePerforation(BaseModel):
-    wellboreUuid: str
     uniqueWellboreIdentifier: str
+    wellboreUuid: str
     mdTop: float
     mdBottom: float
     tvdTop: float
     tvdBottom: float
     status: str
     completionMode: str
+    dateShot: str | None
+    dateClosed: str | None
+
+
+class WellborePerforationNested(BaseModel):
+    """Simplified perforation schema for use in nested structures (without wellbore identifiers)"""
+
+    mdTop: float
+    mdBottom: float
+    tvdTop: float
+    tvdBottom: float
+    status: str
+    completionMode: str
+    dateShot: str | None
+    dateClosed: str | None
 
 
 class WellLogCurveSourceEnum(Enum):
