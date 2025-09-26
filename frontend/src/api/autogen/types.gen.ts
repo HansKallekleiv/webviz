@@ -112,6 +112,24 @@ export type DiscreteValueMetadata_api = {
     rgbColor: [number, number, number];
 };
 
+/**
+ * Enhanced wellbore header that includes completion data (perforations and screens)
+ */
+export type EnhancedWellboreHeader_api = {
+    wellboreUuid: string;
+    uniqueWellboreIdentifier: string;
+    wellUuid: string;
+    uniqueWellIdentifier: string;
+    wellEasting: number;
+    wellNorthing: number;
+    depthReferencePoint: string;
+    depthReferenceElevation: number;
+    wellborePurpose: string;
+    wellboreStatus: string;
+    perforations?: Array<WellborePerforationNested_api>;
+    screens?: Array<WellboreCompletionNested_api>;
+};
+
 export type EnsembleDetails_api = {
     name: string;
     fieldIdentifier: string;
@@ -1059,8 +1077,6 @@ export enum WellLogCurveTypeEnum_api {
 }
 
 export type WellboreCasing_api = {
-    wellboreUuid: string;
-    uniqueWellboreIdentifier: string;
     itemType: string;
     diameterNumeric: number;
     diameterInner: number;
@@ -1074,8 +1090,8 @@ export type WellboreCasing_api = {
 };
 
 export type WellboreCompletion_api = {
-    wellboreUuid: string;
     uniqueWellboreIdentifier: string;
+    wellboreUuid: string;
     mdTop: number;
     mdBottom: number;
     tvdTop: number | null;
@@ -1085,17 +1101,17 @@ export type WellboreCompletion_api = {
     comment: string | null;
 };
 
-export type WellboreHeader_api = {
-    wellboreUuid: string;
-    uniqueWellboreIdentifier: string;
-    wellUuid: string;
-    uniqueWellIdentifier: string;
-    wellEasting: number;
-    wellNorthing: number;
-    depthReferencePoint: string;
-    depthReferenceElevation: number;
-    wellborePurpose: string;
-    wellboreStatus: string;
+/**
+ * Simplified completion schema for use in nested structures (without wellbore identifiers)
+ */
+export type WellboreCompletionNested_api = {
+    mdTop: number;
+    mdBottom: number;
+    tvdTop: number | null;
+    tvdBottom: number | null;
+    description: string | null;
+    symbolName: string | null;
+    comment: string | null;
 };
 
 export type WellboreLogCurveData_api = {
@@ -1125,14 +1141,30 @@ export type WellboreLogCurveHeader_api = {
 };
 
 export type WellborePerforation_api = {
-    wellboreUuid: string;
     uniqueWellboreIdentifier: string;
+    wellboreUuid: string;
     mdTop: number;
     mdBottom: number;
     tvdTop: number;
     tvdBottom: number;
     status: string;
     completionMode: string;
+    dateShot: string | null;
+    dateClosed: string | null;
+};
+
+/**
+ * Simplified perforation schema for use in nested structures (without wellbore identifiers)
+ */
+export type WellborePerforationNested_api = {
+    mdTop: number;
+    mdBottom: number;
+    tvdTop: number;
+    tvdBottom: number;
+    status: string;
+    completionMode: string;
+    dateShot: string | null;
+    dateClosed: string | null;
 };
 
 /**
@@ -2868,6 +2900,10 @@ export type GetDrilledWellboreHeadersData_api = {
          * Official field identifier
          */
         field_identifier: string;
+        /**
+         * Include perforation and screen completion data
+         */
+        include_completions?: boolean;
         t?: number;
     };
     url: "/well/drilled_wellbore_headers/";
@@ -2886,7 +2922,7 @@ export type GetDrilledWellboreHeadersResponses_api = {
     /**
      * Successful Response
      */
-    200: Array<WellboreHeader_api>;
+    200: Array<EnhancedWellboreHeader_api>;
 };
 
 export type GetDrilledWellboreHeadersResponse_api =
@@ -3099,14 +3135,76 @@ export type GetWellboreStratigraphicColumnsResponses_api = {
 export type GetWellboreStratigraphicColumnsResponse_api =
     GetWellboreStratigraphicColumnsResponses_api[keyof GetWellboreStratigraphicColumnsResponses_api];
 
+export type GetFieldPerforationsData_api = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Official field identifier
+         */
+        field_identifier: string;
+        t?: number;
+    };
+    url: "/well/field_perforations/";
+};
+
+export type GetFieldPerforationsErrors_api = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError_api;
+};
+
+export type GetFieldPerforationsError_api = GetFieldPerforationsErrors_api[keyof GetFieldPerforationsErrors_api];
+
+export type GetFieldPerforationsResponses_api = {
+    /**
+     * Successful Response
+     */
+    200: Array<WellborePerforation_api>;
+};
+
+export type GetFieldPerforationsResponse_api = GetFieldPerforationsResponses_api[keyof GetFieldPerforationsResponses_api];
+
+export type GetFieldScreensData_api = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Official field identifier
+         */
+        field_identifier: string;
+        t?: number;
+    };
+    url: "/well/field_screens/";
+};
+
+export type GetFieldScreensErrors_api = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError_api;
+};
+
+export type GetFieldScreensError_api = GetFieldScreensErrors_api[keyof GetFieldScreensErrors_api];
+
+export type GetFieldScreensResponses_api = {
+    /**
+     * Successful Response
+     */
+    200: Array<WellboreCompletion_api>;
+};
+
+export type GetFieldScreensResponse_api = GetFieldScreensResponses_api[keyof GetFieldScreensResponses_api];
+
 export type GetWellboreCompletionsData_api = {
     body?: never;
     path?: never;
     query: {
         /**
-         * List of wellbore uuids
+         * Wellbore uuid
          */
-        wellbore_uuids: Array<string>;
+        wellbore_uuid: string;
         t?: number;
     };
     url: "/well/wellbore_completions/";
@@ -3135,9 +3233,9 @@ export type GetWellboreCasingsData_api = {
     path?: never;
     query: {
         /**
-         * List of wellbore uuids
+         * Wellbore uuid
          */
-        wellbore_uuids: Array<string>;
+        wellbore_uuid: string;
         t?: number;
     };
     url: "/well/wellbore_casings/";
@@ -3166,9 +3264,9 @@ export type GetWellborePerforationsData_api = {
     path?: never;
     query: {
         /**
-         * List of wellbore uuids
+         * Wellbore uuid
          */
-        wellbore_uuids: Array<string>;
+        wellbore_uuid: string;
         t?: number;
     };
     url: "/well/wellbore_perforations/";

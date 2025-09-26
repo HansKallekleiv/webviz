@@ -2,6 +2,7 @@ import { BooleanNumberSetting } from "../implementations/BooleanNumberSetting";
 import { BooleanSetting } from "../implementations/BooleanSetting";
 import { ColorScaleSetting } from "../implementations/ColorScaleSetting";
 import { ColorSetSetting } from "../implementations/ColorSetSetting";
+import { DepthFilterSetting } from "../implementations/DepthFilterSetting";
 import { DrilledWellborePicksSetting } from "../implementations/DrilledWellborePicksSetting";
 import { DrilledWellboresSetting } from "../implementations/DrilledWellboresSetting";
 import { DropdownNumberSetting } from "../implementations/DropdownNumberSetting";
@@ -81,13 +82,15 @@ SettingRegistry.registerSetting(Setting.SEISMIC_SLICES, "Seismic Slices", Seismi
 SettingRegistry.registerSetting(Setting.SENSITIVITY, "Sensitivity", SensitivitySetting);
 SettingRegistry.registerSetting(Setting.SHOW_GRID_LINES, "Show Grid Lines", BooleanSetting);
 SettingRegistry.registerSetting(Setting.SMDA_INTERPRETER, "SMDA Interpreter", DropdownStringSetting);
-SettingRegistry.registerSetting(Setting.SMDA_WELLBORE_HEADERS, "SMDA Wellbore Headers", DrilledWellboresSetting);
+SettingRegistry.registerSetting(Setting.SMDA_WELLBORE_HEADERS, "Wells", DrilledWellboresSetting);
 SettingRegistry.registerSetting(Setting.STATISTIC_FUNCTION, "Statistic Function", StatisticFunctionSetting);
 SettingRegistry.registerSetting(Setting.STRAT_COLUMN, "Stratigraphic Column", DropdownStringSetting);
 SettingRegistry.registerSetting(Setting.SURFACE_NAME, "Surface Name", DropdownStringSetting);
 SettingRegistry.registerSetting(Setting.SURFACE_NAMES, "Surface Names", SelectStringSetting);
 SettingRegistry.registerSetting(Setting.TIME_OR_INTERVAL, "Time or Interval", TimeOrIntervalSetting);
+SettingRegistry.registerSetting(Setting.DEPTH_FILTER, "Depth Filter", DepthFilterSetting);
 SettingRegistry.registerSetting(Setting.WELLBORE_EXTENSION_LENGTH, "Wellbore Extension Length", InputNumberSetting, {
     customConstructorParameters: [{ min: 0.0, max: 5000.0 }],
 });
 SettingRegistry.registerSetting(Setting.WELLBORE_PICKS, "Wellbore Picks", DrilledWellborePicksSetting);
+SettingRegistry.registerSetting(Setting.WELLBORE_PERFORATIONS, "Perforations", SelectStringSetting);

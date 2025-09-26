@@ -3,12 +3,13 @@ import { isEqual } from "lodash";
 
 import type {
     SurfaceStatisticFunction_api,
-    WellboreHeader_api,
+    EnhancedWellboreHeader_api,
     WellboreLogCurveHeader_api,
     WellborePick_api,
 } from "@api";
 import type { ColorScaleSpecification } from "@framework/components/ColorScaleSelector/colorScaleSelector";
 import type { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
+import type { DepthFilterSettings } from "@lib/components/DepthFilterDialog";
 import type { ColorSet } from "@lib/utils/ColorSet";
 
 import type { AvailableValuesType } from "../interfacesAndTypes/utils";
@@ -66,9 +67,11 @@ export enum Setting {
     SURFACE_NAME = "surfaceName",
     SURFACE_NAMES = "surfaceNames",
     TIME_OR_INTERVAL = "timeOrInterval",
+    DEPTH_FILTER = "depthFilter",
     WELLBORE_EXTENSION_LENGTH = "wellboreExtensionLength",
     WELLBORE_PICKS = "wellborePicks",
     WELLBORE_PICK_IDENTIFIER = "wellborePickIdentifier",
+    WELLBORE_PERFORATIONS = "wellborePerforations",
 }
 
 export const settingCategories = {
@@ -105,9 +108,11 @@ export const settingCategories = {
     [Setting.SURFACE_NAME]: SettingCategory.SINGLE_SELECT,
     [Setting.SURFACE_NAMES]: SettingCategory.MULTI_SELECT,
     [Setting.TIME_OR_INTERVAL]: SettingCategory.SINGLE_SELECT,
+    [Setting.DEPTH_FILTER]: SettingCategory.STATIC,
     [Setting.WELLBORE_EXTENSION_LENGTH]: SettingCategory.NUMBER,
     [Setting.WELLBORE_PICKS]: SettingCategory.MULTI_SELECT,
     [Setting.WELLBORE_PICK_IDENTIFIER]: SettingCategory.SINGLE_SELECT,
+    [Setting.WELLBORE_PERFORATIONS]: SettingCategory.MULTI_SELECT,
 } as const;
 
 export type SettingCategories = typeof settingCategories;
@@ -144,15 +149,17 @@ export type SettingTypes = {
     [Setting.SENSITIVITY]: SensitivityNameCasePair | null;
     [Setting.SHOW_GRID_LINES]: boolean;
     [Setting.SMDA_INTERPRETER]: string | null;
-    [Setting.SMDA_WELLBORE_HEADERS]: WellboreHeader_api[] | null;
+    [Setting.SMDA_WELLBORE_HEADERS]: EnhancedWellboreHeader_api[] | null;
     [Setting.STATISTIC_FUNCTION]: SurfaceStatisticFunction_api;
     [Setting.STRAT_COLUMN]: string | null;
     [Setting.SURFACE_NAME]: string | null;
     [Setting.SURFACE_NAMES]: string[] | null;
     [Setting.TIME_OR_INTERVAL]: string | null;
+    [Setting.DEPTH_FILTER]: DepthFilterSettings | null;
     [Setting.WELLBORE_EXTENSION_LENGTH]: number | null;
     [Setting.WELLBORE_PICKS]: WellborePick_api[] | null;
     [Setting.WELLBORE_PICK_IDENTIFIER]: string | null;
+    [Setting.WELLBORE_PERFORATIONS]: string[] | null;
 };
 
 export type PossibleSettingsForCategory<TCategory extends SettingCategory> = {

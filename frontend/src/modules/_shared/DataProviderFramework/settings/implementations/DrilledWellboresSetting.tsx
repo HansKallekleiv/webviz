@@ -1,8 +1,8 @@
 import React from "react";
 
-import type { WellboreHeader_api } from "@api";
-import type { SelectOption } from "@lib/components/Select";
-import { Select } from "@lib/components/Select";
+import type { EnhancedWellboreHeader_api } from "@api";
+import { Button } from "@lib/components/Button";
+import { WellboreSelectionDialog } from "@lib/components/WellboreSelectionDialog";
 
 import type {
     CustomSettingImplementation,
@@ -11,7 +11,7 @@ import type {
 import type { MakeAvailableValuesTypeBasedOnCategory } from "../../interfacesAndTypes/utils";
 import type { SettingCategory } from "../settingsDefinitions";
 
-type ValueType = WellboreHeader_api[] | null;
+type ValueType = EnhancedWellboreHeader_api[] | null;
 
 export class DrilledWellboresSetting implements CustomSettingImplementation<ValueType, SettingCategory.MULTI_SELECT> {
     defaultValue: ValueType = null;
@@ -39,34 +39,44 @@ export class DrilledWellboresSetting implements CustomSettingImplementation<Valu
 
     makeComponent(): (props: SettingComponentProps<ValueType, SettingCategory.MULTI_SELECT>) => React.ReactNode {
         return function DrilledWellbores(props: SettingComponentProps<ValueType, SettingCategory.MULTI_SELECT>) {
+            const [dialogOpen, setDialogOpen] = React.useState(false);
             const availableValues = props.availableValues ?? [];
+            const selectedValues = props.value ?? [];
 
-            const options: SelectOption[] = availableValues?.map((ident) => ({
-                value: ident.wellboreUuid,
-                label: ident.uniqueWellboreIdentifier,
-            }));
-
-            function handleChange(selectedUuids: string[]) {
-                const selectedWellbores = availableValues.filter((ident) => selectedUuids.includes(ident.wellboreUuid));
-                props.onValueChange(selectedWellbores);
+            function handleSelectionChange(wellbores: EnhancedWellboreHeader_api[]) {
+                props.onValueChange(wellbores);
             }
 
-            const selectedValues = React.useMemo(
-                () => props.value?.map((ident) => ident.wellboreUuid) ?? [],
-                [props.value],
-            );
+            function handleDialogClose() {
+                setDialogOpen(false);
+            }
+
+            function handleOpenDialog() {
+                setDialogOpen(true);
+            }
+
+            const selectedCount = selectedValues.length;
+            const totalCount = availableValues.length;
 
             return (
                 <div className="flex flex-col gap-1 mt-1">
-                    <Select
-                        filter
-                        options={options}
-                        value={selectedValues}
-                        onChange={handleChange}
-                        showQuickSelectButtons={true}
+                    <Button
+                        variant="outlined"
+                        onClick={handleOpenDialog}
                         disabled={props.isOverridden}
-                        multiple={true}
-                        size={5}
+                        style={{ width: "100%" }}
+                    >
+                        {selectedCount === 0
+                            ? "Select wellbores..."
+                            : `${selectedCount} of ${totalCount} wellbores selected`}
+                    </Button>
+
+                    <WellboreSelectionDialog
+                        open={dialogOpen}
+                        wellbores={availableValues}
+                        selectedWellbores={selectedValues}
+                        onSelectionChange={handleSelectionChange}
+                        onClose={handleDialogClose}
                     />
                 </div>
             );

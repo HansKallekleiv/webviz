@@ -140,6 +140,12 @@ import type {
     GetWellboreStratigraphicColumnsData_api,
     GetWellboreStratigraphicColumnsResponse_api,
     GetWellboreStratigraphicColumnsError_api,
+    GetFieldPerforationsData_api,
+    GetFieldPerforationsResponse_api,
+    GetFieldPerforationsError_api,
+    GetFieldScreensData_api,
+    GetFieldScreensResponse_api,
+    GetFieldScreensError_api,
     GetWellboreCompletionsData_api,
     GetWellboreCompletionsResponse_api,
     GetWellboreCompletionsError_api,
@@ -860,7 +866,7 @@ export const getWellCompletionsData = <ThrowOnError extends boolean = false>(
 
 /**
  * Get Drilled Wellbore Headers
- * Get wellbore headers for all wells in the field
+ * Get wellbore headers for all wells in the field, optionally including completion data
  */
 export const getDrilledWellboreHeaders = <ThrowOnError extends boolean = false>(
     options: Options<GetDrilledWellboreHeadersData_api, ThrowOnError>,
@@ -978,8 +984,34 @@ export const getWellboreStratigraphicColumns = <ThrowOnError extends boolean = f
 };
 
 /**
+ * Get Field Perforations
+ * Get perforations for all well bores in a field
+ */
+export const getFieldPerforations = <ThrowOnError extends boolean = false>(
+    options: Options<GetFieldPerforationsData_api, ThrowOnError>,
+) => {
+    return (options?.client ?? client).get<GetFieldPerforationsResponse_api, GetFieldPerforationsError_api, ThrowOnError>({
+        ...options,
+        url: "/well/field_perforations/",
+    });
+};
+
+/**
+ * Get Field Screens
+ * Get screens for all well bores in a field
+ */
+export const getFieldScreens = <ThrowOnError extends boolean = false>(
+    options: Options<GetFieldScreensData_api, ThrowOnError>,
+) => {
+    return (options?.client ?? client).get<GetFieldScreensResponse_api, GetFieldScreensError_api, ThrowOnError>({
+        ...options,
+        url: "/well/field_screens/",
+    });
+};
+
+/**
  * Get Wellbore Completions
- * Get wellbore completions
+ * Get well bore completions for a single well bore
  */
 export const getWellboreCompletions = <ThrowOnError extends boolean = false>(
     options: Options<GetWellboreCompletionsData_api, ThrowOnError>,
@@ -992,7 +1024,7 @@ export const getWellboreCompletions = <ThrowOnError extends boolean = false>(
 
 /**
  * Get Wellbore Casings
- * Get wellbore casings
+ * Get well bore casings for a single well bore
  */
 export const getWellboreCasings = <ThrowOnError extends boolean = false>(
     options: Options<GetWellboreCasingsData_api, ThrowOnError>,
@@ -1005,7 +1037,7 @@ export const getWellboreCasings = <ThrowOnError extends boolean = false>(
 
 /**
  * Get Wellbore Perforations
- * Get wellbore perforations
+ * Get well bore casing for a single well bore
  */
 export const getWellborePerforations = <ThrowOnError extends boolean = false>(
     options: Options<GetWellborePerforationsData_api, ThrowOnError>,

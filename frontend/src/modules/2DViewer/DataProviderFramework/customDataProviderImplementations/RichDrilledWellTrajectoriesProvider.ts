@@ -1,10 +1,7 @@
+import { isEqual } from "lodash";
+
 import type { WellboreTrajectory_api } from "@api";
-import {
-    getDrilledWellboreHeadersOptions,
-    getWellboreCompletionsOptions,
-    getWellborePerforationsOptions,
-    getWellTrajectoriesOptions,
-} from "@api";
+import { getDrilledWellboreHeadersOptions, getObservedSurfacesMetadataOptions, getWellTrajectoriesOptions } from "@api";
 import type {
     CustomDataProviderImplementation,
     FetchDataParams,
@@ -12,9 +9,14 @@ import type {
 import type { DefineDependenciesArgs } from "@modules/_shared/DataProviderFramework/interfacesAndTypes/customSettingsHandler";
 import type { MakeSettingTypesMap } from "@modules/_shared/DataProviderFramework/settings/settingsDefinitions";
 import { Setting } from "@modules/_shared/DataProviderFramework/settings/settingsDefinitions";
-import { isEqual } from "lodash";
 
-const richDrilledWellTrajectoriesSettings = [Setting.ENSEMBLE, Setting.SMDA_WELLBORE_HEADERS] as const;
+const richDrilledWellTrajectoriesSettings = [
+    Setting.ENSEMBLE,
+    Setting.SMDA_WELLBORE_HEADERS,
+    // Setting.WELLBORE_PERFORATIONS,
+    Setting.TIME_OR_INTERVAL,
+    Setting.DEPTH_FILTER,
+] as const;
 type RichDrilledWellTrajectoriesSettings = typeof richDrilledWellTrajectoriesSettings;
 type SettingsWithTypes = MakeSettingTypesMap<RichDrilledWellTrajectoriesSettings>;
 
@@ -66,7 +68,6 @@ export class RichDrilledWellTrajectoriesProvider
     defineDependencies({
         helperDependency,
         availableSettingsUpdater,
-        workbenchSession,
         queryClient,
     }: DefineDependenciesArgs<RichDrilledWellTrajectoriesSettings>) {
         availableSettingsUpdater(Setting.ENSEMBLE, ({ getGlobalSetting }) => {
@@ -98,37 +99,57 @@ export class RichDrilledWellTrajectoriesProvider
 
             return wellboreHeaders;
         });
-        const completionsDep = helperDependency(async ({ getGlobalSetting, abortSignal }) => {
-            const fieldIdentifier = getGlobalSetting("fieldId");
-            const wellboreHeaders = await queryClient.fetchQuery({
-                ...getDrilledWellboreHeadersOptions({
-                    query: { field_identifier: fieldIdentifier ?? "" },
-                    signal: abortSignal,
-                }),
-            });
-            const allWellboreUuids = wellboreHeaders.map((header) => header.wellboreUuid);
+
+        // const perforationsDep = helperDependency(async ({ getGlobalSetting, abortSignal }) => {
+        //     const fieldIdentifier = getGlobalSetting("fieldId");
+        //     return await queryClient.fetchQuery({
+        //         ...getFieldPerforationsOptions({
+        //             query: { field_identifier: fieldIdentifier ?? "" },
+        //             signal: abortSignal,
+        //         }),
+        //     });
+        // });
+        // const screenDep = helperDependency(async ({ getGlobalSetting, abortSignal }) => {
+        //     const fieldIdentifier = getGlobalSetting("fieldId");
+        //     return await queryClient.fetchQuery({
+        //         ...getFieldScreensOptions({
+        //             query: { field_identifier: fieldIdentifier ?? "" },
+        //             signal: abortSignal,
+        //         }),
+        //     });
+        // });
+        // availableSettingsUpdater(Setting.WELLBORE_PERFORATIONS, ({ getHelperDependency }) => {
+        //     const perforations = getHelperDependency(perforationsDep);
+
+        //     if (!perforations) {
+        //         return [];
+        //     }
+        //     // flat map to array of strings
+        //     return Array.from(new Set(perforations.flatMap((perforation) => perforation.status)));
+        // });
+        const observedSurfaceMetadataDep = helperDependency(async ({ getLocalSetting, abortSignal }) => {
+            const ensembleIdent = getLocalSetting(Setting.ENSEMBLE);
+
+            if (!ensembleIdent) {
+                return null;
+            }
+
             return await queryClient.fetchQuery({
-                ...getWellboreCompletionsOptions({
-                    query: { wellbore_uuids: allWellboreUuids },
+                ...getObservedSurfacesMetadataOptions({
+                    query: {
+                        case_uuid: ensembleIdent.getCaseUuid(),
+                    },
                     signal: abortSignal,
                 }),
             });
         });
-        const perforationsDep = helperDependency(async ({ getGlobalSetting, abortSignal }) => {
-            const fieldIdentifier = getGlobalSetting("fieldId");
-            const wellboreHeaders = await queryClient.fetchQuery({
-                ...getDrilledWellboreHeadersOptions({
-                    query: { field_identifier: fieldIdentifier ?? "" },
-                    signal: abortSignal,
-                }),
-            });
-            const allWellboreUuids = wellboreHeaders.map((header) => header.wellboreUuid);
-            return await queryClient.fetchQuery({
-                ...getWellborePerforationsOptions({
-                    query: { wellbore_uuids: allWellboreUuids },
-                    signal: abortSignal,
-                }),
-            });
+        availableSettingsUpdater(Setting.TIME_OR_INTERVAL, ({ getHelperDependency }) => {
+            const data = getHelperDependency(observedSurfaceMetadataDep);
+            if (!data) {
+                return [];
+            }
+
+            return data.time_intervals_iso_str;
         });
     }
 }
