@@ -1,8 +1,8 @@
 import React from "react";
 
-import type { EnhancedWellboreHeader_api } from "@api";
 import { Button } from "@lib/components/Button";
 import { WellboreSelectionDialog } from "@lib/components/WellboreSelectionDialog";
+import type { SimplifiedWellboreHeader } from "@lib/utils/wellboreTypes";
 
 import type {
     CustomSettingImplementation,
@@ -11,7 +11,7 @@ import type {
 import type { MakeAvailableValuesTypeBasedOnCategory } from "../../interfacesAndTypes/utils";
 import type { SettingCategory } from "../settingsDefinitions";
 
-type ValueType = EnhancedWellboreHeader_api[] | null;
+type ValueType = SimplifiedWellboreHeader[] | null;
 
 export class DrilledWellboresSetting implements CustomSettingImplementation<ValueType, SettingCategory.MULTI_SELECT> {
     defaultValue: ValueType = null;
@@ -40,10 +40,11 @@ export class DrilledWellboresSetting implements CustomSettingImplementation<Valu
     makeComponent(): (props: SettingComponentProps<ValueType, SettingCategory.MULTI_SELECT>) => React.ReactNode {
         return function DrilledWellbores(props: SettingComponentProps<ValueType, SettingCategory.MULTI_SELECT>) {
             const [dialogOpen, setDialogOpen] = React.useState(false);
+            // Available values are already simplified wellbore headers from the provider
             const availableValues = props.availableValues ?? [];
             const selectedValues = props.value ?? [];
 
-            function handleSelectionChange(wellbores: EnhancedWellboreHeader_api[]) {
+            function handleSelectionChange(wellbores: SimplifiedWellboreHeader[]) {
                 props.onValueChange(wellbores);
             }
 

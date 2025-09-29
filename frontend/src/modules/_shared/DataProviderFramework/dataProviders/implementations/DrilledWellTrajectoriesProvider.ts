@@ -2,6 +2,7 @@ import { isEqual } from "lodash";
 
 import type { WellboreTrajectory_api } from "@api";
 import { getDrilledWellboreHeadersOptions, getWellTrajectoriesOptions } from "@api";
+import { transformToSimplifiedWellboreHeaders } from "@lib/utils/wellboreTypes";
 import type { MakeSettingTypesMap } from "@modules/_shared/DataProviderFramework/settings/settingsDefinitions";
 import { Setting } from "@modules/_shared/DataProviderFramework/settings/settingsDefinitions";
 
@@ -107,7 +108,8 @@ export class DrilledWellTrajectoriesProvider
                 return [];
             }
 
-            return wellboreHeaders;
+            // Transform enhanced wellbore headers to simplified ones for reduced storage size
+            return transformToSimplifiedWellboreHeaders(wellboreHeaders);
         });
     }
 }

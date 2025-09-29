@@ -1,5 +1,9 @@
 import React from "react";
 
+import { useQuery } from "@tanstack/react-query";
+
+import { SurfaceAttributeType_api, getRealizationSurfacesMetadataOptions } from "@api";
+
 import { Button } from "../../../../../lib/components/Button";
 import { DepthFilterDialog, type DepthFilterSettings } from "../../../../../lib/components/DepthFilterDialog";
 import type {
@@ -47,6 +51,51 @@ export class DepthFilterSetting implements CustomSettingImplementation<ValueType
             const [dialogOpen, setDialogOpen] = React.useState(false);
             const currentSettings = props.value ?? {};
 
+            // Get ensemble information from global settings to fetch surfaces
+            const ensembles = props.globalSettings.ensembles;
+            const fieldIdentifier = props.globalSettings.fieldId;
+
+            // Get the first available ensemble for surface fetching
+            // In a real implementation, this might come from a parent data provider's ensemble setting
+            const availableEnsemble = ensembles.find((ensemble) => ensemble.getFieldIdentifier() === fieldIdentifier);
+
+            // Fetch surface metadata if we have an ensemble
+            const surfaceQuery = useQuery({
+                ...getRealizationSurfacesMetadataOptions({
+                    query: {
+                        case_uuid: availableEnsemble?.getCaseUuid() || "",
+                        ensemble_name: availableEnsemble?.getEnsembleName() || "",
+                    },
+                }),
+                enabled: !!availableEnsemble,
+            });
+
+            // Filter surfaces by DEPTH attribute type only
+            const depthSurfaces = React.useMemo(() => {
+                return (
+                    surfaceQuery.data?.surfaces.filter(
+                        (surface) => surface.attribute_type === SurfaceAttributeType_api.DEPTH,
+                    ) || []
+                );
+            }, [surfaceQuery.data?.surfaces]);
+
+            // Get unique attribute names from depth surfaces
+            const availableAttributes = [...new Set(depthSurfaces.map((surface) => surface.attribute_name))];
+
+            // Get surface names for the selected attribute (reactive to currentSettings changes)
+            const availableSurfaceNames = React.useMemo(() => {
+                const selectedAttribute = currentSettings.selectedAttribute;
+                return selectedAttribute
+                    ? [
+                          ...new Set(
+                              depthSurfaces
+                                  .filter((surface) => surface.attribute_name === selectedAttribute)
+                                  .map((surface) => surface.name),
+                          ),
+                      ]
+                    : [];
+            }, [depthSurfaces, currentSettings.selectedAttribute]);
+
             function handleSettingsChange(settings: DepthFilterSettings) {
                 props.onValueChange(settings);
             }
@@ -62,11 +111,21 @@ export class DepthFilterSetting implements CustomSettingImplementation<ValueType
             // Create a summary of active settings
             const getSettingsSummary = () => {
                 const activeSetting = [];
-                if (currentSettings.tvdCutoffAbove !== undefined) {
-                    activeSetting.push(`Above: ${currentSettings.tvdCutoffAbove}m`);
-                }
-                if (currentSettings.tvdCutoffBelow !== undefined) {
-                    activeSetting.push(`Below: ${currentSettings.tvdCutoffBelow}m`);
+
+                if (currentSettings.filterType === "tvd") {
+                    if (currentSettings.tvdCutoffAbove !== undefined) {
+                        activeSetting.push(`Above: ${currentSettings.tvdCutoffAbove}m`);
+                    }
+                    if (currentSettings.tvdCutoffBelow !== undefined) {
+                        activeSetting.push(`Below: ${currentSettings.tvdCutoffBelow}m`);
+                    }
+                } else if (currentSettings.filterType === "surface") {
+                    if (currentSettings.selectedAttribute) {
+                        activeSetting.push(`Attribute: ${currentSettings.selectedAttribute}`);
+                    }
+                    if (currentSettings.selectedSurface) {
+                        activeSetting.push(`Surface: ${currentSettings.selectedSurface}`);
+                    }
                 }
 
                 if (activeSetting.length === 0) {
@@ -92,6 +151,8 @@ export class DepthFilterSetting implements CustomSettingImplementation<ValueType
                         settings={currentSettings}
                         onSettingsChange={handleSettingsChange}
                         onClose={handleDialogClose}
+                        availableAttributes={availableAttributes}
+                        availableSurfaceNames={availableSurfaceNames}
                     />
                 </div>
             );

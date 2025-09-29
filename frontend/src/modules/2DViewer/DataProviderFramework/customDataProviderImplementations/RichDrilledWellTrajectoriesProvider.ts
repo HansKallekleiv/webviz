@@ -2,6 +2,7 @@ import { isEqual } from "lodash";
 
 import type { WellboreTrajectory_api } from "@api";
 import { getDrilledWellboreHeadersOptions, getObservedSurfacesMetadataOptions, getWellTrajectoriesOptions } from "@api";
+import { transformToSimplifiedWellboreHeaders } from "@lib/utils/wellboreTypes";
 import type {
     CustomDataProviderImplementation,
     FetchDataParams,
@@ -14,8 +15,9 @@ const richDrilledWellTrajectoriesSettings = [
     Setting.ENSEMBLE,
     Setting.SMDA_WELLBORE_HEADERS,
     // Setting.WELLBORE_PERFORATIONS,
-    Setting.TIME_OR_INTERVAL,
+
     Setting.DEPTH_FILTER,
+    // Setting.TIME_OR_INTERVAL,
 ] as const;
 type RichDrilledWellTrajectoriesSettings = typeof richDrilledWellTrajectoriesSettings;
 type SettingsWithTypes = MakeSettingTypesMap<RichDrilledWellTrajectoriesSettings>;
@@ -97,7 +99,8 @@ export class RichDrilledWellTrajectoriesProvider
                 return [];
             }
 
-            return wellboreHeaders;
+            // Transform enhanced wellbore headers to simplified ones for reduced storage size
+            return transformToSimplifiedWellboreHeaders(wellboreHeaders);
         });
 
         // const perforationsDep = helperDependency(async ({ getGlobalSetting, abortSignal }) => {
@@ -143,13 +146,13 @@ export class RichDrilledWellTrajectoriesProvider
                 }),
             });
         });
-        availableSettingsUpdater(Setting.TIME_OR_INTERVAL, ({ getHelperDependency }) => {
-            const data = getHelperDependency(observedSurfaceMetadataDep);
-            if (!data) {
-                return [];
-            }
+        // availableSettingsUpdater(Setting.TIME_OR_INTERVAL, ({ getHelperDependency }) => {
+        //     const data = getHelperDependency(observedSurfaceMetadataDep);
+        //     if (!data) {
+        //         return [];
+        //     }
 
-            return data.time_intervals_iso_str;
-        });
+        //     return data.time_intervals_iso_str;
+        // });
     }
 }
