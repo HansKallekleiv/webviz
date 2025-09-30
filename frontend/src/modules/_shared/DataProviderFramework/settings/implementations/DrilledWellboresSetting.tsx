@@ -1,8 +1,8 @@
 import React from "react";
 
 import { Button } from "@lib/components/Button";
-import { WellboreSelectionDialog } from "@lib/components/WellboreSelectionDialog";
 import type { SimplifiedWellboreHeader } from "@lib/utils/wellboreTypes";
+import { WellboreSelectionDialog } from "@modules/_shared/components/WellboreSelectionDialog";
 
 import type {
     CustomSettingImplementation,

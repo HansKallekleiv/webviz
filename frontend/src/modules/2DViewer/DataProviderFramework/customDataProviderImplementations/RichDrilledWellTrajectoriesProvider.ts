@@ -1,6 +1,6 @@
 import { isEqual } from "lodash";
 
-import type { WellboreTrajectory_api } from "@api";
+import type { EnhancedWellboreHeader_api, WellboreTrajectory_api } from "@api";
 import { getDrilledWellboreHeadersOptions, getObservedSurfacesMetadataOptions, getWellTrajectoriesOptions } from "@api";
 import { transformToSimplifiedWellboreHeaders } from "@lib/utils/wellboreTypes";
 import type {
@@ -14,18 +14,23 @@ import { Setting } from "@modules/_shared/DataProviderFramework/settings/setting
 const richDrilledWellTrajectoriesSettings = [
     Setting.ENSEMBLE,
     Setting.SMDA_WELLBORE_HEADERS,
-    // Setting.WELLBORE_PERFORATIONS,
-
     Setting.DEPTH_FILTER,
     // Setting.TIME_OR_INTERVAL,
 ] as const;
 type RichDrilledWellTrajectoriesSettings = typeof richDrilledWellTrajectoriesSettings;
 type SettingsWithTypes = MakeSettingTypesMap<RichDrilledWellTrajectoriesSettings>;
-
+export type DrilledWellboreTrajectoriesStoredData = {
+    selectedWellBoreHeaders: EnhancedWellboreHeader_api[];
+};
 type RichDrilledWellTrajectoriesData = WellboreTrajectory_api[];
 
 export class RichDrilledWellTrajectoriesProvider
-    implements CustomDataProviderImplementation<RichDrilledWellTrajectoriesSettings, RichDrilledWellTrajectoriesData>
+    implements
+        CustomDataProviderImplementation<
+            RichDrilledWellTrajectoriesSettings,
+            RichDrilledWellTrajectoriesData,
+            DrilledWellboreTrajectoriesStoredData
+        >
 {
     settings = richDrilledWellTrajectoriesSettings;
 
@@ -38,7 +43,6 @@ export class RichDrilledWellTrajectoriesProvider
     }
 
     fetchData({
-        getSetting,
         getGlobalSetting,
         fetchQuery,
     }: FetchDataParams<
@@ -46,11 +50,6 @@ export class RichDrilledWellTrajectoriesProvider
         RichDrilledWellTrajectoriesData
     >): Promise<RichDrilledWellTrajectoriesData> {
         const fieldIdentifier = getGlobalSetting("fieldId");
-        const selectedWellboreHeaders = getSetting(Setting.SMDA_WELLBORE_HEADERS);
-        let selectedWellboreUuids: string[] = [];
-        if (selectedWellboreHeaders) {
-            selectedWellboreUuids = selectedWellboreHeaders.map((header) => header.wellboreUuid);
-        }
 
         const queryOptions = getWellTrajectoriesOptions({
             query: { field_identifier: fieldIdentifier ?? "" },
@@ -60,8 +59,6 @@ export class RichDrilledWellTrajectoriesProvider
             ...queryOptions,
             staleTime: 1800000, // TODO: Both stale and gcTime are set to 30 minutes for now since SMDA is quite slow for fields with many wells - this should be adjusted later
             gcTime: 1800000,
-        }).then((response: RichDrilledWellTrajectoriesData) => {
-            return response.filter((trajectory) => selectedWellboreUuids.includes(trajectory.wellboreUuid));
         });
 
         return promise;
@@ -70,8 +67,9 @@ export class RichDrilledWellTrajectoriesProvider
     defineDependencies({
         helperDependency,
         availableSettingsUpdater,
+        storedDataUpdater,
         queryClient,
-    }: DefineDependenciesArgs<RichDrilledWellTrajectoriesSettings>) {
+    }: DefineDependenciesArgs<RichDrilledWellTrajectoriesSettings, DrilledWellboreTrajectoriesStoredData>) {
         availableSettingsUpdater(Setting.ENSEMBLE, ({ getGlobalSetting }) => {
             const fieldIdentifier = getGlobalSetting("fieldId");
             const ensembles = getGlobalSetting("ensembles");
@@ -103,33 +101,6 @@ export class RichDrilledWellTrajectoriesProvider
             return transformToSimplifiedWellboreHeaders(wellboreHeaders);
         });
 
-        // const perforationsDep = helperDependency(async ({ getGlobalSetting, abortSignal }) => {
-        //     const fieldIdentifier = getGlobalSetting("fieldId");
-        //     return await queryClient.fetchQuery({
-        //         ...getFieldPerforationsOptions({
-        //             query: { field_identifier: fieldIdentifier ?? "" },
-        //             signal: abortSignal,
-        //         }),
-        //     });
-        // });
-        // const screenDep = helperDependency(async ({ getGlobalSetting, abortSignal }) => {
-        //     const fieldIdentifier = getGlobalSetting("fieldId");
-        //     return await queryClient.fetchQuery({
-        //         ...getFieldScreensOptions({
-        //             query: { field_identifier: fieldIdentifier ?? "" },
-        //             signal: abortSignal,
-        //         }),
-        //     });
-        // });
-        // availableSettingsUpdater(Setting.WELLBORE_PERFORATIONS, ({ getHelperDependency }) => {
-        //     const perforations = getHelperDependency(perforationsDep);
-
-        //     if (!perforations) {
-        //         return [];
-        //     }
-        //     // flat map to array of strings
-        //     return Array.from(new Set(perforations.flatMap((perforation) => perforation.status)));
-        // });
         const observedSurfaceMetadataDep = helperDependency(async ({ getLocalSetting, abortSignal }) => {
             const ensembleIdent = getLocalSetting(Setting.ENSEMBLE);
 
@@ -154,5 +125,17 @@ export class RichDrilledWellTrajectoriesProvider
 
         //     return data.time_intervals_iso_str;
         // });
+
+        storedDataUpdater("selectedWellBoreHeaders", ({ getHelperDependency, getLocalSetting }) => {
+            const wellboreHeaders = getHelperDependency(wellboreHeadersDep);
+            const selectedWellbores = getLocalSetting(Setting.SMDA_WELLBORE_HEADERS)?.map(
+                (header) => header.wellboreUuid,
+            );
+            if (!wellboreHeaders || !selectedWellbores) {
+                return [];
+            }
+
+            return wellboreHeaders.filter((wellboreInfo) => selectedWellbores.includes(wellboreInfo.wellboreUuid));
+        });
     }
 }

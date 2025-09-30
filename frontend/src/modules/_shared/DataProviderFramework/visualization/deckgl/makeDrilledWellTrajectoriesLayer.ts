@@ -6,10 +6,16 @@ import type {
 } from "@webviz/subsurface-viewer/dist/layers/wells/types";
 import type { Feature } from "geojson";
 
-import type { WellboreTrajectory_api } from "@api";
+import type {
+    EnhancedWellboreHeader_api,
+    WellboreCompletionNested_api,
+    WellborePerforationNested_api,
+    WellboreTrajectory_api,
+} from "@api";
 import { AdjustedWellsLayer } from "@modules/_shared/customDeckGlLayers/AdjustedWellsLayer";
 import { wellTrajectoryToGeojson } from "@modules/_shared/utils/wellbore";
 
+import { Setting } from "../../settings/settingsDefinitions";
 import type { TransformerArgs } from "../VisualizationAssembler";
 
 export type GeoWellProperties = BaseWellProperties & {
@@ -23,19 +29,18 @@ export type GeoWellFeature = BaseWellFeature & { properties: GeoWellProperties }
 export function makeDrilledWellTrajectoriesLayer({
     id,
     getData,
+    getSetting,
+    getStoredData,
 }: TransformerArgs<any, WellboreTrajectory_api[], any>): WellsLayer | null {
-    const fieldWellboreTrajectoriesData = getData();
+    const wellboreTrajectories = getData();
+    const selectedWellboreHeaders: EnhancedWellboreHeader_api[] = getStoredData("selectedWellBoreHeaders");
+    const depthFilter = getSetting(Setting.DEPTH_FILTER);
 
-    if (!fieldWellboreTrajectoriesData) {
+    if (!wellboreTrajectories) {
         return null;
     }
 
-    // Filter out some wellbores that are known to be not working - this is a temporary solution
-    const tempWorkingWellsData = fieldWellboreTrajectoriesData.filter(
-        (el) => el.uniqueWellboreIdentifier !== "NO 34/4-K-3 AH",
-    );
-
-    const wellLayerDataFeatures = tempWorkingWellsData.map((well) => wellTrajectoryToGeojson(well));
+    const wellLayerDataFeatures = wellboreTrajectories.map((well) => wellTrajectoryToGeojson(well));
 
     function getLineStyleWidth(object: Feature): number {
         if (object.properties && "lineWidth" in object.properties) {

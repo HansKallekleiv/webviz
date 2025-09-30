@@ -2,11 +2,9 @@ import React from "react";
 
 import { Clear, SelectAll, Deselect } from "@mui/icons-material";
 
+import { Button } from "@lib/components/Button";
+import { Dialog } from "@lib/components/Dialog";
 import type { SimplifiedWellboreHeader } from "@lib/utils/wellboreTypes";
-
-import { Button } from "../Button";
-import { Dialog } from "../Dialog";
-import type { SelectOption } from "../Select";
 
 import { BlockItem } from "./BlockItem";
 import { FilterControls } from "./FilterControls";
@@ -127,44 +125,56 @@ export function WellboreSelectionDialog(props: WellboreSelectionDialogProps): Re
         [selectedWellboreUuids, props],
     );
 
-    const purposeOptions: SelectOption[] = uniquePurposes.map((purpose) => {
-        const count = props.wellbores.filter((w) => w.wellborePurpose === purpose).length;
-        return {
-            value: purpose,
-            label: `${purpose} (${count})`,
-        };
-    });
+    const filterOptions = React.useMemo(
+        () => ({
+            purposes: uniquePurposes.map((purpose) => {
+                const count = props.wellbores.filter((w) => w.wellborePurpose === purpose).length;
+                return {
+                    value: purpose,
+                    label: `${purpose} (${count})`,
+                };
+            }),
+            statuses: uniqueStatuses.map((status) => {
+                const count = props.wellbores.filter((w) => w.wellboreStatus === status).length;
+                return {
+                    value: status,
+                    label: `${status} (${count})`,
+                };
+            }),
+            completionTypes: uniqueCompletionTypes.map((type) => {
+                const count = props.wellbores.filter((w) => {
+                    const hasScreens = w.perforationAndScreens.includes("Screen");
+                    const hasPerforations = w.perforationAndScreens.some((item) => item !== "Screen");
+                    if (type === "perforated") return hasPerforations;
+                    if (type === "screened") return hasScreens;
+                    if (type === "none") return !hasPerforations && !hasScreens;
+                    return false;
+                }).length;
+                return {
+                    value: type,
+                    label: `${type.charAt(0).toUpperCase() + type.slice(1)} (${count})`,
+                };
+            }),
+            completionDetails: uniqueCompletionDetails.map((detail) => {
+                const count = props.wellbores.filter((w) => w.perforationAndScreens.includes(detail)).length;
+                return {
+                    value: detail,
+                    label: `${detail} (${count})`,
+                };
+            }),
+        }),
+        [props.wellbores, uniquePurposes, uniqueStatuses, uniqueCompletionTypes, uniqueCompletionDetails],
+    );
 
-    const statusOptions: SelectOption[] = uniqueStatuses.map((status) => {
-        const count = props.wellbores.filter((w) => w.wellboreStatus === status).length;
-        return {
-            value: status,
-            label: `${status} (${count})`,
-        };
-    });
-
-    const completionTypeOptions: SelectOption[] = uniqueCompletionTypes.map((type) => {
-        const count = props.wellbores.filter((w) => {
-            const hasScreens = w.perforationAndScreens.includes("Screen");
-            const hasPerforations = w.perforationAndScreens.some((item) => item !== "Screen");
-            if (type === "perforated") return hasPerforations;
-            if (type === "screened") return hasScreens;
-            if (type === "none") return !hasPerforations && !hasScreens;
-            return false;
-        }).length;
-        return {
-            value: type,
-            label: `${type.charAt(0).toUpperCase() + type.slice(1)} (${count})`,
-        };
-    });
-
-    const completionDetailOptions: SelectOption[] = uniqueCompletionDetails.map((detail) => {
-        const count = props.wellbores.filter((w) => w.perforationAndScreens.includes(detail)).length;
-        return {
-            value: detail,
-            label: `${detail} (${count})`,
-        };
-    });
+    const uniqueValues = React.useMemo(
+        () => ({
+            purposes: uniquePurposes,
+            statuses: uniqueStatuses,
+            completionTypes: uniqueCompletionTypes,
+            completionDetails: uniqueCompletionDetails,
+        }),
+        [uniquePurposes, uniqueStatuses, uniqueCompletionTypes, uniqueCompletionDetails],
+    );
 
     const dialogActions = (
         <div className="flex gap-2 justify-end">
@@ -195,14 +205,8 @@ export function WellboreSelectionDialog(props: WellboreSelectionDialogProps): Re
                         setFilters={setFilters}
                         showFilters={showFilters}
                         setShowFilters={setShowFilters}
-                        purposeOptions={purposeOptions}
-                        statusOptions={statusOptions}
-                        completionTypeOptions={completionTypeOptions}
-                        completionDetailOptions={completionDetailOptions}
-                        uniquePurposes={uniquePurposes}
-                        uniqueStatuses={uniqueStatuses}
-                        uniqueCompletionTypes={uniqueCompletionTypes}
-                        uniqueCompletionDetails={uniqueCompletionDetails}
+                        filterOptions={filterOptions}
+                        uniqueValues={uniqueValues}
                     />
 
                     {/* Quick Actions */}

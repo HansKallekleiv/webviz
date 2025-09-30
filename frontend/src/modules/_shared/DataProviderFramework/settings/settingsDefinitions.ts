@@ -4,9 +4,9 @@ import { isEqual } from "lodash";
 import type { SurfaceStatisticFunction_api, WellboreLogCurveHeader_api, WellborePick_api } from "@api";
 import type { ColorScaleSpecification } from "@framework/components/ColorScaleSelector/colorScaleSelector";
 import type { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
-import type { DepthFilterSettings } from "@lib/components/DepthFilterDialog";
 import type { ColorSet } from "@lib/utils/ColorSet";
 import type { SimplifiedWellboreHeader } from "@lib/utils/wellboreTypes";
+import type { DepthFilterSettings } from "@modules/_shared/components/DepthFilterDialog";
 
 import type { AvailableValuesType } from "../interfacesAndTypes/utils";
 
