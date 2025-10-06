@@ -64,10 +64,10 @@ export class DepthFilterSetting implements CustomSettingImplementation<ValueType
                 const activeSetting = [];
 
                 if (currentSettings.tvdCutoffAbove !== undefined) {
-                    activeSetting.push(`Above: ${currentSettings.tvdCutoffAbove}m`);
+                    activeSetting.push(`Below: ${currentSettings.tvdCutoffAbove}m`);
                 }
                 if (currentSettings.tvdCutoffBelow !== undefined) {
-                    activeSetting.push(`Below: ${currentSettings.tvdCutoffBelow}m`);
+                    activeSetting.push(`Above: ${currentSettings.tvdCutoffBelow}m`);
                 }
 
                 if (activeSetting.length === 0) {

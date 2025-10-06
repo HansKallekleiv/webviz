@@ -3,6 +3,7 @@ import React from "react";
 import { Button } from "@lib/components/Button";
 import { Dialog } from "@lib/components/Dialog";
 import { Input } from "@lib/components/Input";
+import { Label } from "@lib/components/Label";
 
 export interface DepthFilterSettings {
     // TVD Filter settings
@@ -77,18 +78,15 @@ export function DepthFilterDialog(props: DepthFilterDialogProps): React.ReactNod
             <div className="flex flex-col gap-6 p-6 max-h-full overflow-y-auto">
                 {/* TVD Cutoff Settings */}
                 <div className="space-y-4">
-                    <h3 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2">
-                        True Vertical Depth (TVD) Cutoffs
-                    </h3>
+                    <h3>True Vertical Depth (TVD) Cutoffs</h3>
 
                     <p className="text-xs text-gray-500 mb-4">
                         Set depth limits to filter trajectories. Leave empty for no cutoff.
                     </p>
 
                     <div className="grid grid-cols-2 gap-4">
-                        {/* TVD Cutoff Above */}
-                        <div className="space-y-2">
-                            <label className="block text-xs font-medium text-gray-700">Above (meters)</label>
+                        {/* TVD Cutoff Top */}
+                        <Label text="Below (meters)">
                             <Input
                                 type="number"
                                 placeholder="e.g. 1000"
@@ -96,11 +94,10 @@ export function DepthFilterDialog(props: DepthFilterDialogProps): React.ReactNod
                                 onChange={(e) => handleTvdCutoffAboveChange(e.target.value)}
                                 className="w-full text-sm"
                             />
-                        </div>
+                        </Label>
 
-                        {/* TVD Cutoff Below */}
-                        <div className="space-y-2">
-                            <label className="block text-xs font-medium text-gray-700">Below (meters)</label>
+                        {/* TVD Cutoff Base */}
+                        <Label text="Above (meters)">
                             <Input
                                 type="number"
                                 placeholder="e.g. 3000"
@@ -108,7 +105,7 @@ export function DepthFilterDialog(props: DepthFilterDialogProps): React.ReactNod
                                 onChange={(e) => handleTvdCutoffBelowChange(e.target.value)}
                                 className="w-full text-sm"
                             />
-                        </div>
+                        </Label>
                     </div>
                 </div>
             </div>
