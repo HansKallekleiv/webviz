@@ -65,6 +65,9 @@ import type {
     GetSurfaceDataData_api,
     GetSurfaceDataResponse_api,
     GetSurfaceDataError_api,
+    PostGetSurfaceWellIntersectionsData_api,
+    PostGetSurfaceWellIntersectionsResponse_api,
+    PostGetSurfaceWellIntersectionsError_api,
     PostGetSurfaceIntersectionData_api,
     PostGetSurfaceIntersectionResponse_api,
     PostGetSurfaceIntersectionError_api,
@@ -592,6 +595,30 @@ export const getSurfaceData = <ThrowOnError extends boolean = false>(
     return (options?.client ?? client).get<GetSurfaceDataResponse_api, GetSurfaceDataError_api, ThrowOnError>({
         ...options,
         url: "/surface/surface_data",
+    });
+};
+
+/**
+ * Post Get Surface Well Intersections
+ * Get surface intersection data for requested surface name.
+ *
+ * The surface intersection data for surface name contains: An array of z-points, i.e. one z-value/depth per (x, y)-point in polyline,
+ * and cumulative lengths, the accumulated length at each z-point in the array.
+ */
+export const postGetSurfaceWellIntersections = <ThrowOnError extends boolean = false>(
+    options: Options<PostGetSurfaceWellIntersectionsData_api, ThrowOnError>,
+) => {
+    return (options?.client ?? client).post<
+        PostGetSurfaceWellIntersectionsResponse_api,
+        PostGetSurfaceWellIntersectionsError_api,
+        ThrowOnError
+    >({
+        ...options,
+        headers: {
+            "Content-Type": "application/json",
+            ...options?.headers,
+        },
+        url: "/surface/get_surface_well_intersections",
     });
 };
 

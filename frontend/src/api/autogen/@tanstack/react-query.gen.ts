@@ -26,6 +26,7 @@ import {
     getRealizationSurfacesMetadata,
     getObservedSurfacesMetadata,
     getSurfaceData,
+    postGetSurfaceWellIntersections,
     postGetSurfaceIntersection,
     postGetSampleSurfaceInPoints,
     getDeltaSurfaceData,
@@ -109,6 +110,9 @@ import type {
     GetRealizationSurfacesMetadataData_api,
     GetObservedSurfacesMetadataData_api,
     GetSurfaceDataData_api,
+    PostGetSurfaceWellIntersectionsData_api,
+    PostGetSurfaceWellIntersectionsError_api,
+    PostGetSurfaceWellIntersectionsResponse_api,
     PostGetSurfaceIntersectionData_api,
     PostGetSurfaceIntersectionError_api,
     PostGetSurfaceIntersectionResponse_api,
@@ -668,6 +672,45 @@ export const getSurfaceDataOptions = (options: Options<GetSurfaceDataData_api>) 
         },
         queryKey: getSurfaceDataQueryKey(options),
     });
+};
+
+export const postGetSurfaceWellIntersectionsQueryKey = (options: Options<PostGetSurfaceWellIntersectionsData_api>) => [
+    createQueryKey("postGetSurfaceWellIntersections", options),
+];
+
+export const postGetSurfaceWellIntersectionsOptions = (options: Options<PostGetSurfaceWellIntersectionsData_api>) => {
+    return queryOptions({
+        queryFn: async ({ queryKey, signal }) => {
+            const { data } = await postGetSurfaceWellIntersections({
+                ...options,
+                ...queryKey[0],
+                signal,
+                throwOnError: true,
+            });
+            return data;
+        },
+        queryKey: postGetSurfaceWellIntersectionsQueryKey(options),
+    });
+};
+
+export const postGetSurfaceWellIntersectionsMutation = (
+    options?: Partial<Options<PostGetSurfaceWellIntersectionsData_api>>,
+) => {
+    const mutationOptions: UseMutationOptions<
+        PostGetSurfaceWellIntersectionsResponse_api,
+        AxiosError<PostGetSurfaceWellIntersectionsError_api>,
+        Options<PostGetSurfaceWellIntersectionsData_api>
+    > = {
+        mutationFn: async (localOptions) => {
+            const { data } = await postGetSurfaceWellIntersections({
+                ...options,
+                ...localOptions,
+                throwOnError: true,
+            });
+            return data;
+        },
+    };
+    return mutationOptions;
 };
 
 export const postGetSurfaceIntersectionQueryKey = (options: Options<PostGetSurfaceIntersectionData_api>) => [

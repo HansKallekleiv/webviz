@@ -1,4 +1,5 @@
 from enum import Enum
+import enum
 from typing import List, Literal
 
 from pydantic import BaseModel, ConfigDict
@@ -154,6 +155,40 @@ class SurfaceIntersectionCumulativeLengthPolyline(BaseModel):
     x_points: List[float]
     y_points: List[float]
     cum_lengths: List[float]
+
+
+class PickDirection(str, Enum):
+    """Direction of the pick relative to the surface"""
+
+    UPWARD = "UPWARD"
+    DOWNWARD = "DOWNWARD"
+
+
+class SurfaceWellPick(BaseModel):
+    unique_wellbore_identifier: str
+    x: float
+    y: float
+    z: float
+    md: float | None = None
+    direction: PickDirection
+
+
+class WellTrajectory(BaseModel):
+    """
+    Well trajectory defined by a set of (x, y, z) coordinates and measured depths (md).
+
+    x_points: X-coordinates of well trajectory points.
+    y_points: Y-coordinates of well trajectory points.
+    z_points: Z-coordinates (depth values) of well trajectory points.
+    md_points: Measured depth values at each well trajectory point.
+
+    """
+
+    x_points: List[float]
+    y_points: List[float]
+    z_points: List[float]
+    md_points: List[float]
+    uwi: str
 
 
 class SurfaceRealizationSampleValues(BaseModel):

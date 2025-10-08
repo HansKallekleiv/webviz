@@ -52,6 +52,10 @@ export type BodyPostGetSurfaceIntersection_api = {
     cumulative_length_polyline: SurfaceIntersectionCumulativeLengthPolyline_api;
 };
 
+export type BodyPostGetSurfaceWellIntersections_api = {
+    well_trajectories: Array<WellTrajectory_api>;
+};
+
 export type BoundingBox2D_api = {
     min_x: number;
     min_y: number;
@@ -422,6 +426,14 @@ export type Observations_api = {
     summary?: Array<SummaryVectorObservations_api>;
     rft?: Array<RftObservations_api>;
 };
+
+/**
+ * Direction of the pick relative to the surface
+ */
+export enum PickDirection_api {
+    UPWARD = "UPWARD",
+    DOWNWARD = "DOWNWARD",
+}
 
 export type PointSetXy_api = {
     x_points: Array<number>;
@@ -885,6 +897,15 @@ export enum SurfaceTimeType_api {
     INTERVAL = "INTERVAL",
 }
 
+export type SurfaceWellPick_api = {
+    unique_wellbore_identifier: string;
+    x: number;
+    y: number;
+    z: number;
+    md?: number | null;
+    direction: PickDirection_api;
+};
+
 export enum Thp_api {
     THP = "THP",
 }
@@ -1075,6 +1096,23 @@ export enum WellLogCurveTypeEnum_api {
     DISCRETE = "discrete",
     FLAG = "flag",
 }
+
+/**
+ * Well trajectory defined by a set of (x, y, z) coordinates.
+ *
+ * x_points: X-coordinates of well trajectory points.
+ * y_points: Y-coordinates of well trajectory points.
+ * z_points: Z-coordinates (depth values) of well trajectory points.
+ *
+ * Note: Coordinates are in domain coordinate system (UTM)
+ */
+export type WellTrajectory_api = {
+    x_points: Array<number>;
+    y_points: Array<number>;
+    z_points: Array<number>;
+    md_points: Array<number>;
+    uwi: string;
+};
 
 export type WellboreCasing_api = {
     itemType: string;
@@ -2081,6 +2119,39 @@ export type GetSurfaceDataResponses_api = {
 };
 
 export type GetSurfaceDataResponse_api = GetSurfaceDataResponses_api[keyof GetSurfaceDataResponses_api];
+
+export type PostGetSurfaceWellIntersectionsData_api = {
+    body: BodyPostGetSurfaceWellIntersections_api;
+    path?: never;
+    query: {
+        /**
+         * Surface address string, supported address types are *REAL*, *OBS* and *STAT*
+         */
+        surf_addr_str: string;
+        t?: number;
+    };
+    url: "/surface/get_surface_well_intersections";
+};
+
+export type PostGetSurfaceWellIntersectionsErrors_api = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError_api;
+};
+
+export type PostGetSurfaceWellIntersectionsError_api =
+    PostGetSurfaceWellIntersectionsErrors_api[keyof PostGetSurfaceWellIntersectionsErrors_api];
+
+export type PostGetSurfaceWellIntersectionsResponses_api = {
+    /**
+     * Successful Response
+     */
+    200: Array<SurfaceWellPick_api>;
+};
+
+export type PostGetSurfaceWellIntersectionsResponse_api =
+    PostGetSurfaceWellIntersectionsResponses_api[keyof PostGetSurfaceWellIntersectionsResponses_api];
 
 export type PostGetSurfaceIntersectionData_api = {
     body: BodyPostGetSurfaceIntersection_api;
