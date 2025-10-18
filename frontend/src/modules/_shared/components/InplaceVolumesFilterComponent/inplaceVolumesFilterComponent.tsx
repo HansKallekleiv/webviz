@@ -1,6 +1,6 @@
 import React from "react";
 
-import { Help } from "@mui/icons-material";
+import { Help, Warning } from "@mui/icons-material";
 import { cloneDeep, isEqual } from "lodash";
 
 import type { InplaceVolumesIndexWithValues_api } from "@api";
@@ -252,32 +252,30 @@ export function InplaceVolumesFilterComponent(props: InplaceVolumesFilterCompone
                             isError={tableSourceOptions.length === 0 && !props.isPending}
                             message={"No table names"}
                         >
-                            <Label
-                                wrapperClassName="mb-2"
-                                position="left"
-                                text="Allow intersection"
-                                endAdornment={
-                                    <Tooltip
-                                        title={
-                                            <>
-                                                When active allows comparison of tables where available
-                                                Zone/Region/Facies differs.
-                                                <br />
-                                                Only the values found in all tables will then be used.
-                                            </>
-                                        }
-                                    >
-                                        <IconButton color="primary" size="small">
-                                            <Help fontSize="inherit" />
-                                        </IconButton>
-                                    </Tooltip>
-                                }
-                            >
-                                <Checkbox
-                                    checked={props.selectedAllowIndicesValuesIntersection}
-                                    onChange={(_, checked) => handleAllowIndexValueIntersectionChange(checked)}
-                                />
-                            </Label>
+                            <div className="flex">
+                                <Label wrapperClassName="mb-2 flex-1" position="left" text="Allow table intersections">
+                                    <Checkbox
+                                        checked={props.selectedAllowIndicesValuesIntersection}
+                                        onChange={(_, checked) => handleAllowIndexValueIntersectionChange(checked)}
+                                    />
+                                </Label>
+                                <Tooltip
+                                    title={
+                                        <>
+                                            When active allows comparison of tables where available zones, regions,
+                                            facies, fluids or responses differs.
+                                            <br />
+                                            Only the <b>intersection</b> of options will then be available for
+                                            filtering. <br />
+                                            Identifiers not present in all tables will be <b>filtered out</b>.
+                                        </>
+                                    }
+                                >
+                                    <IconButton color="danger" size="small">
+                                        <Warning className="mr-2" fontSize="medium" />
+                                    </IconButton>
+                                </Tooltip>
+                            </div>
                             <Select
                                 options={tableSourceOptions}
                                 value={tableNames}

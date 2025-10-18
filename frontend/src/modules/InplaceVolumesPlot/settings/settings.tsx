@@ -121,21 +121,26 @@ export function Settings(props: ModuleSettingsProps<Interfaces>): React.ReactNod
         <>
             <CollapsibleGroup title="Plot settings" expanded>
                 <div className="flex flex-col gap-2">
-                    <Label
-                        text="Plot type"
-                        endAdornment={
+                    <Label text="Plot type">
+                        <div className="flex">
+                            <div className="flex-1  mr-2">
+                                <Dropdown
+                                    value={selectedPlotType}
+                                    options={plotTypeOptions}
+                                    onChange={setSelectedPlotType}
+                                />
+                            </div>
                             <IconButton
                                 ref={settingsButtonRef}
                                 color="primary"
                                 size="medium"
                                 onClick={handlePlotOptionsClick}
                             >
-                                <Tune fontSize="inherit" />
+                                <Tune fontSize="medium" />
                             </IconButton>
-                        }
-                    >
-                        <Dropdown value={selectedPlotType} options={plotTypeOptions} onChange={setSelectedPlotType} />
+                        </div>
                     </Label>
+
                     <Label text={selectedPlotType === PlotType.BAR ? "Response" : "X Response"}>
                         <Dropdown
                             value={selectedFirstResultName ?? undefined}

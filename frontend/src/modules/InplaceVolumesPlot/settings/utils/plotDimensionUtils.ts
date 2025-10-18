@@ -2,6 +2,15 @@ import type { DropdownOption } from "@lib/components/Dropdown";
 import type { TableDefinitionsAccessor } from "@modules/_shared/InplaceVolumes/TableDefinitionsAccessor";
 import { TableOriginKey } from "@modules/_shared/InplaceVolumes/types";
 
+/**
+ * Formats a column name for display by capitalizing the first letter
+ * and converting the rest to lowercase
+ */
+function formatColumnLabel(columnName: string): string {
+    if (!columnName) return columnName;
+    return columnName.charAt(0).toUpperCase() + columnName.slice(1).toLowerCase();
+}
+
 export function makeSubplotByOptions(
     tableDefinitionsAccessor: TableDefinitionsAccessor,
     selectedTableNames: string[],
@@ -12,11 +21,11 @@ export function makeSubplotByOptions(
     const options: DropdownOption<string>[] = [
         {
             value: TableOriginKey.ENSEMBLE,
-            label: "ENSEMBLE",
+            label: "Ensemble",
         },
         {
             value: TableOriginKey.TABLE_NAME,
-            label: "TABLE NAME",
+            label: "Table Source",
         },
     ];
 
@@ -27,7 +36,7 @@ export function makeSubplotByOptions(
     for (const indexWithValues of tableDefinitionsAccessor.getCommonIndicesWithValues()) {
         options.push({
             value: indexWithValues.indexColumn,
-            label: indexWithValues.indexColumn,
+            label: formatColumnLabel(indexWithValues.indexColumn),
         });
     }
 
@@ -47,7 +56,7 @@ export function makeColorByOptions(
     if (numEnsembleIdents > 1 && selectedSubplotBy !== TableOriginKey.ENSEMBLE) {
         options.push({
             value: TableOriginKey.ENSEMBLE,
-            label: "ENSEMBLE",
+            label: "Ensemble",
         });
         return options;
     }
@@ -55,7 +64,7 @@ export function makeColorByOptions(
     if (numTableNames > 1 && selectedSubplotBy !== TableOriginKey.TABLE_NAME) {
         options.push({
             value: TableOriginKey.TABLE_NAME,
-            label: "TABLE NAME",
+            label: "Table Source",
         });
         return options;
     }
@@ -63,14 +72,14 @@ export function makeColorByOptions(
     if (selectedSubplotBy !== TableOriginKey.ENSEMBLE) {
         options.push({
             value: TableOriginKey.ENSEMBLE,
-            label: "ENSEMBLE",
+            label: "Ensemble",
         });
     }
 
     if (selectedSubplotBy !== TableOriginKey.TABLE_NAME) {
         options.push({
             value: TableOriginKey.TABLE_NAME,
-            label: "TABLE NAME",
+            label: "Table Source",
         });
     }
 
@@ -82,7 +91,7 @@ export function makeColorByOptions(
         if (selectedSubplotBy !== indexWithValues.indexColumn) {
             options.push({
                 value: indexWithValues.indexColumn,
-                label: indexWithValues.indexColumn,
+                label: formatColumnLabel(indexWithValues.indexColumn),
             });
         }
     }

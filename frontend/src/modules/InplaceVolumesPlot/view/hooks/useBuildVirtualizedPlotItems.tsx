@@ -147,8 +147,8 @@ export function useBuildVirtualizedPlotItems(
                     plotType,
                     {
                         title: {
-                            text: label,
-                            font: { size: 12 },
+                            text: `<b>${label}</b>`,
+                            font: { size: 14 },
                         },
                         showLegend: false,
                         displayModeBar: false,

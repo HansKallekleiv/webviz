@@ -7,6 +7,7 @@ import { ClickAwayListener } from "@mui/material";
 import { Checkbox } from "@lib/components/Checkbox";
 import { Dropdown } from "@lib/components/Dropdown";
 import { Label } from "@lib/components/Label";
+import { Slider } from "@lib/components/Slider";
 import { createPortal } from "@lib/utils/createPortal";
 
 export enum HistogramType {
@@ -23,6 +24,7 @@ export enum BarSortBy {
 
 export type InplaceVolumesPlotOptions = {
     histogramType: HistogramType; // For histogram plots
+    histogramBins: number;
     barSortBy: BarSortBy; // How to sort the bars in a bar plot,
     showStatisticalMarkers: boolean;
     showRealizationPoints: boolean;
@@ -61,10 +63,15 @@ export function InplaceVolumesPlotOptionsDialog({
     };
 
     // Individual handlers
-    const handleBarmodeChange = (value: string | number) => {
+    const handleHistogramTypeChange = (value: string | number) => {
         handleOptionChange("histogramType", value as HistogramType);
     };
-
+    const handleHistogramBinsChange = (_: Event, value: number | number[]) => {
+        if (Array.isArray(value)) {
+            return;
+        }
+        handleOptionChange("histogramBins", value);
+    };
     const handleBarSortByChange = (value: string | number) => {
         handleOptionChange("barSortBy", value as BarSortBy);
     };
@@ -96,7 +103,7 @@ export function InplaceVolumesPlotOptionsDialog({
         borderRadius: "8px",
         boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
         minWidth: "320px",
-        maxWidth: "400px",
+        maxWidth: "200px",
         overflow: "visible",
     };
 
@@ -125,7 +132,7 @@ export function InplaceVolumesPlotOptionsDialog({
                     {/* Histogram-specific options */}
                     <div className="flex flex-col gap-3 pb-3 border-b border-gray-200">
                         <div className="text-sm font-medium text-gray-700">Histogram Display</div>
-                        <Label position="left" text="Histogram Type">
+                        <Label text="Histogram Type">
                             <Dropdown
                                 options={[
                                     { label: "Stacked", value: HistogramType.Stack },
@@ -134,18 +141,28 @@ export function InplaceVolumesPlotOptionsDialog({
                                     { label: "Relative", value: HistogramType.Relative },
                                 ]}
                                 value={options.histogramType}
-                                onChange={handleBarmodeChange}
+                                onChange={handleHistogramTypeChange}
                             />
                         </Label>
                         <div className="text-xs text-gray-500 -mt-2">
                             Controls how multiple data series are displayed (only applies to histogram plots)
                         </div>
+                        <Label text="Max number of histogram bins" key="number-of-histogram-bins">
+                            <Slider
+                                value={options.histogramBins}
+                                onChange={handleHistogramBinsChange}
+                                min={5}
+                                step={1}
+                                max={30}
+                                valueLabelDisplay="auto"
+                            />
+                        </Label>
                     </div>
 
                     {/* Bar-specific options */}
                     <div className="flex flex-col gap-3 pb-3 border-b border-gray-200">
                         <div className="text-sm font-medium text-gray-700">Bar Chart Display</div>
-                        <Label position="left" text="Sort Bars By">
+                        <Label text="Sort Bars By">
                             <Dropdown
                                 options={[
                                     { label: "Selector Values", value: BarSortBy.Xvalues },

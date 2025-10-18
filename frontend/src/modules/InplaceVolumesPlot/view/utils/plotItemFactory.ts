@@ -57,7 +57,7 @@ export function createPlotItem(
                 ...options.yAxisOverrides,
             },
             showlegend: options.showLegend,
-            margin: { t: 40, b: 50, l: 50, r: 20 },
+            margin: { t: 30, b: 50, l: 50, r: 20 },
             shapes: options.shapes,
         },
         config: { displayModeBar: options.displayModeBar },

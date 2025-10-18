@@ -1,4 +1,4 @@
-import { computeQuantile } from "@modules/_shared/utils/math/statistics";
+import { computeReservesP10, computeReservesP90 } from "@modules/_shared/utils/math/statistics";
 
 export type RealizationAndResult = {
     realization: number;
@@ -22,8 +22,8 @@ export function calcConvergenceArray(realizationAndResultArray: RealizationAndRe
         sum += realizationAndResult.resultValue;
         const mean = sum / (index + 1);
 
-        const p10 = computeQuantile(growingDataArray, 0.1);
-        const p90 = computeQuantile(growingDataArray, 0.9);
+        const p10 = computeReservesP10(growingDataArray);
+        const p90 = computeReservesP90(growingDataArray);
 
         convergenceArray.push({
             realization: realizationAndResult.realization,

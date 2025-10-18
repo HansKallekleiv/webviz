@@ -25,6 +25,7 @@ export const selectedIndexValueCriteriaAtom = atom<IndexValueCriteria>(IndexValu
 
 export const plotOptionsAtom = atom<InplaceVolumesPlotOptions>({
     histogramType: HistogramType.Overlay,
+    histogramBins: 10,
     barSortBy: BarSortBy.Xvalues,
     showStatisticalMarkers: false,
     showRealizationPoints: false,

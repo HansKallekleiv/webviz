@@ -8,7 +8,7 @@ import { makeDistinguishableEnsembleDisplayName } from "@modules/_shared/ensembl
 import { makeHistogramTrace } from "@modules/_shared/histogram";
 import type { Table } from "@modules/_shared/InplaceVolumes/Table";
 import { TableOriginKey } from "@modules/_shared/InplaceVolumes/types";
-import { computeQuantile } from "@modules/_shared/utils/math/statistics";
+import { computeReservesP10, computeReservesP90 } from "@modules/_shared/utils/math/statistics";
 import { formatNumber } from "@modules/_shared/utils/numberFormatting";
 import type {
     BarSortBy,
@@ -47,7 +47,6 @@ export function makePlotData(
     // Maps to store already used colors and position for each key for consistency across subplots
     const keyToColor: Map<string, string> = new Map();
     const boxPlotKeyToPositionMap: Map<string, number> = new Map();
-    const NUM_HISTOGRAM_BINS = 10;
 
     return (table: Table): Partial<PlotData>[] => {
         if (table.getColumn(colorBy) === undefined) {
@@ -87,7 +86,7 @@ export function makePlotData(
                         table,
                         firstResultName,
                         keyColor,
-                        NUM_HISTOGRAM_BINS,
+                        plotOptions.histogramBins,
                         plotOptions.showStatisticalMarkers,
                         plotOptions.showRealizationPoints,
                     ),
@@ -208,8 +207,8 @@ function createStatisticLinesForBarPlot(
     resultName: string,
 ): Partial<PlotData>[] {
     // Calculate quantiles and mean
-    const p90 = computeQuantile(yValues, 0.9);
-    const p10 = computeQuantile(yValues, 0.1);
+    const p90 = computeReservesP90(yValues);
+    const p10 = computeReservesP10(yValues);
     const mean = yValues.reduce((a, b) => a + b, 0) / yValues.length;
 
     // For categorical x-axis, we need to span from the first to the last category
@@ -436,8 +435,8 @@ function createStatisticLinesForHistogram(
     resultName: string,
 ): Partial<PlotData>[] {
     // Calculate quantiles and mean
-    const p90 = computeQuantile(xValues, 0.9);
-    const p10 = computeQuantile(xValues, 0.1);
+    const p90 = computeReservesP90(xValues);
+    const p10 = computeReservesP10(xValues);
     const mean = xValues.reduce((a, b) => a + b, 0) / xValues.length;
 
     // Calculate the histogram bins to find the maximum percentage
@@ -641,8 +640,8 @@ export function createQuantileAndMeanMarkerTracesForBoxPlot(
     yPosition: number,
     ensembleColor: string | undefined,
 ): Partial<PlotData>[] {
-    const p90 = computeQuantile(values, 0.9);
-    const p10 = computeQuantile(values, 0.1);
+    const p90 = computeReservesP90(values);
+    const p10 = computeReservesP10(values);
     const mean = values.reduce((a, b) => a + b, 0) / values.length;
 
     const p10Trace: Partial<PlotData> = {
