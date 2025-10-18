@@ -127,7 +127,7 @@ export function Settings(props: ModuleSettingsProps<Interfaces>): React.ReactNod
                             <IconButton
                                 ref={settingsButtonRef}
                                 color="primary"
-                                size="small"
+                                size="medium"
                                 onClick={handlePlotOptionsClick}
                             >
                                 <Tune fontSize="inherit" />

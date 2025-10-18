@@ -24,6 +24,7 @@ export type InplaceVolumesPlotOptions = {
     histogramType: HistogramType; // For histogram plots
     barSortBy: BarSortBy; // How to sort the bars in a bar plot,
     showStatisticalMarkers: boolean;
+    showRealizationPoints: boolean;
     sharedXAxis: boolean;
     sharedYAxis: boolean;
     showLegend: boolean;
@@ -81,6 +82,9 @@ export function InplaceVolumesPlotOptionsDialog({
     const handleShowStatisticalMarkersChange = (_: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
         handleOptionChange("showStatisticalMarkers", checked);
     };
+    const handleShowRealizationPointsChange = (_: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
+        handleOptionChange("showRealizationPoints", checked);
+    };
 
     // Calculate position relative to anchor element
     const baseStyle: React.CSSProperties = {
@@ -106,9 +110,8 @@ export function InplaceVolumesPlotOptionsDialog({
     const dialogContent = (
         <ClickAwayListener onClickAway={onClose}>
             <div ref={dialogRef} style={style}>
-                {" "}
                 <div className="flex justify-between items-center p-4 border-b border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-800">Plot options</h3>
+                    <h3 className="text-lg font-semibold text-gray-800">Plot Options</h3>
                     <button
                         onClick={onClose}
                         className="text-gray-400 hover:text-gray-600 cursor-pointer"
@@ -117,44 +120,81 @@ export function InplaceVolumesPlotOptionsDialog({
                         <Close fontSize="small" />
                     </button>
                 </div>
-                <div className="p-4 flex flex-col gap-3">
-                    <Label position="left" text="Histogram Type">
-                        <Dropdown
-                            options={[
-                                { label: "Stacked", value: HistogramType.Stack },
-                                { label: "Grouped", value: HistogramType.Group },
-                                { label: "Overlayed", value: HistogramType.Overlay },
-                                { label: "Relative", value: HistogramType.Relative },
-                            ]}
-                            value={options.histogramType}
-                            onChange={handleBarmodeChange}
-                        />
-                    </Label>
-                    <Label position="left" text="Bar Sort By">
-                        <Dropdown
-                            options={[
-                                { label: "X Values", value: BarSortBy.Xvalues },
-                                { label: "Y Values", value: BarSortBy.Yvalues },
-                            ]}
-                            value={options.barSortBy}
-                            onChange={handleBarSortByChange}
-                        />
-                    </Label>
-                    <Label position="left" text="Show statistical markers">
-                        <Checkbox
-                            checked={options.showStatisticalMarkers}
-                            onChange={handleShowStatisticalMarkersChange}
-                        />
-                    </Label>
-                    <Label position="left" text="Shared X Axis">
-                        <Checkbox checked={options.sharedXAxis} onChange={handleSharedXAxisChange} />
-                    </Label>
-                    <Label position="left" text="Shared Y Axis">
-                        <Checkbox checked={options.sharedYAxis} onChange={handleSharedYAxisChange} />
-                    </Label>
-                    <Label position="left" text="Show Legend">
-                        <Checkbox checked={options.showLegend} onChange={handleShowLegendChange} />
-                    </Label>
+                <div className="p-4 flex flex-col gap-4">
+                    {/* Histogram-specific options */}
+                    <div className="flex flex-col gap-3 pb-3 border-b border-gray-200">
+                        <div className="text-sm font-medium text-gray-700">Histogram Display</div>
+                        <Label position="left" text="Histogram Type">
+                            <Dropdown
+                                options={[
+                                    { label: "Stacked", value: HistogramType.Stack },
+                                    { label: "Grouped", value: HistogramType.Group },
+                                    { label: "Overlayed", value: HistogramType.Overlay },
+                                    { label: "Relative", value: HistogramType.Relative },
+                                ]}
+                                value={options.histogramType}
+                                onChange={handleBarmodeChange}
+                            />
+                        </Label>
+                        <div className="text-xs text-gray-500 -mt-2">
+                            Controls how multiple data series are displayed (only applies to histogram plots)
+                        </div>
+                    </div>
+
+                    {/* Bar-specific options */}
+                    <div className="flex flex-col gap-3 pb-3 border-b border-gray-200">
+                        <div className="text-sm font-medium text-gray-700">Bar Chart Display</div>
+                        <Label position="left" text="Sort Bars By">
+                            <Dropdown
+                                options={[
+                                    { label: "Selector Values", value: BarSortBy.Xvalues },
+                                    { label: "Response Values", value: BarSortBy.Yvalues },
+                                ]}
+                                value={options.barSortBy}
+                                onChange={handleBarSortByChange}
+                            />
+                        </Label>
+                        <div className="text-xs text-gray-500 -mt-2">
+                            Sort bars by selector (x-axis) or response (y-axis) values (only applies to bar plots)
+                        </div>
+                    </div>
+
+                    {/* Statistical visualization options */}
+                    <div className="flex flex-col gap-3 pb-3 border-b border-gray-200">
+                        <div className="text-sm font-medium text-gray-700">Statistical Visualization</div>
+                        <Label position="left" text="Show Statistical Markers">
+                            <Checkbox
+                                checked={options.showStatisticalMarkers}
+                                onChange={handleShowStatisticalMarkersChange}
+                            />
+                        </Label>
+                        <div className="text-xs text-gray-500 -mt-2">
+                            Display mean, P10, and P90 markers (available for certain plot types)
+                        </div>
+                        <Label position="left" text="Show Realization Points">
+                            <Checkbox
+                                checked={options.showRealizationPoints}
+                                onChange={handleShowRealizationPointsChange}
+                            />
+                        </Label>
+                        <div className="text-xs text-gray-500 -mt-2">
+                            Display individual realization data points (available for certain plot types)
+                        </div>
+                    </div>
+
+                    {/* Layout options */}
+                    <div className="flex flex-col gap-3">
+                        <div className="text-sm font-medium text-gray-700">Layout Options</div>
+                        <Label position="left" text="Shared X Axis">
+                            <Checkbox checked={options.sharedXAxis} onChange={handleSharedXAxisChange} />
+                        </Label>
+                        <Label position="left" text="Shared Y Axis">
+                            <Checkbox checked={options.sharedYAxis} onChange={handleSharedYAxisChange} />
+                        </Label>
+                        <Label position="left" text="Show Legend">
+                            <Checkbox checked={options.showLegend} onChange={handleShowLegendChange} />
+                        </Label>
+                    </div>
                 </div>
             </div>
         </ClickAwayListener>

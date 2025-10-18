@@ -24,9 +24,10 @@ export const userSelectedColorByAtom = atom<string>(TableOriginKey.TABLE_NAME);
 export const selectedIndexValueCriteriaAtom = atom<IndexValueCriteria>(IndexValueCriteria.ALLOW_INTERSECTION);
 
 export const plotOptionsAtom = atom<InplaceVolumesPlotOptions>({
-    histogramType: HistogramType.Group,
+    histogramType: HistogramType.Overlay,
     barSortBy: BarSortBy.Xvalues,
     showStatisticalMarkers: false,
+    showRealizationPoints: false,
     sharedXAxis: false,
     sharedYAxis: false,
     showLegend: true,
