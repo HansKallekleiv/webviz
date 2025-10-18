@@ -1,3 +1,5 @@
+import { useAtomValue } from "jotai";
+
 import type { ChannelContentDefinition, ChannelContentMetaData, DataGenerator } from "@framework/DataChannelTypes";
 import type { EnsembleSet } from "@framework/EnsembleSet";
 import type { ViewContext } from "@framework/ModuleContext";
@@ -5,9 +7,12 @@ import { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
 import type { ColorSet } from "@lib/utils/ColorSet";
 import { makeDistinguishableEnsembleDisplayName } from "@modules/_shared/ensembleNameUtils";
 import type { Table } from "@modules/_shared/InplaceVolumes/Table";
+import { makeTableFromApiData } from "@modules/_shared/InplaceVolumes/tableUtils";
 import { TableOriginKey } from "@modules/_shared/InplaceVolumes/types";
 import { ChannelIds } from "@modules/InplaceVolumesPlot/channelDefs";
 import type { Interfaces } from "@modules/InplaceVolumesPlot/interfaces";
+
+import { aggregatedTableDataQueriesAtom } from "../atoms/queryAtoms";
 
 function makeResultRealizationDataGenerator(
     ensembleName: string,
@@ -52,9 +57,16 @@ export function usePublishToDataChannels(
     ensembleSet: EnsembleSet,
     colorSet: ColorSet,
     colorBy: string,
-    table?: Table,
     resultName?: string,
 ) {
+    const aggregatedTableDataQueries = useAtomValue(aggregatedTableDataQueriesAtom);
+
+    // Create aggregated table from queries
+    const table =
+        aggregatedTableDataQueries.tablesData.length > 0
+            ? makeTableFromApiData(aggregatedTableDataQueries.tablesData)
+            : undefined;
+
     const contents: ChannelContentDefinition[] = [];
 
     if (!table || !resultName || !table.getColumn("REAL") || !table.getColumn(resultName)) {

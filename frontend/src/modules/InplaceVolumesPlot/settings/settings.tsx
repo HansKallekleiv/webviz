@@ -1,5 +1,6 @@
-import type React from "react";
+import React from "react";
 
+import { Tune } from "@mui/icons-material";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 
 import { useApplyInitialSettingsToState } from "@framework/InitialSettings";
@@ -9,6 +10,7 @@ import { useEnsembleSet } from "@framework/WorkbenchSession";
 import { CollapsibleGroup } from "@lib/components/CollapsibleGroup";
 import type { DropdownOption } from "@lib/components/Dropdown";
 import { Dropdown } from "@lib/components/Dropdown";
+import { IconButton } from "@lib/components/IconButton";
 import { Label } from "@lib/components/Label";
 import { InplaceVolumesFilterComponent } from "@modules/_shared/components/InplaceVolumesFilterComponent";
 import { IndexValueCriteria } from "@modules/_shared/InplaceVolumes/TableDefinitionsAccessor";
@@ -18,6 +20,7 @@ import type { Interfaces } from "../interfaces";
 import { PlotType, plotTypeToStringMapping } from "../typesAndEnums";
 
 import {
+    plotOptionsAtom,
     selectedIndexValueCriteriaAtom,
     userSelectedColorByAtom,
     userSelectedEnsembleIdentsAtom,
@@ -41,6 +44,7 @@ import {
     tableDefinitionsAccessorAtom,
 } from "./atoms/derivedAtoms";
 import { tableDefinitionsQueryAtom } from "./atoms/queryAtoms";
+import { InplaceVolumesPlotOptionsDialog } from "./components/inplaceVolumesPlotOptionsDialog";
 import { makeColorByOptions, makeSubplotByOptions } from "./utils/plotDimensionUtils";
 
 export function Settings(props: ModuleSettingsProps<Interfaces>): React.ReactNode {
@@ -74,6 +78,7 @@ export function Settings(props: ModuleSettingsProps<Interfaces>): React.ReactNod
 
     const [selectedPlotType, setSelectedPlotType] = useAtom(userSelectedPlotTypeAtom);
     const [selectedIndexValueCriteria, setSelectedIndexValueCriteria] = useAtom(selectedIndexValueCriteriaAtom);
+    const [plotOptions, setPlotOptions] = useAtom(plotOptionsAtom);
 
     useApplyInitialSettingsToState(
         props.initialSettings,
@@ -107,55 +112,80 @@ export function Settings(props: ModuleSettingsProps<Interfaces>): React.ReactNod
     for (const [type, label] of Object.entries(plotTypeToStringMapping)) {
         plotTypeOptions.push({ label, value: type as PlotType });
     }
-
+    const [isPlotSettingsDialogOpen, setIsPlotSettingsDialogOpen] = React.useState(false);
+    const settingsButtonRef = React.useRef<HTMLButtonElement>(null);
+    const handlePlotOptionsClick = React.useCallback(() => {
+        setIsPlotSettingsDialogOpen(true);
+    }, []);
     const plotSettings = (
-        <CollapsibleGroup title="Plot settings" expanded>
-            <div className="flex flex-col gap-2">
-                <Label text="Plot type">
-                    <Dropdown value={selectedPlotType} options={plotTypeOptions} onChange={setSelectedPlotType} />
-                </Label>
-                <Label text="First Result">
-                    <Dropdown
-                        value={selectedFirstResultName ?? undefined}
-                        options={resultNameOptions}
-                        onChange={setSelectedFirstResultName}
-                    />
-                </Label>
-                {selectedPlotType !== PlotType.BAR ? (
-                    <Label text="Second Result">
+        <>
+            <CollapsibleGroup title="Plot settings" expanded>
+                <div className="flex flex-col gap-2">
+                    <Label
+                        text="Plot type"
+                        endAdornment={
+                            <IconButton
+                                ref={settingsButtonRef}
+                                color="primary"
+                                size="small"
+                                onClick={handlePlotOptionsClick}
+                            >
+                                <Tune fontSize="inherit" />
+                            </IconButton>
+                        }
+                    >
+                        <Dropdown value={selectedPlotType} options={plotTypeOptions} onChange={setSelectedPlotType} />
+                    </Label>
+                    <Label text={selectedPlotType === PlotType.BAR ? "Response" : "X Response"}>
                         <Dropdown
-                            value={selectedSecondResultName ?? undefined}
+                            value={selectedFirstResultName ?? undefined}
                             options={resultNameOptions}
-                            onChange={setSelectedSecondResultName}
-                            disabled={selectedPlotType !== PlotType.SCATTER}
+                            onChange={setSelectedFirstResultName}
                         />
                     </Label>
-                ) : (
-                    <Label text="Selector">
+                    {selectedPlotType !== PlotType.BAR ? (
+                        <Label text="Y Response">
+                            <Dropdown
+                                value={selectedSecondResultName ?? undefined}
+                                options={resultNameOptions}
+                                onChange={setSelectedSecondResultName}
+                                disabled={selectedPlotType !== PlotType.SCATTER}
+                            />
+                        </Label>
+                    ) : (
+                        <Label text="Selector">
+                            <Dropdown
+                                value={selectedSelectorColumn ?? undefined}
+                                options={selectorOptions}
+                                onChange={setSelectedSelectorColumn}
+                                disabled={selectedPlotType !== PlotType.BAR}
+                            />
+                        </Label>
+                    )}
+                    <Label text="Subplot by">
                         <Dropdown
-                            value={selectedSelectorColumn ?? undefined}
-                            options={selectorOptions}
-                            onChange={setSelectedSelectorColumn}
-                            disabled={selectedPlotType !== PlotType.BAR}
+                            value={selectedSubplotBy ?? undefined}
+                            options={subplotOptions}
+                            onChange={setSelectedSubplotBy}
                         />
                     </Label>
-                )}
-                <Label text="Subplot by">
-                    <Dropdown
-                        value={selectedSubplotBy ?? undefined}
-                        options={subplotOptions}
-                        onChange={setSelectedSubplotBy}
-                    />
-                </Label>
-                <Label text="Color by">
-                    <Dropdown
-                        value={selectedColorBy ?? undefined}
-                        options={colorByOptions}
-                        onChange={setSelectedColorBy}
-                    />
-                </Label>
-            </div>
-        </CollapsibleGroup>
+                    <Label text="Color by">
+                        <Dropdown
+                            value={selectedColorBy ?? undefined}
+                            options={colorByOptions}
+                            onChange={setSelectedColorBy}
+                        />
+                    </Label>
+                </div>
+            </CollapsibleGroup>
+            <InplaceVolumesPlotOptionsDialog
+                isOpen={isPlotSettingsDialogOpen}
+                onClose={() => setIsPlotSettingsDialogOpen(false)}
+                anchorElement={settingsButtonRef.current}
+                options={plotOptions}
+                onChange={setPlotOptions}
+            />
+        </>
     );
 
     return (

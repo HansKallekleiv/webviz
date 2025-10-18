@@ -1,5 +1,5 @@
 import { formatRgb, parse } from "culori";
-import type { PlotData } from "plotly.js";
+import type { Axis, Config, Layout, PlotData } from "plotly.js";
 
 import type { EnsembleSet } from "@framework/EnsembleSet";
 import { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
@@ -8,10 +8,18 @@ import { makeDistinguishableEnsembleDisplayName } from "@modules/_shared/ensembl
 import { makeHistogramTrace } from "@modules/_shared/histogram";
 import type { Table } from "@modules/_shared/InplaceVolumes/Table";
 import { TableOriginKey } from "@modules/_shared/InplaceVolumes/types";
+import { computeQuantile } from "@modules/_shared/utils/math/statistics";
+import { formatNumber } from "@modules/_shared/utils/numberFormatting";
+import type {
+    BarSortBy,
+    InplaceVolumesPlotOptions,
+} from "@modules/InplaceVolumesPlot/settings/components/inplaceVolumesPlotOptionsDialog";
 import { PlotType } from "@modules/InplaceVolumesPlot/typesAndEnums";
+import { propertySurfaceAddressAtom } from "@modules/SubsurfaceMap/settings/atoms/baseAtoms";
 
 import type { RealizationAndResult } from "./convergenceCalculation";
 import { calcConvergenceArray } from "./convergenceCalculation";
+import { sortBarPlotData } from "./plotDataCalculations";
 
 export function makeFormatLabelFunction(
     ensembleSet: EnsembleSet,
@@ -35,6 +43,7 @@ export function makePlotData(
     colorBy: string,
     ensembleSet: EnsembleSet,
     colorSet: ColorSet,
+    plotOptions: InplaceVolumesPlotOptions,
 ): (table: Table) => Partial<PlotData>[] {
     // Maps to store already used colors and position for each key for consistency across subplots
     const keyToColor: Map<string, string> = new Map();
@@ -73,11 +82,20 @@ export function makePlotData(
             }
 
             if (plotType === PlotType.HISTOGRAM) {
-                data.push(...makeHistogram(title, table, firstResultName, keyColor, NUM_HISTOGRAM_BINS));
+                data.push(
+                    ...makeHistogram(
+                        title,
+                        table,
+                        firstResultName,
+                        keyColor,
+                        NUM_HISTOGRAM_BINS,
+                        plotOptions.showStatisticalMarkers,
+                    ),
+                );
             } else if (plotType === PlotType.CONVERGENCE) {
                 data.push(...makeConvergencePlot(title, table, firstResultName, keyColor));
             } else if (plotType === PlotType.DISTRIBUTION) {
-                data.push(...makeDensityPlot(title, table, firstResultName, keyColor));
+                data.push(...makeDistributionPlot(title, table, firstResultName, keyColor));
             } else if (plotType === PlotType.BOX) {
                 let yAxisPosition = boxPlotKeyToPositionMap.get(key.toString());
                 if (yAxisPosition === undefined) {
@@ -88,7 +106,16 @@ export function makePlotData(
             } else if (plotType === PlotType.SCATTER) {
                 data.push(...makeScatterPlot(title, table, firstResultName, secondResultNameOrSelectorName, keyColor));
             } else if (plotType === PlotType.BAR) {
-                data.push(...makeBarPlot(title, table, firstResultName, secondResultNameOrSelectorName, keyColor));
+                data.push(
+                    ...makeBarPlot(
+                        title,
+                        table,
+                        firstResultName,
+                        secondResultNameOrSelectorName,
+                        keyColor,
+                        plotOptions.barSortBy,
+                    ),
+                );
             }
         }
 
@@ -102,6 +129,7 @@ function makeBarPlot(
     resultName: string,
     selectorName: string,
     color: string,
+    barSortBy: BarSortBy,
 ): Partial<PlotData>[] {
     const data: Partial<PlotData>[] = [];
 
@@ -114,13 +142,35 @@ function makeBarPlot(
         return [];
     }
 
+    const xValues = selectorColumn.getAllRowValues();
+    const yValues = resultColumn.getAllRowValues();
+
+    const dataPoints = xValues.map((x, i) => ({ x, y: yValues[i] }));
+
+    // Sort using the utility function
+    const sortedPoints = sortBarPlotData(dataPoints, barSortBy);
+
+    // Extract sorted x and y values
+    const sortedXValues = sortedPoints.map((p) => p.x);
+    const sortedYValues = sortedPoints.map((p) => p.y);
+
+    // Create custom hover text
+    const hoverText = sortedPoints.map(
+        (p) => `<b>${selectorName}:</b> ${p.x}<br><b>${resultName}:</b> ${formatNumber(Number(p.y))}<extra></extra>`,
+    );
+
     data.push({
-        x: selectorColumn.getAllRowValues(),
-        y: resultColumn.getAllRowValues(),
+        x: sortedXValues,
+        y: sortedYValues,
         name: title,
         type: "bar",
         marker: {
             color,
+        },
+        hovertemplate: hoverText,
+        hoverlabel: {
+            bgcolor: "white",
+            font: { size: 12, color: "black" },
         },
     });
 
@@ -161,26 +211,28 @@ function makeConvergencePlot(title: string, table: Table, resultName: string, co
             y: convergenceArr.map((el) => el.p90),
             name: "P90",
             type: "scatter",
-            legendgroup: title,
-            legendgrouptitle: {
-                text: title,
-            },
+            showlegend: false,
             line: {
                 color,
                 width: 1,
                 dash: "dashdot",
             },
             mode: "lines",
+            hoverlabel: {
+                bgcolor: "white",
+                font: { size: 12, color: "black" },
+            },
+            hovertemplate: convergenceArr.map(
+                (p) =>
+                    `${title}</br>Realization: ${p.realization}<br>P90: ${formatNumber(Number(p.p90))}<extra></extra>`,
+            ),
         },
         {
             x: convergenceArr.map((el) => el.realization),
             y: convergenceArr.map((el) => el.mean),
-            name: "Mean",
-            legendgroup: title,
-            legendgrouptitle: {
-                text: title,
-            },
+            name: title,
             type: "scatter",
+            showlegend: true,
             line: {
                 color,
                 width: 1,
@@ -188,16 +240,21 @@ function makeConvergencePlot(title: string, table: Table, resultName: string, co
             mode: "lines",
             fill: "tonexty",
             fillcolor: lightColor,
+            hoverlabel: {
+                bgcolor: "white",
+                font: { size: 12, color: "black" },
+            },
+            hovertemplate: convergenceArr.map(
+                (p) =>
+                    `${title}</br>Realization: ${p.realization}<br>Mean: ${formatNumber(Number(p.mean))}<extra></extra>`,
+            ),
         },
         {
             x: convergenceArr.map((el) => el.realization),
             y: convergenceArr.map((el) => el.p10),
             name: "P10",
             type: "scatter",
-            legendgroup: title,
-            legendgrouptitle: {
-                text: title,
-            },
+            showlegend: false,
             line: {
                 color,
                 width: 1,
@@ -206,6 +263,14 @@ function makeConvergencePlot(title: string, table: Table, resultName: string, co
             mode: "lines",
             fill: "tonexty",
             fillcolor: lightColor,
+            hoverlabel: {
+                bgcolor: "white",
+                font: { size: 12, color: "black" },
+            },
+            hovertemplate: convergenceArr.map(
+                (p) =>
+                    `${title}</br>Realization: ${p.realization}<br>P10: ${formatNumber(Number(p.p10))}<extra></extra>`,
+            ),
         },
     );
 
@@ -218,6 +283,7 @@ function makeHistogram(
     resultName: string,
     color: string,
     numBins: number,
+    showStatisticalMarkers: boolean,
 ): Partial<PlotData>[] {
     const data: Partial<PlotData>[] = [];
 
@@ -226,8 +292,10 @@ function makeHistogram(
         return [];
     }
 
+    const xValues = resultColumn.getAllRowValues() as number[];
+
     const histogram = makeHistogramTrace({
-        xValues: resultColumn.getAllRowValues() as number[],
+        xValues,
         numBins: numBins,
         color,
     });
@@ -238,10 +306,114 @@ function makeHistogram(
 
     data.push(histogram);
 
+    if (showStatisticalMarkers) {
+        // Add quantile and mean vertical lines
+        const statisticLines = createStatisticLinesForHistogram(xValues, title, color, numBins, resultName);
+        data.push(...statisticLines);
+    }
+
     return data;
 }
 
-function makeDensityPlot(title: string, table: Table, resultName: string, color: string): Partial<PlotData>[] {
+/**
+ * Creates vertical lines for P10, Mean, and P90 on histogram plots
+ */
+function createStatisticLinesForHistogram(
+    xValues: number[],
+    title: string,
+    color: string,
+    numBins: number,
+    resultName: string,
+): Partial<PlotData>[] {
+    // Calculate quantiles and mean
+    const p90 = computeQuantile(xValues, 0.9);
+    const p10 = computeQuantile(xValues, 0.1);
+    const mean = xValues.reduce((a, b) => a + b, 0) / xValues.length;
+
+    // Calculate the histogram bins to find the maximum percentage
+    const xMin = Math.min(...xValues);
+    const xMax = Math.max(...xValues);
+    const range = xMax - xMin;
+    const binSize = range / numBins;
+
+    // Count values in each bin
+    const binCounts = new Array(numBins).fill(0);
+    xValues.forEach((value) => {
+        const binIndex = Math.min(Math.floor((value - xMin) / binSize), numBins - 1);
+        binCounts[binIndex]++;
+    });
+
+    // Convert to percentages
+    const totalCount = xValues.length;
+    const binPercentages = binCounts.map((count) => (count / totalCount) * 100);
+    const maxPercentage = Math.max(...binPercentages);
+    const lineHeight = maxPercentage * 1.15; // Extend 15% above the highest bar
+
+    // Create vertical lines for P10, Mean, and P90
+    const p10Trace: Partial<PlotData> = {
+        x: [p10, p10],
+        y: [0, lineHeight],
+        type: "scatter",
+        mode: "lines",
+        line: {
+            color: color,
+            width: 4,
+            dash: "dash",
+        },
+        showlegend: false,
+        name: "P10",
+        legendgroup: title,
+        hovertemplate: `<b>${title}</b><br><b>P10</b><br>${resultName}: ${formatNumber(p10)}<extra></extra>`,
+        hoverlabel: {
+            bgcolor: "white",
+            font: { size: 12, color: "black" },
+        },
+    };
+
+    const meanTrace: Partial<PlotData> = {
+        x: [mean, mean],
+        y: [0, lineHeight],
+        type: "scatter",
+        mode: "lines",
+        line: {
+            color: color,
+            width: 4,
+            dash: "solid",
+        },
+        showlegend: false,
+        name: "Mean",
+        legendgroup: title,
+        hovertemplate: `<b>${title}</b><br><b>Mean</b><br>${resultName}: ${formatNumber(mean)}<extra></extra>`,
+        hoverlabel: {
+            bgcolor: "white",
+            font: { size: 12, color: "black" },
+        },
+    };
+
+    const p90Trace: Partial<PlotData> = {
+        x: [p90, p90],
+        y: [0, lineHeight],
+        type: "scatter",
+        mode: "lines",
+        line: {
+            color: color,
+            width: 4,
+            dash: "dash",
+        },
+        showlegend: false,
+        name: "P90",
+        legendgroup: title,
+        hovertemplate: `<b>${title}</b><br><b>P90</b><br>${resultName}: ${formatNumber(p90)}<extra></extra>`,
+        hoverlabel: {
+            bgcolor: "white",
+            font: { size: 12, color: "black" },
+        },
+    };
+
+    return [p10Trace, meanTrace, p90Trace];
+}
+
+function makeDistributionPlot(title: string, table: Table, resultName: string, color: string): Partial<PlotData>[] {
     const data: Partial<PlotData>[] = [];
 
     const resultColumn = table.getColumn(resultName);
@@ -319,11 +491,16 @@ function makeScatterPlot(
     if (!secondResultColumn) {
         return [];
     }
+    const realColumn = table.getColumn("REAL");
+    if (!realColumn) {
+        return [];
+    }
 
     data.push({
         x: firstResultColumn.getAllRowValues(),
         y: secondResultColumn.getAllRowValues(),
         name: title,
+        text: realColumn.getAllRowValues().map((realization) => realization.toString()),
         legendgroup: title,
         mode: "markers",
         marker: {
@@ -331,7 +508,90 @@ function makeScatterPlot(
             size: 5,
         },
         type: "scatter",
+        hovertemplate: `${firstResultName} = <b>%{x}</b> <br>${secondResultName} = <b>%{y}</b> <br>Realization = <b>%{text}</b> <extra></extra>`,
+        hoverlabel: {
+            bgcolor: "white",
+            font: { size: 12, color: "black" },
+        },
     });
 
     return data;
+}
+
+export function makeAxisOptions(
+    plotType: PlotType,
+    firstResultName: string | null,
+    secondResultName: string | null,
+): { xAxisOptions: Partial<Axis>; yAxisOptions: Partial<Axis> } {
+    let xAxisOptions: Partial<Axis> = {};
+    let yAxisOptions: Partial<Axis> = {};
+
+    if (plotType === PlotType.SCATTER) {
+        xAxisOptions = { title: { text: firstResultName ?? "", standoff: 20 } };
+        yAxisOptions = { title: { text: secondResultName ?? "", standoff: 20 } };
+    } else if (plotType === PlotType.CONVERGENCE) {
+        xAxisOptions = { title: { text: "Realizations", standoff: 5 } };
+        yAxisOptions = { title: { text: firstResultName ?? "", standoff: 5 } };
+    } else if (plotType === PlotType.BOX) {
+        yAxisOptions = { showticklabels: false };
+    } else if (plotType === PlotType.HISTOGRAM) {
+        yAxisOptions = { title: { text: "Percentage (%)" } };
+    } else if (plotType === PlotType.BAR) {
+        // For bar plots, use 'trace' order to preserve the order from the data
+        // rather than Plotly's default alphabetical sorting
+        // Hide tick labels as they can be messy - values are shown on hover
+        xAxisOptions = {
+            type: "category",
+            categoryorder: "trace",
+            showticklabels: false,
+            title: { text: `${secondResultName ?? ""} (hover to see values)`, standoff: 5 },
+        };
+        yAxisOptions = { title: { text: firstResultName ?? "", standoff: 5 } };
+    }
+
+    return { xAxisOptions, yAxisOptions };
+}
+
+export function createLegendPlot(traces: Partial<PlotData>[]): {
+    id: string;
+    data: Partial<PlotData>[];
+    layout: Partial<Layout>;
+    config: Partial<Config>;
+} {
+    const legendTraces = traces.map((trace) => ({
+        ...trace,
+        x: [null],
+        y: [null],
+        showlegend: trace.showlegend,
+    }));
+
+    return {
+        id: "legend-plot",
+        data: legendTraces,
+        layout: {
+            xaxis: {
+                visible: false,
+                showgrid: false,
+                zeroline: false,
+            },
+            yaxis: {
+                visible: false,
+                showgrid: false,
+                zeroline: false,
+            },
+            showlegend: true,
+            legend: {
+                orientation: "h",
+                y: 0.5,
+                x: 0.5,
+                xanchor: "center",
+                yanchor: "middle",
+                tracegroupgap: 0,
+                itemclick: false,
+                itemdoubleclick: false,
+            },
+            margin: { t: 5, b: 5, l: 5, r: 5 },
+        },
+        config: { displayModeBar: false },
+    };
 }
