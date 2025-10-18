@@ -1,6 +1,6 @@
-import type { PlotItem } from "@modules/_shared/components/VirtualizedPlotlyFigure";
 import type { Shape } from "plotly.js";
 
+import type { PlotItem } from "@modules/_shared/components/VirtualizedPlotlyFigure";
 import type { PlotType } from "@modules/InplaceVolumesPlot/typesAndEnums";
 
 /**

@@ -1,12 +1,13 @@
 import type React from "react";
 import { useRef } from "react";
 
+import { Close } from "@mui/icons-material";
+import { ClickAwayListener } from "@mui/material";
+
 import { Checkbox } from "@lib/components/Checkbox";
 import { Dropdown } from "@lib/components/Dropdown";
 import { Label } from "@lib/components/Label";
 import { createPortal } from "@lib/utils/createPortal";
-import { Close } from "@mui/icons-material";
-import { ClickAwayListener } from "@mui/material";
 
 export enum HistogramType {
     Stack = "stack",
