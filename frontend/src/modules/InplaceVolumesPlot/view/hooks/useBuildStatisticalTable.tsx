@@ -17,16 +17,12 @@ type StatisticalRowData = {
     [key: string]: string | number;
 };
 
-/**
- * Statistical column IDs
- */
 const STAT_COLUMNS = ["mean", "min", "max", "p10", "p90", "stddev"] as const;
 
 /**
  * Hook to build statistical table data with lazy calculation
- * Only computes statistics for rows when they're accessed (virtualization-friendly)
+ * Only computes statistics for rows when they're accessed
  *
- * @param hideConstantValues - If true, filters out rows where all values are constant (stddev ≈ 0)
  */
 export function useBuildStatisticalTable(
     viewContext: ViewContext<Interfaces>,
@@ -114,7 +110,7 @@ export function useBuildStatisticalTable(
             });
         }
 
-        // Group data but DON'T calculate statistics yet
+        // Group data
         const collection = inplaceVolumesTable.splitByColumns(groupingColumns);
         const tables = collection.getTables();
         const keys = collection.getKeys();
@@ -139,7 +135,7 @@ export function useBuildStatisticalTable(
         // Filter out constant value rows if option is enabled
         const filteredRows = plotOptions.hideConstants
             ? rowsData.filter((row) => {
-                  // Access stddev to trigger calculation if needed
+                  // Access stddev to check if constant
                   const stddev = row.stddev;
                   // If standard deviation is effectively zero, all values are constant
                   return typeof stddev !== "number" || stddev > 1e-10;
@@ -242,7 +238,7 @@ function buildCompleteRowData(
 }
 
 /**
- * Calculate statistical measures for an array of numbers
+ * Calculate statistics -- move these to stats utils??
  */
 function calculateStatistics(values: number[]): {
     mean: number;

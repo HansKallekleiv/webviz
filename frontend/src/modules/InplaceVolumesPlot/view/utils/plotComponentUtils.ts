@@ -130,7 +130,7 @@ export function makePlotData(
         return data;
     };
 }
-
+function makePlotLayout();
 function makeBarPlot(
     title: string,
     table: InplaceVolumesTable,
