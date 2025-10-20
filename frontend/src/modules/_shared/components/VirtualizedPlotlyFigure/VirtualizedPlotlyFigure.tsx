@@ -208,26 +208,6 @@ export function VirtualizedPlotlyFigure(props: VirtualizedPlotlyFigureProps): Re
         return items;
     }, [numPlots, numColumns, plotWidth, plotHeight, visibleIndices, plotItems, plotRenderer, placeholderRenderer]);
 
-    // Initialize visible plots (first few in viewport)
-    useEffect(() => {
-        const initialVisible = new Set<number>();
-
-        if (numPlots > 0) {
-            const localNumColumns = Math.min(
-                Math.ceil(Math.sqrt(numPlots)),
-                Math.max(1, Math.floor(width / minPlotSize)),
-            );
-            const localPlotHeight =
-                Math.max(fixedPlotHeight, height / Math.ceil(numPlots / localNumColumns)) - plotMargin;
-
-            const plotsPerView = Math.ceil(height / Math.max(localPlotHeight, 1)) * localNumColumns;
-            for (let i = 0; i < Math.min(plotsPerView + localNumColumns, numPlots); i++) {
-                initialVisible.add(i);
-            }
-        }
-        setVisibleIndices(initialVisible);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
     // If no plots, show empty content
     if (numPlots === 0) {
         return <>{emptyContent || <div>No plots available</div>}</>;

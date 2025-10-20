@@ -45,18 +45,15 @@ export function useBuildVirtualizedPlotItems(
     const colorBy = useAtomValue(colorByAtom);
     const plotOptions = viewContext.useSettingsToViewInterfaceValue("plotOptions");
 
-    const highlightedKeys = useMemo(() => {
-        const keys = new Set<string>();
-        if (hoveredRegion) keys.add(hoveredRegion);
-        if (hoveredZone) keys.add(hoveredZone);
-        if (hoveredFacies) keys.add(hoveredFacies);
-        return keys;
-    }, [hoveredRegion, hoveredZone, hoveredFacies]);
-
     const plotItems = useMemo<PlotItem[]>(() => {
         if (!inplaceVolumesTable) {
             return [];
         }
+        const highlightedKeys = new Set<string>();
+        if (hoveredRegion) highlightedKeys.add(hoveredRegion);
+        if (hoveredZone) highlightedKeys.add(hoveredZone);
+        if (hoveredFacies) highlightedKeys.add(hoveredFacies);
+
         const keyToColor: Map<string, string> = new Map();
         const boxPlotKeyToPositionMap: Map<string, number> = new Map();
         let title = `${plotTypeToStringMapping[plotType]} plot`;
@@ -263,7 +260,9 @@ export function useBuildVirtualizedPlotItems(
         ensembleSet,
         colorSet,
         viewContext,
-        highlightedKeys,
+        hoveredZone,
+        hoveredRegion,
+        hoveredFacies,
         plotOptions,
     ]);
 
