@@ -31,6 +31,7 @@ export type InplaceVolumesPlotOptions = {
     sharedXAxis: boolean;
     sharedYAxis: boolean;
     showLegend: boolean;
+    hideConstants: boolean;
 };
 export type InplaceVolumesPlotOptionsDialogProps = {
     options: InplaceVolumesPlotOptions;
@@ -93,7 +94,9 @@ export function InplaceVolumesPlotOptionsDialog({
     const handleShowRealizationPointsChange = (_: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
         handleOptionChange("showRealizationPoints", checked);
     };
-
+    const handleHideConstantsChange = (_: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
+        handleOptionChange("hideConstants", checked);
+    };
     // Calculate position relative to anchor element
     const baseStyle: React.CSSProperties = {
         position: "fixed",
@@ -203,6 +206,9 @@ export function InplaceVolumesPlotOptionsDialog({
                     {/* Layout options */}
                     <div className="flex flex-col gap-3">
                         <div className="text-sm font-medium text-gray-700">Layout Options</div>
+                        <Label position="left" text="Hide plots where all values are equal">
+                            <Checkbox checked={options.hideConstants} onChange={handleHideConstantsChange} />
+                        </Label>
                         <Label position="left" text="Shared X Axis">
                             <Checkbox checked={options.sharedXAxis} onChange={handleSharedXAxisChange} />
                         </Label>

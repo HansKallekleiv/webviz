@@ -12,6 +12,7 @@ import type { DropdownOption } from "@lib/components/Dropdown";
 import { Dropdown } from "@lib/components/Dropdown";
 import { IconButton } from "@lib/components/IconButton";
 import { Label } from "@lib/components/Label";
+import { TagPicker } from "@lib/components/TagPicker";
 import { InplaceVolumesFilterComponent } from "@modules/_shared/components/InplaceVolumesFilterComponent";
 import { IndexValueCriteria } from "@modules/_shared/InplaceVolumes/TableDefinitionsAccessor";
 import { createHoverTextForVolume } from "@modules/_shared/InplaceVolumes/volumeStringUtils";
@@ -42,6 +43,7 @@ import {
     selectedSubplotByAtom,
     selectedTableNamesAtom,
     tableDefinitionsAccessorAtom,
+    hasSensitivitiesAtom,
 } from "./atoms/derivedAtoms";
 import { tableDefinitionsQueryAtom } from "./atoms/queryAtoms";
 import { InplaceVolumesPlotOptionsDialog } from "./components/inplaceVolumesPlotOptionsDialog";
@@ -51,6 +53,7 @@ export function Settings(props: ModuleSettingsProps<Interfaces>): React.ReactNod
     const ensembleSet = useEnsembleSet(props.workbenchSession);
     const tableDefinitionsQueryResult = useAtomValue(tableDefinitionsQueryAtom);
     const tableDefinitionsAccessor = useAtomValue(tableDefinitionsAccessorAtom);
+    const hasSensitivities = useAtomValue(hasSensitivitiesAtom);
 
     const selectedEnsembleIdents = useAtomValue(selectedEnsembleIdentsAtom);
     const setSelectedEnsembleIdents = useSetAtom(userSelectedEnsembleIdentsAtom);
@@ -168,9 +171,9 @@ export function Settings(props: ModuleSettingsProps<Interfaces>): React.ReactNod
                         </Label>
                     )}
                     <Label text="Subplot by">
-                        <Dropdown
-                            value={selectedSubplotBy ?? undefined}
-                            options={subplotOptions}
+                        <TagPicker
+                            selection={selectedSubplotBy ?? []}
+                            tagOptions={subplotOptions}
                             onChange={setSelectedSubplotBy}
                         />
                     </Label>
@@ -179,6 +182,7 @@ export function Settings(props: ModuleSettingsProps<Interfaces>): React.ReactNod
                             value={selectedColorBy ?? undefined}
                             options={colorByOptions}
                             onChange={setSelectedColorBy}
+                            placeholder="Color by ensemble by default"
                         />
                     </Label>
                 </div>

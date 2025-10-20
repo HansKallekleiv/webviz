@@ -17,7 +17,7 @@ export const userSelectedIndicesWithValuesAtom = atom<InplaceVolumesIndexWithVal
 export const userSelectedFirstResultNameAtom = atom<string | null>(null);
 export const userSelectedSecondResultNameAtom = atom<string | null>(null);
 export const userSelectedSelectorColumnAtom = atom<string | null>(null);
-export const userSelectedSubplotByAtom = atom<string>(TableOriginKey.ENSEMBLE);
+export const userSelectedSubplotByAtom = atom<string[]>([TableOriginKey.ENSEMBLE]);
 export const userSelectedPlotTypeAtom = atom<PlotType>(PlotType.HISTOGRAM);
 export const userSelectedColorByAtom = atom<string>(TableOriginKey.TABLE_NAME);
 
@@ -26,10 +26,11 @@ export const selectedIndexValueCriteriaAtom = atom<IndexValueCriteria>(IndexValu
 export const plotOptionsAtom = atom<InplaceVolumesPlotOptions>({
     histogramType: HistogramType.Overlay,
     histogramBins: 10,
-    barSortBy: BarSortBy.Xvalues,
+    barSortBy: BarSortBy.Yvalues,
     showStatisticalMarkers: false,
     showRealizationPoints: false,
     sharedXAxis: false,
     sharedYAxis: false,
     showLegend: true,
+    hideConstants: false,
 });

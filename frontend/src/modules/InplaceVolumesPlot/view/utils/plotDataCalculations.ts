@@ -71,3 +71,26 @@ export function calculateGlobalRanges(allTraces: Plotly.Data[][]): {
 
     return { xRange, yRange };
 }
+/**
+ * Check if all values in an array are equal (within floating point precision)
+ *
+ * @param values - Array of numbers to check
+ * @returns true if all values are effectively equal, false otherwise
+ *
+ * @example
+ * allValuesEqual([1, 1, 1]) // true
+ * allValuesEqual([1.0000000001, 1.0000000002]) // true (within epsilon)
+ * allValuesEqual([1, 2, 3]) // false
+ * allValuesEqual([]) // true (empty array is considered equal)
+ * allValuesEqual([5]) // true (single value is considered equal)
+ */
+export function allValuesEqual(values: number[]): boolean {
+    if (values.length <= 1) {
+        return true;
+    }
+
+    const first = values[0];
+    const epsilon = 1e-10; // Tolerance for floating point comparison
+
+    return values.every((v) => Math.abs(v - first) < epsilon);
+}

@@ -29,8 +29,10 @@ export const groupByIndicesAtom = atom((get) => {
     const validIndexColumns = indicesWithValues.map((indexWithValue) => indexWithValue.indexColumn);
 
     const groupByIndices: string[] = [];
-    if (validIndexColumns.includes(subplotBy as any)) {
-        groupByIndices.push(subplotBy);
+    for (const subplot of subplotBy) {
+        if (validIndexColumns.includes(subplot as any)) {
+            groupByIndices.push(subplot);
+        }
     }
     if (validIndexColumns.includes(colorBy as any)) {
         groupByIndices.push(colorBy);

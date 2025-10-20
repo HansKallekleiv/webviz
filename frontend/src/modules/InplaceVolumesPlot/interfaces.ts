@@ -21,7 +21,7 @@ export type SettingsToViewInterface = {
     firstResultName: string | null;
     secondResultName: string | null;
     selectorColumn: string | null;
-    subplotBy: string;
+    subplotBy: string[];
     colorBy: string;
     plotType: PlotType;
     areTableDefinitionSelectionsValid: boolean;

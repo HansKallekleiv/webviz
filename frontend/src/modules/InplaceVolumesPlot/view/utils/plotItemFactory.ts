@@ -4,25 +4,6 @@ import type { PlotItem } from "@modules/_shared/components/VirtualizedPlotlyFigu
 import type { PlotType } from "@modules/InplaceVolumesPlot/typesAndEnums";
 
 /**
- * Creates a highlight shape for a plot when an item is hovered
- */
-export function createHighlightShape(): Partial<Shape> {
-    return {
-        type: "rect",
-        line: {
-            color: "blue",
-            width: 2,
-        },
-        x0: 0,
-        x1: 1,
-        y0: 0,
-        y1: 1,
-        xref: "paper",
-        yref: "paper",
-    };
-}
-
-/**
  * Creates a plot item with common layout options
  */
 export function createPlotItem(

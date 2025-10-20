@@ -1,4 +1,5 @@
 import type { DropdownOption } from "@lib/components/Dropdown";
+import type { TagOption } from "@lib/components/TagPicker";
 import type { TableDefinitionsAccessor } from "@modules/_shared/InplaceVolumes/TableDefinitionsAccessor";
 import { TableOriginKey } from "@modules/_shared/InplaceVolumes/types";
 
@@ -14,11 +15,11 @@ function formatColumnLabel(columnName: string): string {
 export function makeSubplotByOptions(
     tableDefinitionsAccessor: TableDefinitionsAccessor,
     selectedTableNames: string[],
-): DropdownOption<string>[] {
-    const numEnsembleIdents = tableDefinitionsAccessor.getUniqueEnsembleIdents().length;
-    const numTableNames = selectedTableNames.length;
+): TagOption[] {
+    // const numEnsembleIdents = tableDefinitionsAccessor.getUniqueEnsembleIdents().length;
+    // const numTableNames = selectedTableNames.length;
 
-    const options: DropdownOption<string>[] = [
+    const options: TagOption[] = [
         {
             value: TableOriginKey.ENSEMBLE,
             label: "Ensemble",
@@ -28,10 +29,6 @@ export function makeSubplotByOptions(
             label: "Table Source",
         },
     ];
-
-    if (numEnsembleIdents > 1 && numTableNames > 1) {
-        return options;
-    }
 
     for (const indexWithValues of tableDefinitionsAccessor.getCommonIndicesWithValues()) {
         options.push({
@@ -45,50 +42,26 @@ export function makeSubplotByOptions(
 
 export function makeColorByOptions(
     tableDefinitionsAccessor: TableDefinitionsAccessor,
-    selectedSubplotBy: string,
+    selectedSubplotBy: string[],
     selectedTableNames: string[],
 ): DropdownOption<string>[] {
-    const numEnsembleIdents = tableDefinitionsAccessor.getUniqueEnsembleIdents().length;
-    const numTableNames = selectedTableNames.length;
+    // const numEnsembleIdents = tableDefinitionsAccessor.getUniqueEnsembleIdents().length;
+    // const numTableNames = selectedTableNames.length;
 
     const options: DropdownOption<string>[] = [];
 
-    if (numEnsembleIdents > 1 && selectedSubplotBy !== TableOriginKey.ENSEMBLE) {
-        options.push({
-            value: TableOriginKey.ENSEMBLE,
-            label: "Ensemble",
-        });
-        return options;
-    }
+    options.push({
+        value: TableOriginKey.ENSEMBLE,
+        label: "Ensemble",
+    });
 
-    if (numTableNames > 1 && selectedSubplotBy !== TableOriginKey.TABLE_NAME) {
-        options.push({
-            value: TableOriginKey.TABLE_NAME,
-            label: "Table Source",
-        });
-        return options;
-    }
-
-    if (selectedSubplotBy !== TableOriginKey.ENSEMBLE) {
-        options.push({
-            value: TableOriginKey.ENSEMBLE,
-            label: "Ensemble",
-        });
-    }
-
-    if (selectedSubplotBy !== TableOriginKey.TABLE_NAME) {
-        options.push({
-            value: TableOriginKey.TABLE_NAME,
-            label: "Table Source",
-        });
-    }
-
-    if (numEnsembleIdents > 1 && numTableNames > 1) {
-        return options;
-    }
+    options.push({
+        value: TableOriginKey.TABLE_NAME,
+        label: "Table Source",
+    });
 
     for (const indexWithValues of tableDefinitionsAccessor.getCommonIndicesWithValues()) {
-        if (selectedSubplotBy !== indexWithValues.indexColumn) {
+        if (!selectedSubplotBy.includes(indexWithValues.indexColumn)) {
             options.push({
                 value: indexWithValues.indexColumn,
                 label: formatColumnLabel(indexWithValues.indexColumn),

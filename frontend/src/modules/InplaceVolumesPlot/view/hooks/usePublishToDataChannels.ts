@@ -5,21 +5,20 @@ import type { EnsembleSet } from "@framework/EnsembleSet";
 import type { ViewContext } from "@framework/ModuleContext";
 import { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
 import type { ColorSet } from "@lib/utils/ColorSet";
-import { makeDistinguishableEnsembleDisplayName } from "@modules/_shared/ensembleNameUtils";
-import type { Table } from "@modules/_shared/InplaceVolumes/Table";
-import { makeTableFromApiData } from "@modules/_shared/InplaceVolumes/tableUtils";
 import { TableOriginKey } from "@modules/_shared/InplaceVolumes/types";
 import { ChannelIds } from "@modules/InplaceVolumesPlot/channelDefs";
 import type { Interfaces } from "@modules/InplaceVolumesPlot/interfaces";
 
-import { aggregatedTableDataQueriesAtom } from "../atoms/queryAtoms";
+import { colorByAtom, firstResultNameAtom, subplotByAtom } from "../atoms/baseAtoms";
+import { makeFormatLabelFunction } from "../utils/plotComponentUtils";
+import type { InplaceVolumesTable } from "../utils/tableUtils";
+
+import { useInplaceVolumesTable } from "./useInplaceVolumesTable";
 
 function makeResultRealizationDataGenerator(
-    ensembleName: string,
+    displayName: string,
     ensembleIdent: RegularEnsembleIdent,
-    tableName: string,
-    fluid: string,
-    table: Table,
+    table: InplaceVolumesTable,
     resultName: string,
     preferredColor?: string,
 ): DataGenerator {
@@ -32,16 +31,26 @@ function makeResultRealizationDataGenerator(
         }
 
         const data: { key: number; value: number }[] = [];
-        for (let row = 0; row < realColumn.getNumRows(); row++) {
-            const key = parseFloat(realColumn.getRowValue(row).toString());
-            const value = parseFloat(resultColumn.getRowValue(row).toString());
+        const realValues = realColumn.getAllRowValues();
+        const resultValues = resultColumn.getAllRowValues();
+
+        for (let row = 0; row < realValues.length; row++) {
+            const realValue = realValues[row];
+            const resultValue = resultValues[row];
+
+            if (realValue === null || resultValue === null) {
+                continue;
+            }
+
+            const key = parseFloat(realValue.toString());
+            const value = parseFloat(resultValue.toString());
             data.push({ key, value });
         }
 
         const metaData: ChannelContentMetaData = {
             unit: "",
             ensembleIdentString: ensembleIdent.toString(),
-            displayString: `${resultName} (${ensembleName}, ${tableName}, ${fluid})`,
+            displayString: displayName,
             preferredColor: preferredColor,
         };
 
@@ -56,111 +65,161 @@ export function usePublishToDataChannels(
     viewContext: ViewContext<Interfaces>,
     ensembleSet: EnsembleSet,
     colorSet: ColorSet,
-    colorBy: string,
-    resultName?: string,
 ) {
-    const aggregatedTableDataQueries = useAtomValue(aggregatedTableDataQueriesAtom);
-
-    // Create aggregated table from queries
-    const table =
-        aggregatedTableDataQueries.tablesData.length > 0
-            ? makeTableFromApiData(aggregatedTableDataQueries.tablesData)
-            : undefined;
+    const table = useInplaceVolumesTable();
+    const colorBy = useAtomValue(colorByAtom);
+    const resultName = useAtomValue(firstResultNameAtom);
+    const subplotBy = useAtomValue(subplotByAtom);
 
     const contents: ChannelContentDefinition[] = [];
 
-    if (!table || !resultName || !table.getColumn("REAL") || !table.getColumn(resultName)) {
+    // Check if we have required data
+    const hasRequiredData = Boolean(
+        table &&
+            resultName &&
+            table.getColumn("REAL") &&
+            table.getColumn(resultName) &&
+            table.getColumn(TableOriginKey.ENSEMBLE),
+    );
+
+    if (!hasRequiredData) {
         viewContext.usePublishChannelContents({
             channelIdString: ChannelIds.RESPONSE_PER_REAL,
-            dependencies: [table, ensembleSet, resultName, colorBy, colorSet],
-            enabled: Boolean(table && resultName),
-            contents,
+            dependencies: [table, ensembleSet, resultName, colorBy, colorSet, subplotBy],
+            enabled: false,
+            contents: [],
         });
         return;
     }
 
-    const colorByMap = createColumnValuesToColorMap(table, ensembleSet, colorBy, colorSet);
+    // Build grouping columns: subplot + color
 
-    const ensembleCollection = table.splitByColumn(TableOriginKey.ENSEMBLE);
-    for (const [ensembleIdentStr, ensembleTable] of ensembleCollection.getCollectionMap()) {
-        const ensembleIdent = RegularEnsembleIdent.fromString(ensembleIdentStr.toString());
-        const ensembleName = makeDistinguishableEnsembleDisplayName(
+    const groupingColumns = [...(subplotBy || []), colorBy].filter(Boolean);
+
+    if (groupingColumns.length === 0) {
+        viewContext.usePublishChannelContents({
+            channelIdString: ChannelIds.RESPONSE_PER_REAL,
+            dependencies: [table, ensembleSet, resultName, colorBy, colorSet, subplotBy],
+            enabled: false,
+            contents: [],
+        });
+        return;
+    }
+
+    const collection = table!.splitByColumns(groupingColumns);
+    const tables = collection.getTables();
+    const keys = collection.getKeys();
+
+    const formatLabelFunction = makeFormatLabelFunction(ensembleSet);
+
+    // Create color map for all groups
+    const colorMap = createColorMapForGroups(table!, groupingColumns, colorBy, ensembleSet, colorSet);
+
+    tables.forEach((groupTable, index) => {
+        const key = keys[index];
+        const keyStr = key.toString();
+        const keyParts = keyStr.split("|");
+
+        // Build display name from all grouping columns
+        const labelParts = groupingColumns.map((colName, idx) => formatLabelFunction(colName, keyParts[idx] || key));
+        const displayName = `${resultName} (${labelParts.join(", ")})`;
+
+        // Get ensemble ident for this group
+        const ensembleColumn = groupTable.getColumn(TableOriginKey.ENSEMBLE);
+        if (!ensembleColumn) return;
+
+        const ensembleValues = ensembleColumn.getAllRowValues();
+        if (ensembleValues.length === 0) return;
+
+        const ensembleIdentStr = ensembleValues[0]?.toString();
+        if (!ensembleIdentStr) return;
+
+        const ensembleIdent = RegularEnsembleIdent.fromString(ensembleIdentStr);
+
+        // Get color for this group
+        const preferredColor = colorMap.get(keyStr);
+
+        const dataGenerator = makeResultRealizationDataGenerator(
+            displayName,
             ensembleIdent,
-            ensembleSet.getRegularEnsembleArray(),
+            groupTable,
+            resultName,
+            preferredColor,
         );
 
-        const tableCollection = ensembleTable.splitByColumn(TableOriginKey.TABLE_NAME);
-        for (const [tableName, tableForTableName] of tableCollection.getCollectionMap()) {
-            const fluidZoneCollection = tableForTableName.splitByColumn(TableOriginKey.FLUID);
-            for (const [fluidZone, fluidZoneTable] of fluidZoneCollection.getCollectionMap()) {
-                let keyForColorLookup: string | number = ensembleIdentStr;
-
-                if (colorBy === TableOriginKey.TABLE_NAME) {
-                    keyForColorLookup = tableName;
-                } else if (colorBy === TableOriginKey.FLUID) {
-                    keyForColorLookup = fluidZone;
-                }
-                const determinedColor = colorByMap.get(keyForColorLookup);
-
-                const dataGenerator = makeResultRealizationDataGenerator(
-                    ensembleName,
-                    ensembleIdent,
-                    tableName.toString(),
-                    fluidZone.toString(),
-                    fluidZoneTable,
-                    resultName,
-                    determinedColor,
-                );
-
-                contents.push({
-                    contentIdString: `${fluidZone}-${tableName}-${ensembleIdentStr}`,
-                    displayName: `${resultName} (${ensembleName}, ${tableName}, ${fluidZone})`,
-                    dataGenerator,
-                });
-            }
-        }
-    }
+        contents.push({
+            contentIdString: keyStr,
+            displayName,
+            dataGenerator,
+        });
+    });
 
     viewContext.usePublishChannelContents({
         channelIdString: ChannelIds.RESPONSE_PER_REAL,
-        dependencies: [table, ensembleSet, resultName, colorBy, colorSet],
-        enabled: Boolean(table && resultName),
+        dependencies: [ensembleSet, resultName, colorBy, colorSet, subplotBy],
+        enabled: hasRequiredData,
         contents,
     });
 }
 
-function createColumnValuesToColorMap(
-    table: Table,
-    ensembleSet: EnsembleSet,
+/**
+ * Create color map for all groups using the same logic as plots
+ */
+function createColorMapForGroups(
+    table: InplaceVolumesTable,
+    groupingColumns: string[],
     colorBy: string,
+    ensembleSet: EnsembleSet,
     colorSet: ColorSet,
-): Map<string | number, string> {
-    const colorByMap = new Map<string | number, string>();
-    const colorByColumn = table.getColumn(colorBy);
+): Map<string, string> {
+    const colorMap = new Map<string, string>();
 
-    if (!colorByColumn) {
-        return colorByMap;
-    }
+    // First, split by all grouping columns
+    const collection = table.splitByColumns(groupingColumns);
+    const allKeys = collection.getKeys();
+    const allTables = collection.getTables();
 
-    const collectionToColor = table.splitByColumn(colorBy);
-    let currentBaseColorFromSet = colorSet.getFirstColor();
+    // Create a map of color values to colors
+    const colorValueToColor = new Map<string, string>();
+    const colorCollection = table.splitByColumn(colorBy);
+    let currentColor = colorSet.getFirstColor();
 
-    for (const [keyOfColorByItem] of collectionToColor.getCollectionMap()) {
-        let effectiveColor = currentBaseColorFromSet;
+    for (const [colorKey] of colorCollection.getCollectionMap()) {
+        let effectiveColor = currentColor;
 
+        // If coloring by ensemble, use ensemble-specific color
         if (colorBy === TableOriginKey.ENSEMBLE) {
-            const currentEnsembleIdent = RegularEnsembleIdent.fromString(keyOfColorByItem.toString());
-            const ensemble = ensembleSet.findEnsemble(currentEnsembleIdent);
-            const ensembleSpecificColor = ensemble?.getColor();
-
-            if (ensembleSpecificColor !== undefined) {
-                effectiveColor = ensembleSpecificColor;
+            const ensembleIdent = RegularEnsembleIdent.fromString(colorKey.toString());
+            const ensemble = ensembleSet.findEnsemble(ensembleIdent);
+            if (ensemble) {
+                effectiveColor = ensemble.getColor();
             }
         }
 
-        colorByMap.set(keyOfColorByItem, effectiveColor);
-        currentBaseColorFromSet = colorSet.getNextColor();
+        colorValueToColor.set(colorKey.toString(), effectiveColor);
+        currentColor = colorSet.getNextColor();
     }
 
-    return colorByMap;
+    //  assign colors to each group based on their color column value
+    allTables.forEach((groupTable, index) => {
+        const groupKey = allKeys[index];
+        const groupKeyStr = groupKey.toString();
+
+        // Get the color value for this group
+        const colorColumn = groupTable.getColumn(colorBy);
+        if (colorColumn) {
+            const colorValues = colorColumn.getAllRowValues();
+            if (colorValues.length > 0) {
+                const colorValue = colorValues[0]?.toString();
+                if (colorValue) {
+                    const color = colorValueToColor.get(colorValue);
+                    if (color) {
+                        colorMap.set(groupKeyStr, color);
+                    }
+                }
+            }
+        }
+    });
+
+    return colorMap;
 }

@@ -44,7 +44,47 @@ export const selectedEnsembleIdentsAtom = atom((get) => {
 
     return validatedEnsembleIdents ?? [];
 });
+export const areSensitivitiesComparableAtom = atom<boolean>((get) => {
+    const hasSensitivities = get(hasSensitivitiesAtom);
+    if (!hasSensitivities) {
+        return true;
+    }
 
+    const selectedEnsembleIdents = get(selectedEnsembleIdentsAtom);
+    const ensembleSet = get(EnsembleSetAtom);
+
+    if (selectedEnsembleIdents.length === 0) {
+        return true;
+    }
+
+    let referenceSensitivities: [string, string[]][] | null = null;
+
+    for (const ensIdent of selectedEnsembleIdents) {
+        const ensemble = ensembleSet.findEnsemble(ensIdent);
+        const sensitivities = ensemble?.getSensitivities();
+
+        if (!ensemble || !sensitivities) {
+            return false;
+        }
+
+        const sensitivityNames = sensitivities.getSensitivityNames();
+
+        if (referenceSensitivities === null) {
+            referenceSensitivities = sensitivityNames.map((sensName) => {
+                return [sensName, sensitivities.getCaseNamesForSensitivity(sensName).toSorted()];
+            });
+        } else {
+            if (
+                referenceSensitivities.length !== sensitivityNames.length ||
+                !referenceSensitivities.every((sens, index) => sens[0] === sensitivityNames[index])
+            ) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+});
 export const tableDefinitionsAccessorAtom = atom<TableDefinitionsAccessor>((get) => {
     const selectedTableNames = get(selectedTableNamesAtom);
     const tableDefinitions = get(tableDefinitionsQueryAtom);
@@ -55,6 +95,19 @@ export const tableDefinitionsAccessorAtom = atom<TableDefinitionsAccessor>((get)
         selectedTableNames,
         selectedIndexValueCriteria,
     );
+});
+export const hasSensitivitiesAtom = atom<boolean>((get) => {
+    //Checks if any ensembles has more than one sensitivity
+    const selectedEnsembleIdents = get(selectedEnsembleIdentsAtom);
+    const ensembleSet = get(EnsembleSetAtom);
+    for (const ensIdent of selectedEnsembleIdents) {
+        const ensemble = ensembleSet.findEnsemble(ensIdent);
+        const sensitivities = ensemble?.getSensitivities();
+        if (ensemble && sensitivities && sensitivities.getSensitivityArr().length > 1) {
+            return true;
+        }
+    }
+    return false;
 });
 
 export const areTableDefinitionSelectionsValidAtom = atom<boolean>((get) => {
@@ -187,28 +240,31 @@ export const selectedIndicesWithValuesAtom = atom<InplaceVolumesIndexWithValues_
 
     return fixedUpIndicesWithValues;
 });
-
-export const selectedSubplotByAtom = atom<string>((get) => {
+export const validSelectedSubplotByAndColorByAtom = atom<{ subplotBy: string[]; colorBy: string }>((get) => {
     const userSelectedSubplotBy = get(userSelectedSubplotByAtom);
-    const selectedTableNames = get(selectedTableNamesAtom);
-    const tableDefinitionsAccessor = get(tableDefinitionsAccessorAtom);
+    const userSelectedColorBy = get(userSelectedColorByAtom);
 
-    const validOptions = makeSubplotByOptions(tableDefinitionsAccessor, selectedTableNames).map((el) => el.value);
-    const fixedSelection = fixupUserSelection([userSelectedSubplotBy], validOptions);
+    const validSubplotBy = [...userSelectedSubplotBy];
+    let validColorBy = userSelectedColorBy;
 
-    return fixedSelection[0];
+    if (!userSelectedSubplotBy.includes("TABLE_NAME") && userSelectedColorBy !== "TABLE_NAME") {
+        validSubplotBy.unshift("TABLE_NAME");
+    }
+    if (!userSelectedSubplotBy.includes("ENSEMBLE") && userSelectedColorBy !== "ENSEMBLE") {
+        validSubplotBy.unshift("ENSEMBLE");
+        if (userSelectedColorBy !== "TABLE_NAME") {
+            validColorBy = "ENSEMBLE";
+        }
+    }
+    return { subplotBy: validSubplotBy, colorBy: validColorBy };
+});
+
+export const selectedSubplotByAtom = atom<string[]>((get) => {
+    const { subplotBy } = get(validSelectedSubplotByAndColorByAtom);
+    return subplotBy;
 });
 
 export const selectedColorByAtom = atom<string>((get) => {
-    const userSelectedColorBy = get(userSelectedColorByAtom);
-    const userSelectedSubplotBy = get(userSelectedSubplotByAtom);
-    const selectedTableNames = get(selectedTableNamesAtom);
-    const tableDefinitionsAccessor = get(tableDefinitionsAccessorAtom);
-
-    const validOptions = makeColorByOptions(tableDefinitionsAccessor, userSelectedSubplotBy, selectedTableNames).map(
-        (el) => el.value,
-    );
-    const fixedSelection = fixupUserSelection([userSelectedColorBy], validOptions);
-
-    return fixedSelection[0];
+    const { colorBy } = get(validSelectedSubplotByAndColorByAtom);
+    return colorBy;
 });

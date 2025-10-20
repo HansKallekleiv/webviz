@@ -8,15 +8,17 @@ import { useSubscribedValue } from "@framework/WorkbenchServices";
 import { useEnsembleSet } from "@framework/WorkbenchSession";
 import { useColorSet } from "@framework/WorkbenchSettings";
 import { PendingWrapper } from "@lib/components/PendingWrapper";
+import { Table } from "@lib/components/Table";
 import { useElementBoundingRect } from "@lib/hooks/useElementBoundingRect";
 import { Plot } from "@modules/_shared/components/Plot";
 import { VirtualizedPlotlyFigure } from "@modules/_shared/components/VirtualizedPlotlyFigure";
 
 import type { Interfaces } from "../interfaces";
+import { PlotType } from "../typesAndEnums";
 
-import { colorByAtom, firstResultNameAtom } from "./atoms/baseAtoms";
 import { areSelectedTablesComparableAtom } from "./atoms/derivedAtoms";
 import { aggregatedTableDataQueriesAtom } from "./atoms/queryAtoms";
+import { useBuildStatisticalTable } from "./hooks/useBuildStatisticalTable";
 import { useBuildVirtualizedPlotItems } from "./hooks/useBuildVirtualizedPlotItems";
 import { useDebouncedValue } from "./hooks/useDebouncedValue";
 import { useMakeViewStatusWriterMessages } from "./hooks/useMakeViewStatusWriterMessages";
@@ -36,11 +38,10 @@ export function View(props: ModuleViewProps<Interfaces>): React.ReactNode {
     const divRef = React.useRef<HTMLDivElement>(null);
     const divBoundingRect = useElementBoundingRect(divRef);
 
-    const resultName = useAtomValue(firstResultNameAtom);
     const aggregatedTableDataQueries = useAtomValue(aggregatedTableDataQueriesAtom);
     const areSelectedTablesComparable = useAtomValue(areSelectedTablesComparableAtom);
-    const colorBy = useAtomValue(colorByAtom);
 
+    const plotType = props.viewContext.useSettingsToViewInterfaceValue("plotType");
     statusWriter.setLoading(aggregatedTableDataQueries.isFetching);
     useMakeViewStatusWriterMessages(statusWriter);
 
@@ -60,8 +61,9 @@ export function View(props: ModuleViewProps<Interfaces>): React.ReactNode {
     const legendPlot = plotItems.find((item) => item.id === "legend-plot");
     const dataPlots = plotItems.filter((item) => item.id !== "legend-plot");
     const plotsHeight = legendPlot && plotOptions.showLegend ? Math.max(0, stableHeight - LEGEND_HEIGHT) : stableHeight;
+    const { columns, rows } = useBuildStatisticalTable(props.viewContext, ensembleSet);
 
-    usePublishToDataChannels(props.viewContext, ensembleSet, colorSet, colorBy, resultName ?? undefined);
+    usePublishToDataChannels(props.viewContext, ensembleSet, colorSet);
 
     function createErrorMessage(): string | null {
         if (aggregatedTableDataQueries.allQueriesFailed) {
@@ -82,7 +84,9 @@ export function View(props: ModuleViewProps<Interfaces>): React.ReactNode {
     return (
         <div ref={divRef} className="w-full h-full relative flex flex-col">
             <PendingWrapper isPending={isPending} errorMessage={createErrorMessage() ?? undefined}>
-                {plotItems.length > 0 ? (
+                {plotType === PlotType.STATISTICAL_TABLE ? (
+                    <Table columns={columns} rows={rows} />
+                ) : plotItems.length > 0 ? (
                     <>
                         {/* Main plots area - scrollable */}
                         <div style={{ flex: 1, overflow: "hidden", minHeight: 0 }}>
@@ -97,7 +101,7 @@ export function View(props: ModuleViewProps<Interfaces>): React.ReactNode {
                             )}
                         </div>
                         {/* Fixed legend at the bottom */}
-                        {legendPlot && plotOptions.showLegend && (
+                        {legendPlot && legendPlot.data && plotOptions.showLegend && (
                             <div
                                 style={{
                                     height: LEGEND_HEIGHT,

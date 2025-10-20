@@ -9,16 +9,16 @@ export type PlotItem = {
      */
     id: string | number;
     /**
-     * Plotly data traces
+     * Plotly data traces (either provided directly or via lazy getter function)
+     * Using getData allows for deferred calculation of expensive plot data until the plot is visible
      */
-    data: Plotly.Data[];
+    data?: Plotly.Data[];
     /**
-     * Plotly layout configuration
+     * Lazy getter for plot data (alternative to data property)
+     * This function will be called only when the plot becomes visible
      */
+    getData?: () => Plotly.Data[];
     layout: Partial<Plotly.Layout>;
-    /**
-     * Plotly config (optional)
-     */
     config?: Partial<Plotly.Config>;
     /**
      * Label to display when plot is not visible (optional)
@@ -32,28 +32,13 @@ export type VirtualizedPlotlyFigureProps = {
      * Array of plot items to render in a virtualized grid
      */
     plotItems: PlotItem[];
-    /**
-     * Total width available for the grid
-     */
     width: number;
-    /**
-     * Total height available for the grid
-     */
     height: number;
-    /**
-     * Minimum pixel size for each plot (default: 300)
-     */
     minPlotSize?: number;
-    /**
-     * Fixed plot height (default: 350)
-     */
     fixedPlotHeight?: number;
-    /**
-     * Margin between plots (default: 10)
-     */
     plotMargin?: number;
     /**
-     * Loading placeholder size for intersection observer (default: 100)
+     * Loading placeholder size
      */
     loadingPlaceholderSize?: number;
     /**
@@ -72,7 +57,7 @@ export type VirtualizedPlotlyFigureProps = {
 };
 
 /**
- * A virtualized grid component for rendering multiple Plotly figures efficiently.
+ * A virtualized grid component for rendering multiple Plotly figures.
  * Only renders plots that are visible in the viewport, improving performance for large numbers of plots.
  */
 
@@ -96,7 +81,7 @@ export function VirtualizedPlotlyFigure(props: VirtualizedPlotlyFigureProps): Re
     // Calculate grid dimensions
     const numPlots = plotItems.length;
     const maxColumns = Math.max(1, Math.floor(width / minPlotSize));
-
+    const plotIds = useMemo(() => plotItems.map((item) => item.id).join(","), [plotItems]);
     // Handle edge case where numPlots < 1 to prevent NaN/Infinity values
     // Note: We can't early return with emptyContent here due to React hooks rules -
     // all hooks (useEffect, useMemo) must be called in the same order on every render.
@@ -135,25 +120,31 @@ export function VirtualizedPlotlyFigure(props: VirtualizedPlotlyFigureProps): Re
             },
         );
 
-        // Observe all plot containers after a brief delay to ensure DOM is ready
-        const timeoutId = setTimeout(() => {
-            if (containerRef.current) {
-                const plotContainers = containerRef.current.querySelectorAll("[data-index]");
-                plotContainers.forEach((container) => observer.observe(container));
-            }
-        }, 0);
+        let frameId: number;
+        const handle = requestAnimationFrame(() => {
+            frameId = requestAnimationFrame(() => {
+                if (containerRef.current) {
+                    const plotContainers = containerRef.current.querySelectorAll("[data-index]");
+                    plotContainers.forEach((container) => observer.observe(container));
+                }
+            });
+        });
 
         return () => {
             observer.disconnect();
-            clearTimeout(timeoutId);
+            cancelAnimationFrame(handle);
+            if (frameId) {
+                cancelAnimationFrame(frameId);
+            }
         };
-    }, [numPlots, loadingPlaceholderSize]);
-
+    }, [numPlots, loadingPlaceholderSize, width, height, minPlotSize, fixedPlotHeight, plotMargin, plotIds]);
     // Default plot renderer
     const defaultRenderPlot = (item: PlotItem, itemWidth: number, itemHeight: number): React.ReactElement => {
+        const plotData = item.getData ? item.getData() : item.data || [];
+
         return (
             <Plot
-                data={item.data}
+                data={plotData}
                 layout={{
                     ...item.layout,
                     width: itemWidth,
@@ -194,6 +185,7 @@ export function VirtualizedPlotlyFigure(props: VirtualizedPlotlyFigureProps): Re
             const row = Math.floor(i / numColumns);
             const col = i % numColumns;
             const isVisible = visibleIndices.has(i);
+
             const plotItem = plotItems[i];
 
             items.push(
@@ -221,15 +213,21 @@ export function VirtualizedPlotlyFigure(props: VirtualizedPlotlyFigureProps): Re
         const initialVisible = new Set<number>();
 
         if (numPlots > 0) {
-            const plotsPerView = Math.ceil(height / Math.max(plotHeight, 1)) * numColumns;
-            for (let i = 0; i < Math.min(plotsPerView + numColumns, numPlots); i++) {
+            const localNumColumns = Math.min(
+                Math.ceil(Math.sqrt(numPlots)),
+                Math.max(1, Math.floor(width / minPlotSize)),
+            );
+            const localPlotHeight =
+                Math.max(fixedPlotHeight, height / Math.ceil(numPlots / localNumColumns)) - plotMargin;
+
+            const plotsPerView = Math.ceil(height / Math.max(localPlotHeight, 1)) * localNumColumns;
+            for (let i = 0; i < Math.min(plotsPerView + localNumColumns, numPlots); i++) {
                 initialVisible.add(i);
             }
         }
-
         setVisibleIndices(initialVisible);
-    }, [height, plotHeight, numColumns, numPlots]);
-
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
     // If no plots, show empty content
     if (numPlots === 0) {
         return <>{emptyContent || <div>No plots available</div>}</>;

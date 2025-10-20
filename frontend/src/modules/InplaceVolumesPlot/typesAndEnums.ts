@@ -7,6 +7,7 @@ export enum PlotType {
     BOX = "box",
     BAR = "bar",
     CONVERGENCE = "convergence",
+    STATISTICAL_TABLE = "statistical-table",
 }
 
 export const plotTypeToStringMapping: Record<PlotType, string> = {
@@ -16,6 +17,7 @@ export const plotTypeToStringMapping: Record<PlotType, string> = {
     [PlotType.BOX]: "Box",
     [PlotType.BAR]: "Bar",
     [PlotType.CONVERGENCE]: "Convergence",
+    [PlotType.STATISTICAL_TABLE]: "Statistical table",
 };
 
 export type InplaceVolumesFilterSelections = Omit<InplaceVolumesFilterSettings, "allowIndicesValuesIntersection"> & {

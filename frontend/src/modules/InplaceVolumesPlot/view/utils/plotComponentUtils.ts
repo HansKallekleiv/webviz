@@ -1,12 +1,11 @@
 import { formatRgb, parse } from "culori";
-import type { Axis, Config, Layout, PlotData } from "plotly.js";
+import type { Axis, Config, Layout, PlotData, Shape } from "plotly.js";
 
 import type { EnsembleSet } from "@framework/EnsembleSet";
 import { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
 import type { ColorSet } from "@lib/utils/ColorSet";
 import { makeDistinguishableEnsembleDisplayName } from "@modules/_shared/ensembleNameUtils";
 import { makeHistogramTrace } from "@modules/_shared/histogram";
-import type { Table } from "@modules/_shared/InplaceVolumes/Table";
 import { TableOriginKey } from "@modules/_shared/InplaceVolumes/types";
 import { computeReservesP10, computeReservesP90 } from "@modules/_shared/utils/math/statistics";
 import { formatNumber } from "@modules/_shared/utils/numberFormatting";
@@ -19,6 +18,7 @@ import { PlotType } from "@modules/InplaceVolumesPlot/typesAndEnums";
 import type { RealizationAndResult } from "./convergenceCalculation";
 import { calcConvergenceArray } from "./convergenceCalculation";
 import { sortBarPlotData } from "./plotDataCalculations";
+import type { InplaceVolumesTable } from "./tableUtils";
 
 export function makeFormatLabelFunction(
     ensembleSet: EnsembleSet,
@@ -43,12 +43,10 @@ export function makePlotData(
     ensembleSet: EnsembleSet,
     colorSet: ColorSet,
     plotOptions: InplaceVolumesPlotOptions,
-): (table: Table) => Partial<PlotData>[] {
-    // Maps to store already used colors and position for each key for consistency across subplots
-    const keyToColor: Map<string, string> = new Map();
-    const boxPlotKeyToPositionMap: Map<string, number> = new Map();
-
-    return (table: Table): Partial<PlotData>[] => {
+    keyToColor: Map<string, string>,
+    boxPlotKeyToPositionMap: Map<string, number>,
+): (table: InplaceVolumesTable) => Partial<PlotData>[] {
+    return (table: InplaceVolumesTable): Partial<PlotData>[] => {
         if (table.getColumn(colorBy) === undefined) {
             throw new Error(`Column to color by "${colorBy}" not found in the table.`);
         }
@@ -135,7 +133,7 @@ export function makePlotData(
 
 function makeBarPlot(
     title: string,
-    table: Table,
+    table: InplaceVolumesTable,
     resultName: string,
     selectorName: string,
     color: string,
@@ -279,7 +277,12 @@ function createStatisticLinesForBarPlot(
     return [p10Trace, meanTrace, p90Trace];
 }
 
-function makeConvergencePlot(title: string, table: Table, resultName: string, color: string): Partial<PlotData>[] {
+function makeConvergencePlot(
+    title: string,
+    table: InplaceVolumesTable,
+    resultName: string,
+    color: string,
+): Partial<PlotData>[] {
     const data: Partial<PlotData>[] = [];
 
     const realizationAndResultArray: RealizationAndResult[] = [];
@@ -381,7 +384,7 @@ function makeConvergencePlot(title: string, table: Table, resultName: string, co
 
 function makeHistogram(
     title: string,
-    table: Table,
+    table: InplaceVolumesTable,
     resultName: string,
     color: string,
     numBins: number,
@@ -526,7 +529,6 @@ function createStatisticLinesForHistogram(
  * Creates a rug trace showing individual realization points at the bottom of histogram plots
  */
 function createRugTraceForHistogram(xValues: number[], title: string, color: string): Partial<PlotData> {
-    // Create a rug plot below the x-axis to avoid overlapping with histogram bars
     const rugTrace: Partial<PlotData> = {
         x: xValues,
         y: new Array(xValues.length).fill(-2), // Position below x-axis
@@ -555,7 +557,12 @@ function createRugTraceForHistogram(xValues: number[], title: string, color: str
     return rugTrace;
 }
 
-function makeDistributionPlot(title: string, table: Table, resultName: string, color: string): Partial<PlotData>[] {
+function makeDistributionPlot(
+    title: string,
+    table: InplaceVolumesTable,
+    resultName: string,
+    color: string,
+): Partial<PlotData>[] {
     const data: Partial<PlotData>[] = [];
 
     const resultColumn = table.getColumn(resultName);
@@ -563,7 +570,10 @@ function makeDistributionPlot(title: string, table: Table, resultName: string, c
         return [];
     }
 
-    const xValues = resultColumn.getAllRowValues().map((el) => parseFloat(el.toString()));
+    const xValues = resultColumn
+        .getAllRowValues()
+        .filter((el): el is string => el !== null)
+        .map((el) => parseFloat(el.toString()));
 
     data.push({
         x: xValues,
@@ -588,7 +598,7 @@ function makeDistributionPlot(title: string, table: Table, resultName: string, c
 
 function makeBoxPlot(
     title: string,
-    table: Table,
+    table: InplaceVolumesTable,
     resultName: string,
     color: string,
     showStatisticalMarkers: boolean,
@@ -693,7 +703,7 @@ export function createQuantileAndMeanMarkerTracesForBoxPlot(
 }
 function makeScatterPlot(
     title: string,
-    table: Table,
+    table: InplaceVolumesTable,
     firstResultName: string,
     secondResultName: string,
     color: string,
@@ -713,12 +723,16 @@ function makeScatterPlot(
     if (!realColumn) {
         return [];
     }
+    const realizationStrings = realColumn
+        .getAllRowValues()
+        .filter((el): el is string => el !== null)
+        .map((realization) => realization.toString());
 
     data.push({
         x: firstResultColumn.getAllRowValues(),
         y: secondResultColumn.getAllRowValues(),
         name: title,
-        text: realColumn.getAllRowValues().map((realization) => realization.toString()),
+        text: realizationStrings,
         legendgroup: title,
         mode: "markers",
         marker: {
@@ -734,6 +748,24 @@ function makeScatterPlot(
     });
 
     return data;
+}
+/**
+ * Creates a highlight shape for a plot when an item is hovered
+ */
+export function createHighlightShape(): Partial<Shape> {
+    return {
+        type: "rect",
+        line: {
+            color: "blue",
+            width: 2,
+        },
+        x0: 0,
+        x1: 1,
+        y0: 0,
+        y1: 1,
+        xref: "paper",
+        yref: "paper",
+    };
 }
 
 export function makeAxisOptions(
