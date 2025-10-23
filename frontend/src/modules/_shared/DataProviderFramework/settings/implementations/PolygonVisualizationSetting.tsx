@@ -18,7 +18,7 @@ type ValueType = PolygonVisualizationSpec | null;
 
 export class PolygonVisualizationSetting implements CustomSettingImplementation<ValueType, SettingCategory.STATIC> {
     defaultValue: ValueType = {
-        color: "#000",
+        color: "#000000",
         lineThickness: 2,
         lineOpacity: 1,
         fill: false,
@@ -37,7 +37,7 @@ export class PolygonVisualizationSetting implements CustomSettingImplementation<
 
         const validLabelPositions = Object.values(LabelPositionType);
 
-        return (
+        const isValid =
             /^#[0-9A-Fa-f]{6}$/.test(value.color) &&
             value.lineThickness >= 0.5 &&
             value.lineThickness <= 10 &&
@@ -46,8 +46,9 @@ export class PolygonVisualizationSetting implements CustomSettingImplementation<
             value.fillOpacity >= 0 &&
             value.fillOpacity <= 1 &&
             validLabelPositions.includes(value.labelPosition as LabelPositionType) &&
-            /^#[0-9A-Fa-f]{6}$/.test(value.labelColor)
-        );
+            /^#[0-9A-Fa-f]{6}$/.test(value.labelColor);
+        console.log("isValueValid:", isValid, value);
+        return isValid;
     }
 
     serializeValue(value: ValueType): string {
