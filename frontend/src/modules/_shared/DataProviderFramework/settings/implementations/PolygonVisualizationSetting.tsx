@@ -47,7 +47,6 @@ export class PolygonVisualizationSetting implements CustomSettingImplementation<
             value.fillOpacity <= 1 &&
             validLabelPositions.includes(value.labelPosition as LabelPositionType) &&
             /^#[0-9A-Fa-f]{6}$/.test(value.labelColor);
-        console.log("isValueValid:", isValid, value);
         return isValid;
     }
 
