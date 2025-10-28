@@ -25,10 +25,6 @@ export type ModuleSerializedStateMap = {
     settings?: never,
     view?: never,
   },
-  "Grid3D": {
-    settings?: never,
-    view?: never,
-  },
   "InplaceVolumesPlot": {
     settings?: never,
     view?: never,
@@ -94,10 +90,6 @@ export type ModuleSerializedStateMap = {
     view?: never,
   },
   "SubsurfaceMap": {
-    settings?: never,
-    view?: never,
-  },
-  "TimeSeriesParameterDistribution": {
     settings?: never,
     view?: never,
   },
