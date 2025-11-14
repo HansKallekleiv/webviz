@@ -11,6 +11,7 @@ import type { DepthFilterSettings } from "@modules/_shared/components/DepthFilte
 import type { AvailableValuesType } from "../interfacesAndTypes/utils";
 
 import type { IntersectionSettingValue } from "./implementations/IntersectionSetting";
+import type { PolygonVisualizationSpec } from "./implementations/PolygonVisualizationSetting";
 import type { SensitivityNameCasePair } from "./implementations/SensitivitySetting";
 
 export enum SettingCategory {
@@ -50,6 +51,7 @@ export enum Setting {
     OPACITY_PERCENT = "opacityPercent",
     POLYGONS_ATTRIBUTE = "polygonsAttribute",
     POLYGONS_NAME = "polygonsName",
+    POLYGON_VISUALIZATION = "polygonVisualization",
     REALIZATION = "realization",
     STRAT_COLUMN = "stratColumn",
     REALIZATIONS = "realizations",
@@ -91,6 +93,7 @@ export const settingCategories = {
     [Setting.OPACITY_PERCENT]: SettingCategory.NUMBER_WITH_STEP,
     [Setting.POLYGONS_ATTRIBUTE]: SettingCategory.SINGLE_SELECT,
     [Setting.POLYGONS_NAME]: SettingCategory.SINGLE_SELECT,
+    [Setting.POLYGON_VISUALIZATION]: SettingCategory.STATIC,
     [Setting.REALIZATION]: SettingCategory.SINGLE_SELECT,
     [Setting.REALIZATIONS]: SettingCategory.MULTI_SELECT,
     [Setting.SAMPLE_RESOLUTION_IN_METERS]: SettingCategory.NUMBER,
@@ -134,6 +137,7 @@ export type SettingTypes = {
     [Setting.OPACITY_PERCENT]: number | null;
     [Setting.POLYGONS_ATTRIBUTE]: string | null;
     [Setting.POLYGONS_NAME]: string | null;
+    [Setting.POLYGON_VISUALIZATION]: PolygonVisualizationSpec | null;
     [Setting.REALIZATION]: number | null;
     [Setting.REALIZATIONS]: number[] | null;
     [Setting.SAMPLE_RESOLUTION_IN_METERS]: number | null;
