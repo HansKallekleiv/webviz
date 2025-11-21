@@ -3,6 +3,8 @@
 
 import type { SerializedSettings as M_2DViewerSettings } from "@modules/2DViewer/settings/persistence";
 import type { SerializedView as M_2DViewerView } from "@modules/2DViewer/view/persistence";
+import type { SerializedSettings as M_3DViewerSettings } from "@modules/3DViewer/settings/persistence";
+import type { SerializedView as M_3DViewerView } from "@modules/3DViewer/view/persistence";
 import type { SerializedSettings as DistributionPlotSettings } from "@modules/DistributionPlot/settings/persistence";
 import type { SerializedSettings as FlowNetworkSettings } from "@modules/FlowNetwork/settings/persistence";
 import type { SerializedSettings as InplaceVolumesPlotSettings } from "@modules/InplaceVolumesPlot/settings/persistence";
@@ -17,6 +19,7 @@ import type { SerializedView as SimulationTimeSeriesView } from "@modules/Simula
 import type { SerializedSettings as SimulationTimeSeriesSensitivitySettings } from "@modules/SimulationTimeSeriesSensitivity/settings/persistence";
 import type { SerializedView as SimulationTimeSeriesSensitivityView } from "@modules/SimulationTimeSeriesSensitivity/view/persistence";
 import type { SerializedSettings as WellCompletionsSettings } from "@modules/WellCompletions/settings/persistence";
+import type { SerializedSettings as WellLogViewerSettings } from "@modules/WellLogViewer/settings/persistence";
 
 export type ModuleSerializedStateMap = {
   "2DViewer": {
@@ -24,8 +27,8 @@ export type ModuleSerializedStateMap = {
     view?: Partial<M_2DViewerView>,
   },
   "3DViewer": {
-    settings?: never,
-    view?: never,
+    settings?: Partial<M_3DViewerSettings>,
+    view?: Partial<M_3DViewerView>,
   },
   "DbgWorkbenchSpy": {
     settings?: never,
@@ -107,6 +110,10 @@ export type ModuleSerializedStateMap = {
     settings?: never,
     view?: never,
   },
+  "TopographicMap": {
+    settings?: never,
+    view?: never,
+  },
   "Vfp": {
     settings?: never,
     view?: never,
@@ -116,7 +123,7 @@ export type ModuleSerializedStateMap = {
     view?: never,
   },
   "WellLogViewer": {
-    settings?: never,
+    settings?: Partial<WellLogViewerSettings>,
     view?: never,
   },
 };
