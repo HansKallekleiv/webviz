@@ -41,8 +41,8 @@ export function createSensitivityUpdater(workbenchSession: WorkbenchSession) {
             return [];
         }
         const availableSensitivityPairs: SensitivityNameCasePair[] = [];
-        sensitivities.map((sensitivity: Sensitivity) =>
-            sensitivity.cases.map((sensitivityCase: SensitivityCase) => {
+        sensitivities.map((sensitivity) =>
+            sensitivity.cases.map((sensitivityCase) => {
                 availableSensitivityPairs.push({
                     sensitivityName: sensitivity.name,
                     sensitivityCase: sensitivityCase.name,
