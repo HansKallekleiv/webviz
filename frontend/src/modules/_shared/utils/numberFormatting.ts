@@ -1,3 +1,5 @@
+import { createScaledNumberWithSuffix } from "./numberSuffixFormatting";
+
 /**
  * Formats a number to a string with a maximum number of decimal places.
  * Uses suffixes (K, M, B, T) for large numbers, and exponential notation for very small ones.
@@ -34,4 +36,30 @@ export function formatNumber(value: number, maxNumDecimalPlaces: number = 3): st
 
     // Omit decimals for integers
     return Number.isInteger(value) ? value.toString() : fixed;
+}
+
+/**
+ * Formats a value into a compact string representation with adaptive precision.
+ * * - Returns `"-"` if the value is null.
+ * - Returns strings as-is.
+ * - Scales numbers using SI suffixes (k, M, G).
+ * - Adjusts decimal precision based on magnitude (4 decimals for <0.01, 3 for <0.1, otherwise 2).
+ * * @param value The value to format (string, number, or null).
+ * @returns A formatted string ready for display.
+ */
+export function formatValueWithAdaptivePrecision(value: string | number | null): string {
+    if (value === null) return "-";
+    if (typeof value === "string") return value;
+
+    const { scaledValue, suffix } = createScaledNumberWithSuffix(value);
+
+    // Determine decimal places based on magnitude ("Adaptive Precision")
+    let decimalPlaces = 2;
+    if (Math.abs(scaledValue) < 0.01) {
+        decimalPlaces = 4;
+    } else if (Math.abs(scaledValue) < 0.1) {
+        decimalPlaces = 3;
+    }
+
+    return `${scaledValue.toFixed(decimalPlaces)} ${suffix}`;
 }
