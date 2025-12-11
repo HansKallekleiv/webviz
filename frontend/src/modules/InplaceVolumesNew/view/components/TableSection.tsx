@@ -11,7 +11,7 @@ interface TableSectionProps {
 
 export function TableSection({ tableBuilder, height }: TableSectionProps): React.ReactNode {
     return (
-        <div className="border-t" style={{ height }}>
+        <div style={{ height }}>
             <TableComponent
                 columns={tableBuilder.buildColumns()}
                 rows={tableBuilder.getRows()}

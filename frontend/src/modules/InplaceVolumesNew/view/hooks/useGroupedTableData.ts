@@ -25,17 +25,15 @@ import { GroupedTableData } from "../utils/GroupedTableData";
  * @returns GroupedTableData instance with all grouping and color info, or null if no data available
  */
 export function useGroupedTableData(
-    viewContext: ViewContext<Interfaces>,
     ensembleSet: EnsembleSet,
     colorSet: ColorSet,
+    hideConstants: boolean,
 ): GroupedTableData | null {
     const aggregatedTableDataQueries = useAtomValue(aggregatedTableDataQueriesAtom);
     const firstResultName = useAtomValue(firstResultNameAtom);
     const subplotBy = useAtomValue(subplotByAtom);
     const colorBy = useAtomValue(colorByAtom);
-    const { hideConstants }: InplaceVolumesPlotOptions = {
-        ...viewContext.useSettingsToViewInterfaceValue("plotOptions"),
-    };
+
     if (aggregatedTableDataQueries.tablesData.length === 0 || !firstResultName) {
         return null;
     }

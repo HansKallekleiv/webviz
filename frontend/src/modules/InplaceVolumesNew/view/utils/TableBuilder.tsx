@@ -18,70 +18,6 @@ export type StatisticsTableRowData = {
     p90: number | null;
 };
 
-const BASE_STATISTICS_TABLE_COLUMNS: TableColumns<StatisticsTableRowData> = [
-    {
-        _type: "data",
-        columnId: "subplotValue",
-        label: "Subplot",
-        sizeInPercent: 15,
-    },
-    {
-        _type: "data",
-        columnId: "colorByValue",
-        label: "Color",
-        sizeInPercent: 15,
-    },
-    {
-        _type: "data",
-        columnId: "mean",
-        label: "Mean",
-        sizeInPercent: 10,
-        formatValue: formatValueWithAdaptivePrecision,
-    },
-    {
-        _type: "data",
-        columnId: "p10",
-        label: "P10",
-        sizeInPercent: 10,
-        formatValue: formatValueWithAdaptivePrecision,
-    },
-    {
-        _type: "data",
-        columnId: "p90",
-        label: "P90",
-        sizeInPercent: 10,
-        formatValue: formatValueWithAdaptivePrecision,
-    },
-    {
-        _type: "data",
-        columnId: "p50",
-        label: "P50",
-        sizeInPercent: 10,
-        formatValue: formatValueWithAdaptivePrecision,
-    },
-    {
-        _type: "data",
-        columnId: "stdDev",
-        label: "Std Dev",
-        sizeInPercent: 10,
-        formatValue: formatValueWithAdaptivePrecision,
-    },
-    {
-        _type: "data",
-        columnId: "min",
-        label: "Min",
-        sizeInPercent: 10,
-        formatValue: formatValueWithAdaptivePrecision,
-    },
-    {
-        _type: "data",
-        columnId: "max",
-        label: "Max",
-        sizeInPercent: 10,
-        formatValue: formatValueWithAdaptivePrecision,
-    },
-];
-
 export class TableBuilder {
     private _rows: StatisticsTableRowData[];
     private _colorMap: Map<string, string>;
@@ -155,3 +91,75 @@ export class TableBuilder {
         );
     }
 }
+const BASE_STATISTICS_TABLE_COLUMNS: TableColumns<StatisticsTableRowData> = [
+    {
+        _type: "data",
+        columnId: "subplotValue",
+        label: "Subplot",
+        sizeInPercent: 15,
+        filter: false,
+    },
+    {
+        _type: "data",
+        columnId: "colorByValue",
+        label: "Color",
+        sizeInPercent: 15,
+        filter: false,
+    },
+    {
+        _type: "data",
+        columnId: "mean",
+        label: "Mean",
+        sizeInPercent: 10,
+        filter: false,
+        formatValue: formatValueWithAdaptivePrecision,
+    },
+    {
+        _type: "data",
+        columnId: "p10",
+        label: "P10",
+        sizeInPercent: 10,
+        filter: false,
+        formatValue: formatValueWithAdaptivePrecision,
+    },
+    {
+        _type: "data",
+        columnId: "p90",
+        label: "P90",
+        sizeInPercent: 10,
+        filter: false,
+        formatValue: formatValueWithAdaptivePrecision,
+    },
+    {
+        _type: "data",
+        columnId: "p50",
+        label: "P50",
+        sizeInPercent: 10,
+        filter: false,
+        formatValue: formatValueWithAdaptivePrecision,
+    },
+    {
+        _type: "data",
+        columnId: "stdDev",
+        label: "Std Dev",
+        sizeInPercent: 10,
+        filter: false,
+        formatValue: formatValueWithAdaptivePrecision,
+    },
+    {
+        _type: "data",
+        columnId: "min",
+        label: "Min",
+        sizeInPercent: 10,
+        filter: false,
+        formatValue: formatValueWithAdaptivePrecision,
+    },
+    {
+        _type: "data",
+        columnId: "max",
+        label: "Max",
+        sizeInPercent: 10,
+        filter: false,
+        formatValue: formatValueWithAdaptivePrecision,
+    },
+];

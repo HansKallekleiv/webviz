@@ -38,8 +38,7 @@ export interface GroupedTableDataOptions {
 }
 
 /**
- * Groups a table by subplotBy and colorBy columns, providing consistent
- * color assignment and label formatting for both plot and table builders.
+ * Groups a table by subplotBy and colorBy columns, providing color assignment and label formatting for both plot, tableand data channels
  */
 export class GroupedTableData {
     private _table: Table;
@@ -69,7 +68,6 @@ export class GroupedTableData {
         }
 
         const uniqueValues = colorByColumn.getUniqueValues();
-        // Create a copy before sorting for consistent color assignment
         const sortedValues = [...uniqueValues].sort((a, b) => a.toString().localeCompare(b.toString()));
         let color = this._colorSet.getFirstColor();
 

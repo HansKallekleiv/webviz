@@ -4,10 +4,10 @@ import { PlotType } from "@modules/InplaceVolumesNew/typesAndEnums";
 import { useAtomValue } from "jotai";
 
 import { colorByAtom, firstResultNameAtom, plotTypeAtom, selectorColumnAtom } from "../atoms/baseAtoms";
+import { configurePlotBuilder } from "../utils/configurePlotBuilder";
 import type { GroupedTableData } from "../utils/GroupedTableData";
+import { makePlotData } from "../utils/makePlotData";
 import { PlotBuilder } from "../utils/PlotBuilder";
-import { makePlotData } from "../utils/plotComponentUtils";
-import { configurePlotBuilder } from "../utils/PlotConfigurer";
 
 /**
  * Creates a PlotBuilder instance

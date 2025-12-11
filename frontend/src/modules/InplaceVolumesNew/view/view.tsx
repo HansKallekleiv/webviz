@@ -12,7 +12,7 @@ import { useAtomValue } from "jotai";
 import type { Interfaces } from "../interfaces";
 import { PlotType } from "../typesAndEnums";
 
-import { firstResultNameAtom, plotTypeAtom, subplotByAtom } from "./atoms/baseAtoms";
+import { plotTypeAtom } from "./atoms/baseAtoms";
 import { areSelectedTablesComparableAtom } from "./atoms/derivedAtoms";
 import { aggregatedTableDataQueriesAtom } from "./atoms/queryAtoms";
 import { PlotSection } from "./components/PlotSection";
@@ -21,8 +21,8 @@ import { useGroupedTableData } from "./hooks/useGroupedTableData";
 import { useMakeViewStatusWriterMessages } from "./hooks/useMakeViewStatusWriterMessages";
 import { usePlotBuilder } from "./hooks/usePlotBuilder";
 import { usePublishToDataChannels } from "./hooks/usePublishToDataChannels";
+import { useSetModuleTitle } from "./hooks/useSetModuleTitle";
 import { useTableBuilder } from "./hooks/useTableBuilder";
-import { makeInplaceVolumesPlotTitle } from "./utils/createTitle";
 
 export function View(props: ModuleViewProps<Interfaces>): React.ReactNode {
     const ensembleSet = useEnsembleSet(props.workbenchSession);
@@ -42,22 +42,11 @@ export function View(props: ModuleViewProps<Interfaces>): React.ReactNode {
     const plotOptions = props.viewContext.useSettingsToViewInterfaceValue("plotOptions");
     const plotType = useAtomValue(plotTypeAtom);
 
-    // Log status
     statusWriter.setLoading(aggregatedTableDataQueries.isFetching);
     useMakeViewStatusWriterMessages(statusWriter);
+    useSetModuleTitle(props.viewContext);
 
-    // Module title
-    const firstResultName = useAtomValue(firstResultNameAtom);
-    const subplotBy = useAtomValue(subplotByAtom);
-    const title = firstResultName ? makeInplaceVolumesPlotTitle(firstResultName, subplotBy) : "";
-    React.useEffect(() => {
-        props.viewContext.setInstanceTitle(title);
-    }, [title, props.viewContext]);
-
-    const shouldShowPlot = plotType !== PlotType.NONE;
-    const plotHeightFraction = showStatisticsTable && shouldShowPlot ? 0.7 : shouldShowPlot ? 1 : 0;
-
-    const groupedData = useGroupedTableData(props.viewContext, ensembleSet, colorSet);
+    const groupedData = useGroupedTableData(ensembleSet, colorSet, plotOptions.hideConstants);
     const plotBuilder = usePlotBuilder(
         groupedData,
         plotOptions,
@@ -85,8 +74,12 @@ export function View(props: ModuleViewProps<Interfaces>): React.ReactNode {
     // The query is still fetching, but we don't want to show the pending state.
     const isPending = aggregatedTableDataQueries.isFetching && areSelectedTablesComparable;
 
+    const shouldShowPlot = plotType !== PlotType.NONE;
+    const shouldShowTable = showStatisticsTable || plotType === PlotType.NONE;
+    const plotHeightFraction = shouldShowTable && shouldShowPlot ? 0.7 : shouldShowPlot ? 1 : 0;
+
     return (
-        <div ref={divRef} className="w-full h-full relative flex flex-col">
+        <div ref={divRef} className="w-full h-full relative flex flex-col gap-1">
             <PendingWrapper isPending={isPending} errorMessage={createErrorMessage() ?? undefined}>
                 {shouldShowPlot && plotBuilder && (
                     <PlotSection
@@ -97,7 +90,7 @@ export function View(props: ModuleViewProps<Interfaces>): React.ReactNode {
                         sharedYAxis={plotOptions.sharedYAxis}
                     />
                 )}
-                {(showStatisticsTable || plotType === PlotType.NONE) && tableBuilder && (
+                {shouldShowTable && tableBuilder && (
                     <TableSection
                         tableBuilder={tableBuilder}
                         height={divBoundingRect.height * (1 - plotHeightFraction)}
