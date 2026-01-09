@@ -15,6 +15,7 @@ class RealizationSurfaceAddress:
     attribute: str
     realization: int
     iso_time_or_interval: str | None
+    contact: str | None = None
 
     def __post_init__(self) -> None:
         if not self.case_uuid:
@@ -29,6 +30,8 @@ class RealizationSurfaceAddress:
             raise ValueError("RealizationSurfaceAddress.realization must be an integer")
         if self.iso_time_or_interval and len(self.iso_time_or_interval) == 0:
             raise ValueError("RealizationSurfaceAddress.iso_time_or_interval must be None or a non-empty string")
+        if self.contact is not None and len(self.contact) == 0:
+            raise ValueError("RealizationSurfaceAddress.contact must be None or a non-empty string")
 
     @classmethod
     def from_addr_str(cls, addr_str: str) -> "RealizationSurfaceAddress":
@@ -49,14 +52,33 @@ class RealizationSurfaceAddress:
         attribute_name = component_arr[4]
         realization = int(component_arr[5])
 
+        # Optional components (in any order):
+        #   contact=<contact>
+        #   <iso_date_or_interval>
         iso_date_or_interval: str | None = None
-        if len(component_arr) > 6 and len(component_arr[6]) > 0:
-            iso_date_or_interval = component_arr[6]
+        contact: str | None = None
+        for comp in component_arr[6:]:
+            if comp.startswith("contact="):
+                contact = comp.removeprefix("contact=")
+            elif comp:
+                if iso_date_or_interval is not None:
+                    raise ValueError("Multiple time/interval components in realization address string")
+                iso_date_or_interval = comp
 
-        return cls(case_uuid, ensemble_name, surface_name, attribute_name, realization, iso_date_or_interval)
+        return cls(
+            case_uuid=case_uuid,
+            ensemble_name=ensemble_name,
+            name=surface_name,
+            attribute=attribute_name,
+            realization=realization,
+            iso_time_or_interval=iso_date_or_interval,
+            contact=contact,
+        )
 
     def to_addr_str(self) -> str:
         component_arr = ["REAL", self.case_uuid, self.ensemble_name, self.name, self.attribute, str(self.realization)]
+        if self.contact:
+            component_arr.append(f"contact={self.contact}")
         if self.iso_time_or_interval:
             component_arr.append(self.iso_time_or_interval)
 
@@ -121,6 +143,7 @@ class StatisticalSurfaceAddress:
     stat_function: Literal["MEAN", "STD", "MIN", "MAX", "P10", "P90", "P50"]
     stat_realizations: list[int] | None
     iso_time_or_interval: str | None
+    contact: str | None = None
 
     def __post_init__(self) -> None:
         if not self.case_uuid:
@@ -137,6 +160,8 @@ class StatisticalSurfaceAddress:
             raise ValueError("StatisticalSurfaceAddress.realizations must be None or a list of integers")
         if self.iso_time_or_interval and len(self.iso_time_or_interval) == 0:
             raise ValueError("StatisticalSurfaceAddress.iso_time_or_interval must be None or a non-empty string")
+        if self.contact is not None and len(self.contact) == 0:
+            raise ValueError("StatisticalSurfaceAddress.contact must be None or a non-empty string")
 
     @classmethod
     def from_addr_str(cls, addr_str: str) -> "StatisticalSurfaceAddress":
@@ -158,9 +183,18 @@ class StatisticalSurfaceAddress:
         statistic_function = component_arr[5]
         realizations_str = component_arr[6]
 
+        # Optional components (in any order):
+        #   contact=<contact>
+        #   <iso_date_or_interval>
         iso_date_or_interval: str | None = None
-        if len(component_arr) > 7 and len(component_arr[7]) > 0:
-            iso_date_or_interval = component_arr[7]
+        contact: str | None = None
+        for comp in component_arr[7:]:
+            if comp.startswith("contact="):
+                contact = comp.removeprefix("contact=")
+            elif comp:
+                if iso_date_or_interval is not None:
+                    raise ValueError("Multiple time/interval components in statistical address string")
+                iso_date_or_interval = comp
 
         realizations: list[int] | None = None
         if realizations_str != "*":
@@ -170,13 +204,14 @@ class StatisticalSurfaceAddress:
             raise ValueError("Invalid statistic function")
 
         return cls(
-            case_uuid,
-            ensemble_name,
-            surface_name,
-            attribute_name,
-            statistic_function,
-            realizations,
-            iso_date_or_interval,
+            case_uuid=case_uuid,
+            ensemble_name=ensemble_name,
+            name=surface_name,
+            attribute=attribute_name,
+            stat_function=statistic_function,
+            stat_realizations=realizations,
+            iso_time_or_interval=iso_date_or_interval,
+            contact=contact,
         )
 
     def to_addr_str(self) -> str:
@@ -193,6 +228,8 @@ class StatisticalSurfaceAddress:
             self.stat_function,
             realizations_str,
         ]
+        if self.contact:
+            component_arr.append(f"contact={self.contact}")
         if self.iso_time_or_interval:
             component_arr.append(self.iso_time_or_interval)
 
@@ -209,6 +246,7 @@ class PartialSurfaceAddress:
     name: str
     attribute: str
     iso_time_or_interval: str | None
+    contact: str | None = None
 
     def __post_init__(self) -> None:
         if not self.case_uuid:
@@ -221,6 +259,8 @@ class PartialSurfaceAddress:
             raise ValueError("PartialSurfaceAddress.attribute must be a non-empty string")
         if self.iso_time_or_interval and len(self.iso_time_or_interval) == 0:
             raise ValueError("PartialSurfaceAddress.iso_time_or_interval must be None or a non-empty string")
+        if self.contact is not None and len(self.contact) == 0:
+            raise ValueError("PartialSurfaceAddress.contact must be None or a non-empty string")
 
     @classmethod
     def from_addr_str(cls, addr_str: str) -> "PartialSurfaceAddress":
@@ -240,14 +280,32 @@ class PartialSurfaceAddress:
         surface_name = component_arr[3]
         attribute_name = component_arr[4]
 
+        # Optional components (in any order):
+        #   contact=<contact>
+        #   <iso_date_or_interval>
         iso_date_or_interval: str | None = None
-        if len(component_arr) > 5 and len(component_arr[5]) > 0:
-            iso_date_or_interval = component_arr[5]
+        contact: str | None = None
+        for comp in component_arr[5:]:
+            if comp.startswith("contact="):
+                contact = comp.removeprefix("contact=")
+            elif comp:
+                if iso_date_or_interval is not None:
+                    raise ValueError("Multiple time/interval components in partial address string")
+                iso_date_or_interval = comp
 
-        return cls(case_uuid, ensemble_name, surface_name, attribute_name, iso_date_or_interval)
+        return cls(
+            case_uuid=case_uuid,
+            ensemble_name=ensemble_name,
+            name=surface_name,
+            attribute=attribute_name,
+            iso_time_or_interval=iso_date_or_interval,
+            contact=contact,
+        )
 
     def to_addr_str(self) -> str:
         component_arr = ["PARTIAL", self.case_uuid, self.ensemble_name, self.name, self.attribute]
+        if self.contact:
+            component_arr.append(f"contact={self.contact}")
         if self.iso_time_or_interval:
             component_arr.append(self.iso_time_or_interval)
 

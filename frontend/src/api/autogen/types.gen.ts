@@ -535,6 +535,46 @@ export enum FlowRateType_api {
 }
 
 /**
+ * FluidContactSurfaceMeta
+ */
+export type FluidContactSurfaceMeta_api = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Contact
+     */
+    contact: string;
+    /**
+     * Name Is Stratigraphic Offical
+     */
+    name_is_stratigraphic_offical: boolean;
+    /**
+     * Value Min
+     */
+    value_min: number | null;
+    /**
+     * Value Max
+     */
+    value_max: number | null;
+};
+
+/**
+ * FluidContactSurfaceMetaSet
+ */
+export type FluidContactSurfaceMetaSet_api = {
+    /**
+     * Surfaces
+     */
+    surfaces: Array<FluidContactSurfaceMeta_api>;
+    /**
+     * Surface Names In Strat Order
+     */
+    surface_names_in_strat_order: Array<string>;
+};
+
+/**
  * Frequency
  */
 export enum Frequency_api {
@@ -4139,6 +4179,47 @@ export type GetObservedSurfacesMetadataResponses_api = {
 
 export type GetObservedSurfacesMetadataResponse_api =
     GetObservedSurfacesMetadataResponses_api[keyof GetObservedSurfacesMetadataResponses_api];
+
+export type GetFluidContactSurfacesMetadataData_api = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Case Uuid
+         *
+         * Sumo case uuid
+         */
+        case_uuid: string;
+        /**
+         * Ensemble Name
+         *
+         * Ensemble name
+         */
+        ensemble_name: string;
+        zCacheBust?: string;
+    };
+    url: "/surface/fluid_contact_surfaces_metadata/";
+};
+
+export type GetFluidContactSurfacesMetadataErrors_api = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError_api;
+};
+
+export type GetFluidContactSurfacesMetadataError_api =
+    GetFluidContactSurfacesMetadataErrors_api[keyof GetFluidContactSurfacesMetadataErrors_api];
+
+export type GetFluidContactSurfacesMetadataResponses_api = {
+    /**
+     * Successful Response
+     */
+    200: FluidContactSurfaceMetaSet_api;
+};
+
+export type GetFluidContactSurfacesMetadataResponse_api =
+    GetFluidContactSurfacesMetadataResponses_api[keyof GetFluidContactSurfacesMetadataResponses_api];
 
 export type GetSurfaceDataData_api = {
     body?: never;

@@ -22,3 +22,17 @@ class SurfaceMetaSet:
     surfaces: list[SurfaceMeta]
     time_points_iso_str: list[str]
     time_intervals_iso_str: list[str]
+
+
+@dataclass(frozen=True, kw_only=True)
+class FluidContactSurfaceMeta:
+    name: str
+    contact: str
+    is_stratigraphic: bool
+    global_min_val: float | None
+    global_max_val: float | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class FluidContactSurfaceMetaSet:
+    surfaces: list[FluidContactSurfaceMeta]

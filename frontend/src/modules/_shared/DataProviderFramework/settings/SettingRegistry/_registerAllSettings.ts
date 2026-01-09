@@ -59,6 +59,7 @@ SettingRegistry.registerSetting(Setting.SHOW_LINES, "Show lines", BooleanSetting
 SettingRegistry.registerSetting(Setting.ATTRIBUTE, "Attribute", DropdownStringSetting);
 SettingRegistry.registerSetting(Setting.SEISMIC_ATTRIBUTE, "Seismic Attribute", DropdownStringSetting);
 SettingRegistry.registerSetting(Setting.DEPTH_ATTRIBUTE, "Depth Attribute", DropdownStringSetting);
+SettingRegistry.registerSetting(Setting.FLUID_CONTACT, "Fluid Contact", DropdownStringSetting);
 SettingRegistry.registerSetting(Setting.ENSEMBLE, "Ensemble", EnsembleSetting);
 SettingRegistry.registerSetting(Setting.COLOR_SCALE, "Color Scale", ColorScaleSetting);
 SettingRegistry.registerSetting(Setting.DEPTH_COLOR_SCALE, "Depth Color Scale", ColorScaleSetting, {

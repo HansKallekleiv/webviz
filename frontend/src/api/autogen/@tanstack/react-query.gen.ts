@@ -32,6 +32,7 @@ import {
     getFieldPerforations,
     getFields,
     getFieldScreens,
+    getFluidContactSurfacesMetadata,
     getGridModelsInfo,
     getGridParameter,
     getGridSurface,
@@ -126,6 +127,7 @@ import type {
     GetFieldPerforationsData_api,
     GetFieldScreensData_api,
     GetFieldsData_api,
+    GetFluidContactSurfacesMetadataData_api,
     GetGridModelsInfoData_api,
     GetGridParameterData_api,
     GetGridSurfaceData_api,
@@ -820,6 +822,32 @@ export const getObservedSurfacesMetadataOptions = (options: Options<GetObservedS
     });
 };
 
+export const getFluidContactSurfacesMetadataQueryKey = (options: Options<GetFluidContactSurfacesMetadataData_api>) =>
+    createQueryKey("getFluidContactSurfacesMetadata", options);
+
+/**
+ * Get Fluid Contact Surfaces Metadata
+ *
+ * Get metadata for realization fluid contact surfaces in a Sumo ensemble.
+ *
+ * Fluid contacts are stored as standard_result `fluid_contact_surface` and require an extra discriminator
+ * (`contact`) for uniqueness.
+ */
+export const getFluidContactSurfacesMetadataOptions = (options: Options<GetFluidContactSurfacesMetadataData_api>) => {
+    return queryOptions({
+        queryFn: async ({ queryKey, signal }) => {
+            const { data } = await getFluidContactSurfacesMetadata({
+                ...options,
+                ...queryKey[0],
+                signal,
+                throwOnError: true,
+            });
+            return data;
+        },
+        queryKey: getFluidContactSurfacesMetadataQueryKey(options),
+    });
+};
+
 export const getSurfaceDataQueryKey = (options: Options<GetSurfaceDataData_api>) =>
     createQueryKey("getSurfaceData", options);
 
@@ -839,14 +867,17 @@ export const getSurfaceDataQueryKey = (options: Options<GetSurfaceDataData_api>)
  * Structure of the different types of address strings:
  *
  * ```
- * REAL~~<case_uuid>~~<ensemble>~~<surface_name>~~<attribute>~~<realization>[~~<iso_date_or_interval>]
- * STAT~~<case_uuid>~~<ensemble>~~<surface_name>~~<attribute>~~<stat_function>~~<stat_realizations>[~~<iso_date_or_interval>]
+ * REAL~~<case_uuid>~~<ensemble>~~<surface_name>~~<attribute>~~<realization>[~~contact=<contact>][~~<iso_date_or_interval>]
+ * STAT~~<case_uuid>~~<ensemble>~~<surface_name>~~<attribute>~~<stat_function>~~<stat_realizations>[~~contact=<contact>][~~<iso_date_or_interval>]
  * OBS~~<case_uuid>~~<surface_name>~~<attribute>~~<iso_date_or_interval>
- * PARTIAL~~<case_uuid>~~<ensemble>~~<surface_name>~~<attribute>[~~<iso_date_or_interval>]
+ * PARTIAL~~<case_uuid>~~<ensemble>~~<surface_name>~~<attribute>[~~contact=<contact>][~~<iso_date_or_interval>]
  * ```
  *
  * The `<stat_realizations>` component in a *STAT* address contains the list of realizations to include in the statistics
  * encoded as a `UintListStr` or "*" to include all realizations.
+ *
+ * For some surfaces stored as `standard_result` in Sumo (e.g. `fluid_contact_surface`), `name + standard_result` may not be
+ * unique. For these, an optional `contact=<contact>` qualifier can be included in the address.
  */
 export const getSurfaceDataOptions = (options: Options<GetSurfaceDataData_api>) => {
     return queryOptions({

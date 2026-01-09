@@ -77,7 +77,11 @@ export function DataProviderManagerWrapper(props: LayerManagerComponentWrapperPr
                     DataProviderRegistry.makeDataProvider(DataProviderType.DEPTH_SURFACE, props.dataProviderManager),
                 );
                 return;
-
+            case "fluid-contact-surface":
+                groupDelegate.prependChild(
+                    DataProviderRegistry.makeDataProvider(DataProviderType.FLUID_CONTACT, props.dataProviderManager),
+                );
+                return;
             case "seismic-3d-surface":
                 groupDelegate.prependChild(
                     DataProviderRegistry.makeDataProvider(
@@ -179,6 +183,7 @@ export function DataProviderManagerWrapper(props: LayerManagerComponentWrapperPr
             case "depth-attribute":
                 groupDelegate.appendChild(new SharedSetting(Setting.DEPTH_ATTRIBUTE, null, props.dataProviderManager));
                 return;
+
             case "time-point":
                 groupDelegate.appendChild(new SharedSetting(Setting.TIME_POINT, null, props.dataProviderManager));
                 return;
@@ -344,6 +349,12 @@ const ACTIONS: ActionGroup[] = [
                         icon: <Icon data={surface_layer} fontSize="small" />,
                         label: "Depth",
                     },
+                    {
+                        identifier: "fluid-contact-surface",
+                        icon: <Icon data={surface_layer} fontSize="small" />,
+                        label: "Fluid Contact",
+                    },
+
                     {
                         identifier: "seismic-3d-surface",
                         icon: <Icon data={surface_layer} fontSize="small" />,

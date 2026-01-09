@@ -62,6 +62,9 @@ import type {
     GetFieldScreensResponses_api,
     GetFieldsData_api,
     GetFieldsResponses_api,
+    GetFluidContactSurfacesMetadataData_api,
+    GetFluidContactSurfacesMetadataErrors_api,
+    GetFluidContactSurfacesMetadataResponses_api,
     GetGridModelsInfoData_api,
     GetGridModelsInfoErrors_api,
     GetGridModelsInfoResponses_api,
@@ -639,6 +642,28 @@ export const getObservedSurfacesMetadata = <ThrowOnError extends boolean = false
 };
 
 /**
+ * Get Fluid Contact Surfaces Metadata
+ *
+ * Get metadata for realization fluid contact surfaces in a Sumo ensemble.
+ *
+ * Fluid contacts are stored as standard_result `fluid_contact_surface` and require an extra discriminator
+ * (`contact`) for uniqueness.
+ */
+export const getFluidContactSurfacesMetadata = <ThrowOnError extends boolean = false>(
+    options: Options<GetFluidContactSurfacesMetadataData_api, ThrowOnError>,
+) => {
+    return (options.client ?? client).get<
+        GetFluidContactSurfacesMetadataResponses_api,
+        GetFluidContactSurfacesMetadataErrors_api,
+        ThrowOnError
+    >({
+        responseType: "json",
+        url: "/surface/fluid_contact_surfaces_metadata/",
+        ...options,
+    });
+};
+
+/**
  * Get Surface Data
  *
  * Get surface data for the specified surface.
@@ -654,14 +679,17 @@ export const getObservedSurfacesMetadata = <ThrowOnError extends boolean = false
  * Structure of the different types of address strings:
  *
  * ```
- * REAL~~<case_uuid>~~<ensemble>~~<surface_name>~~<attribute>~~<realization>[~~<iso_date_or_interval>]
- * STAT~~<case_uuid>~~<ensemble>~~<surface_name>~~<attribute>~~<stat_function>~~<stat_realizations>[~~<iso_date_or_interval>]
+ * REAL~~<case_uuid>~~<ensemble>~~<surface_name>~~<attribute>~~<realization>[~~contact=<contact>][~~<iso_date_or_interval>]
+ * STAT~~<case_uuid>~~<ensemble>~~<surface_name>~~<attribute>~~<stat_function>~~<stat_realizations>[~~contact=<contact>][~~<iso_date_or_interval>]
  * OBS~~<case_uuid>~~<surface_name>~~<attribute>~~<iso_date_or_interval>
- * PARTIAL~~<case_uuid>~~<ensemble>~~<surface_name>~~<attribute>[~~<iso_date_or_interval>]
+ * PARTIAL~~<case_uuid>~~<ensemble>~~<surface_name>~~<attribute>[~~contact=<contact>][~~<iso_date_or_interval>]
  * ```
  *
  * The `<stat_realizations>` component in a *STAT* address contains the list of realizations to include in the statistics
  * encoded as a `UintListStr` or "*" to include all realizations.
+ *
+ * For some surfaces stored as `standard_result` in Sumo (e.g. `fluid_contact_surface`), `name + standard_result` may not be
+ * unique. For these, an optional `contact=<contact>` qualifier can be included in the address.
  */
 export const getSurfaceData = <ThrowOnError extends boolean = false>(
     options: Options<GetSurfaceDataData_api, ThrowOnError>,

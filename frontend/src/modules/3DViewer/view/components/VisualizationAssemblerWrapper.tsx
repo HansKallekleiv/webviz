@@ -31,6 +31,10 @@ import {
     DepthSurfaceProvider,
     type DepthSurfaceSettings,
 } from "@modules/_shared/DataProviderFramework/dataProviders/implementations/surfaceProviders/DepthSurfaceProvider";
+import {
+    FluidContactProvider,
+    type FluidContactSurfaceSettings,
+} from "@modules/_shared/DataProviderFramework/dataProviders/implementations/surfaceProviders/FluidContactProvider";
 import type {
     SurfaceData,
     SurfaceStoredData,
@@ -61,6 +65,15 @@ const VISUALIZATION_ASSEMBLER = new VisualizationAssembler<
 VISUALIZATION_ASSEMBLER.registerDataProviderTransformers<DepthSurfaceSettings, SurfaceData, SurfaceStoredData>(
     DataProviderType.DEPTH_SURFACE,
     DepthSurfaceProvider,
+    {
+        transformToVisualization: makeDepthSurfaceLayer,
+        transformToBoundingBox: makeSurfaceLayerBoundingBox,
+        transformToAnnotations: makeDepthColorScaleAnnotation,
+    },
+);
+VISUALIZATION_ASSEMBLER.registerDataProviderTransformers<FluidContactSurfaceSettings, SurfaceData, SurfaceStoredData>(
+    DataProviderType.FLUID_CONTACT,
+    FluidContactProvider,
     {
         transformToVisualization: makeDepthSurfaceLayer,
         transformToBoundingBox: makeSurfaceLayerBoundingBox,

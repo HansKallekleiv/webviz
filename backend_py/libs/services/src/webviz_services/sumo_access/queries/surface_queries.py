@@ -17,7 +17,7 @@ class SurfTimeType(str, Enum):
 @dataclass(frozen=True, kw_only=True)
 class SurfInfo:
     name: str
-    tagname: str
+    tagname: str | None
     content: str
     standard_result: str | None = None
     is_stratigraphic: bool

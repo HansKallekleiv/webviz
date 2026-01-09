@@ -13,6 +13,7 @@ import {
     AttributeSurfaceType,
 } from "../implementations/surfaceProviders/AttributeSurfaceProvider";
 import { DepthSurfaceProvider } from "../implementations/surfaceProviders/DepthSurfaceProvider";
+import { FluidContactProvider } from "../implementations/surfaceProviders/FluidContactProvider";
 import { SeismicSurfaceProvider, SeismicSurfaceType } from "../implementations/surfaceProviders/SeismicSurfaceProvider";
 
 import { DataProviderRegistry } from "./_DataProviderRegistry";
@@ -44,7 +45,7 @@ DataProviderRegistry.registerDataProvider(
 );
 
 DataProviderRegistry.registerDataProvider(DataProviderType.DEPTH_SURFACE, DepthSurfaceProvider);
-
+DataProviderRegistry.registerDataProvider(DataProviderType.FLUID_CONTACT, FluidContactProvider);
 DataProviderRegistry.registerDataProvider(DataProviderType.SEISMIC_3D_SURFACE, SeismicSurfaceProvider, [
     { surfaceType: SeismicSurfaceType.SEISMIC_SURVEY },
 ]);

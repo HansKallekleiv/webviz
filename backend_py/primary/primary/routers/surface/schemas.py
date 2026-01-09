@@ -77,6 +77,23 @@ class SurfaceMetaSet(BaseModel):
     surface_names_in_strat_order: list[str]
 
 
+class FluidContactSurfaceMeta(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+    contact: str
+    name_is_stratigraphic_offical: bool
+    value_min: float | None
+    value_max: float | None
+
+
+class FluidContactSurfaceMetaSet(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    surfaces: list[FluidContactSurfaceMeta]
+    surface_names_in_strat_order: list[str]
+
+
 class BoundingBox2d(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

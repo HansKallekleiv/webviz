@@ -7,6 +7,7 @@ from webviz_core_utils.b64 import b64_encode_float_array_as_float32
 
 from webviz_services.smda_access.types import StratigraphicSurface
 from webviz_services.sumo_access.surface_types import SurfaceMetaSet
+from webviz_services.sumo_access.surface_types import FluidContactSurfaceMetaSet
 from webviz_services.utils.surface_intersect_with_polyline import XtgeoSurfaceIntersectionPolyline
 from webviz_services.utils.surface_intersect_with_polyline import XtgeoSurfaceIntersectionResult
 from webviz_services.utils.surface_helpers import surface_to_float32_numpy_array, get_min_max_surface_values
@@ -153,6 +154,41 @@ def to_api_surface_meta_set(
         surfaces=api_meta_arr,
         time_points_iso_str=sumo_surf_meta_set.time_points_iso_str,
         time_intervals_iso_str=sumo_surf_meta_set.time_intervals_iso_str,
+        surface_names_in_strat_order=names_ordered_by_stratigraphy + remaining_names_sorted,
+    )
+
+
+def to_api_fluid_contact_surface_meta_set(
+    sumo_meta_set: FluidContactSurfaceMetaSet,
+    ordered_stratigraphic_surfaces: list[StratigraphicSurface],
+) -> schemas.FluidContactSurfaceMetaSet:
+    api_meta_arr: list[schemas.FluidContactSurfaceMeta] = []
+    all_names: set[str] = set()
+    strat_names: set[str] = set()
+
+    for sumo_meta in sumo_meta_set.surfaces:
+        api_meta_arr.append(
+            schemas.FluidContactSurfaceMeta(
+                name=sumo_meta.name,
+                contact=sumo_meta.contact,
+                name_is_stratigraphic_offical=sumo_meta.is_stratigraphic,
+                value_min=sumo_meta.global_min_val,
+                value_max=sumo_meta.global_max_val,
+            )
+        )
+        all_names.add(sumo_meta.name)
+        if sumo_meta.is_stratigraphic:
+            strat_names.add(sumo_meta.name)
+
+    names_ordered_by_stratigraphy: list[str] = []
+    for strat_surf in ordered_stratigraphic_surfaces:
+        if strat_surf.name in strat_names:
+            names_ordered_by_stratigraphy.append(strat_surf.name)
+
+    remaining_names_sorted = sorted(all_names.difference(names_ordered_by_stratigraphy))
+
+    return schemas.FluidContactSurfaceMetaSet(
+        surfaces=api_meta_arr,
         surface_names_in_strat_order=names_ordered_by_stratigraphy + remaining_names_sorted,
     )
 

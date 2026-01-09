@@ -55,6 +55,10 @@ import { makeDrilledWellborePicksLayer2D } from "../../DataProviderFramework/vis
 import { makeDrilledWellTrajectoriesLayer2D } from "../../DataProviderFramework/visualization/makeDrilledWellTrajectoriesLayer2D";
 
 import "../../DataProviderFramework/customDataProviderImplementations/registerAllDataProviders";
+import {
+    FluidContactProvider,
+    type FluidContactSurfaceSettings,
+} from "@modules/_shared/DataProviderFramework/dataProviders/implementations/surfaceProviders/FluidContactProvider";
 const VISUALIZATION_ASSEMBLER = new VisualizationAssembler<VisualizationTarget.DECK_GL>();
 
 VISUALIZATION_ASSEMBLER.registerDataProviderTransformers<DepthSurfaceSettings, SurfaceData, SurfaceStoredData>(
@@ -66,7 +70,15 @@ VISUALIZATION_ASSEMBLER.registerDataProviderTransformers<DepthSurfaceSettings, S
         transformToAnnotations: makeDepthColorScaleAnnotation,
     },
 );
-
+VISUALIZATION_ASSEMBLER.registerDataProviderTransformers<FluidContactSurfaceSettings, SurfaceData, SurfaceStoredData>(
+    DataProviderType.FLUID_CONTACT,
+    FluidContactProvider,
+    {
+        transformToVisualization: makeDepthSurfaceLayer,
+        transformToBoundingBox: makeSurfaceLayerBoundingBox,
+        transformToAnnotations: makeDepthColorScaleAnnotation,
+    },
+);
 VISUALIZATION_ASSEMBLER.registerDataProviderTransformers<SeismicSurfaceSettings, SurfaceData, SurfaceStoredData>(
     DataProviderType.SEISMIC_3D_SURFACE,
     SeismicSurfaceProvider,

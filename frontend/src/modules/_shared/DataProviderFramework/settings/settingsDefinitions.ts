@@ -42,6 +42,7 @@ export enum Setting {
     LOG_CURVE = "logCurve",
     PLOT_VARIANT = "plotVariant",
     DEPTH_ATTRIBUTE = "depthAttribute",
+    FLUID_CONTACT = "fluidContact",
     SEISMIC_ATTRIBUTE = "seismicAttribute",
     ATTRIBUTE = "attribute",
     ENSEMBLE = "ensemble",
@@ -91,6 +92,7 @@ export const settingCategories = {
     [Setting.PLOT_VARIANT]: SettingCategory.SINGLE_SELECT,
     [Setting.ATTRIBUTE]: SettingCategory.SINGLE_SELECT,
     [Setting.DEPTH_ATTRIBUTE]: SettingCategory.SINGLE_SELECT,
+    [Setting.FLUID_CONTACT]: SettingCategory.SINGLE_SELECT,
     [Setting.SEISMIC_ATTRIBUTE]: SettingCategory.SINGLE_SELECT,
     [Setting.ENSEMBLE]: SettingCategory.SINGLE_SELECT,
     [Setting.COLOR_SCALE]: SettingCategory.STATIC,
@@ -141,6 +143,7 @@ export type SettingTypes = {
     [Setting.PLOT_VARIANT]: TemplatePlotType | null;
     [Setting.ATTRIBUTE]: string | null;
     [Setting.DEPTH_ATTRIBUTE]: string | null;
+    [Setting.FLUID_CONTACT]: string | null;
     [Setting.SEISMIC_ATTRIBUTE]: string | null;
     [Setting.ENSEMBLE]: RegularEnsembleIdent | null;
     [Setting.COLOR_SCALE]: ColorScaleSpecification | null;

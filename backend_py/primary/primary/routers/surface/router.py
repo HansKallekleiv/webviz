@@ -54,14 +54,17 @@ GENERAL_SURF_ADDR_DOC_STR = """
 Structure of the different types of address strings:
 
 ```
-REAL~~<case_uuid>~~<ensemble>~~<surface_name>~~<attribute>~~<realization>[~~<iso_date_or_interval>]
-STAT~~<case_uuid>~~<ensemble>~~<surface_name>~~<attribute>~~<stat_function>~~<stat_realizations>[~~<iso_date_or_interval>]
+REAL~~<case_uuid>~~<ensemble>~~<surface_name>~~<attribute>~~<realization>[~~contact=<contact>][~~<iso_date_or_interval>]
+STAT~~<case_uuid>~~<ensemble>~~<surface_name>~~<attribute>~~<stat_function>~~<stat_realizations>[~~contact=<contact>][~~<iso_date_or_interval>]
 OBS~~<case_uuid>~~<surface_name>~~<attribute>~~<iso_date_or_interval>
-PARTIAL~~<case_uuid>~~<ensemble>~~<surface_name>~~<attribute>[~~<iso_date_or_interval>]
+PARTIAL~~<case_uuid>~~<ensemble>~~<surface_name>~~<attribute>[~~contact=<contact>][~~<iso_date_or_interval>]
 ```
 
 The `<stat_realizations>` component in a *STAT* address contains the list of realizations to include in the statistics
 encoded as a `UintListStr` or "*" to include all realizations.
+
+For some surfaces stored as `standard_result` in Sumo (e.g. `fluid_contact_surface`), `name + standard_result` may not be
+unique. For these, an optional `contact=<contact>` qualifier can be included in the address.
 
 """
 
@@ -151,6 +154,52 @@ async def get_observed_surfaces_metadata(
     return api_surf_meta_set
 
 
+@router.get("/fluid_contact_surfaces_metadata/")
+async def get_fluid_contact_surfaces_metadata(
+    response: Response,
+    authenticated_user: AuthenticatedUser = Depends(AuthHelper.get_authenticated_user),
+    case_uuid: str = Query(description="Sumo case uuid"),
+    ensemble_name: str = Query(description="Ensemble name"),
+) -> schemas.FluidContactSurfaceMetaSet:
+    """Get metadata for realization fluid contact surfaces in a Sumo ensemble.
+
+    Fluid contacts are stored as standard_result `fluid_contact_surface` and require an extra discriminator
+    (`contact`) for uniqueness.
+    """
+    perf_metrics = ResponsePerfMetrics(response)
+
+    try:
+        async with asyncio.TaskGroup() as tg:
+            access = SurfaceAccess.from_ensemble_name(
+                authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name
+            )
+            case_inspector = CaseInspector.from_case_uuid(authenticated_user.get_sumo_access_token(), case_uuid)
+
+            meta_task = tg.create_task(access.get_realization_fluid_contact_surfaces_metadata_async())
+            meta_task.add_done_callback(lambda _: perf_metrics.record_lap_no_reset("get-meta"))
+
+            strat_column_ident = await case_inspector.get_stratigraphic_column_identifier_async()
+            strat_units_task = tg.create_task(
+                _get_stratigraphic_units_for_strat_column_async(authenticated_user, strat_column_ident)
+            )
+            strat_units_task.add_done_callback(lambda _: perf_metrics.record_lap_no_reset("get-strat"))
+    except* ServiceLayerException as exc_group:
+        for exc in exc_group.exceptions:
+            raise exc from exc_group  # Reraise the first exception
+
+    perf_metrics.reset_lap_timer()
+    sumo_meta_set = meta_task.result()
+    strat_units = strat_units_task.result()
+
+    sorted_stratigraphic_surfaces = sort_stratigraphic_names_by_hierarchy(strat_units)
+    api_meta_set = converters.to_api_fluid_contact_surface_meta_set(sumo_meta_set, sorted_stratigraphic_surfaces)
+    perf_metrics.record_lap("compose")
+
+    LOGGER.info(f"Got metadata for fluid contact surfaces in: {perf_metrics.to_string()}")
+
+    return api_meta_set
+
+
 @router.get("/surface_data", description="Get surface data for the specified surface." + GENERAL_SURF_ADDR_DOC_STR)
 async def get_surface_data(
     # fmt:off
@@ -177,6 +226,7 @@ async def get_surface_data(
             name=addr.name,
             attribute=addr.attribute,
             time_or_interval_str=addr.iso_time_or_interval,
+            contact=addr.contact,
         )
         perf_metrics.record_lap("get-surf")
 
@@ -192,6 +242,7 @@ async def get_surface_data(
             attribute=addr.attribute,
             realizations=addr.stat_realizations,
             time_or_interval_str=addr.iso_time_or_interval,
+            contact=addr.contact,
         )
         perf_metrics.record_lap("sumo-calc")
 

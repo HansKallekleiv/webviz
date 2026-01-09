@@ -19,6 +19,7 @@ export class SurfaceAddressBuilder {
     private _attribute: string | null = null;
     private _realizationNum: number | null = null;
     private _isoTimeOrInterval: string | null = null;
+    private _contact: string | null = null;
     private _statisticFunction: SurfaceStatisticFunction_api | null = null;
     private _statisticRealizations: number[] | null = null;
 
@@ -45,6 +46,11 @@ export class SurfaceAddressBuilder {
 
     withTimeOrInterval(isoTimeOrInterval: string | null): this {
         this._isoTimeOrInterval = isoTimeOrInterval;
+        return this;
+    }
+
+    withContact(contact: string | null): this {
+        this._contact = contact;
         return this;
     }
 
@@ -82,6 +88,7 @@ export class SurfaceAddressBuilder {
             attribute: this._attribute!,
             realizationNum: this._realizationNum,
             isoTimeOrInterval: this._isoTimeOrInterval,
+            contact: this._contact,
         };
         return retObj;
     }
@@ -127,6 +134,7 @@ export class SurfaceAddressBuilder {
             statFunction: this._statisticFunction,
             statRealizations: this._statisticRealizations,
             isoTimeOrInterval: this._isoTimeOrInterval,
+            contact: this._contact,
         };
         return retObj;
     }
@@ -145,6 +153,7 @@ export class SurfaceAddressBuilder {
             name: this._name!,
             attribute: this._attribute!,
             isoTimeOrInterval: this._isoTimeOrInterval,
+            contact: this._contact,
         };
         return retObj;
     }

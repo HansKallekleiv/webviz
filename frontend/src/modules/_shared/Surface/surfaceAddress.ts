@@ -9,6 +9,7 @@ export interface RealizationSurfaceAddress {
     attribute: string;
     realizationNum: number;
     isoTimeOrInterval: string | null;
+    contact?: string | null;
 }
 
 export interface ObservedSurfaceAddress {
@@ -28,6 +29,7 @@ export interface StatisticalSurfaceAddress {
     statFunction: SurfaceStatisticFunction_api;
     statRealizations: number[] | null;
     isoTimeOrInterval: string | null;
+    contact?: string | null;
 }
 
 export interface PartialSurfaceAddress {
@@ -37,6 +39,7 @@ export interface PartialSurfaceAddress {
     name: string;
     attribute: string;
     isoTimeOrInterval: string | null;
+    contact?: string | null;
 }
 
 export type FullSurfaceAddress = RealizationSurfaceAddress | ObservedSurfaceAddress | StatisticalSurfaceAddress;
@@ -54,6 +57,9 @@ const ADDR_COMP_DELIMITER = "~~";
 
 export function encodeRealizationSurfAddrStr(addr: Omit<RealizationSurfaceAddress, "addressType">): string {
     const componentArr = ["REAL", addr.caseUuid, addr.ensemble, addr.name, addr.attribute, addr.realizationNum];
+    if (addr.contact != null) {
+        componentArr.push(`contact=${addr.contact}`);
+    }
     if (addr.isoTimeOrInterval !== null) {
         componentArr.push(addr.isoTimeOrInterval);
     }
@@ -83,6 +89,9 @@ export function encodeStatisticalSurfAddrStr(addr: Omit<StatisticalSurfaceAddres
     }
 
     const componentArr = ["STAT", addr.caseUuid, addr.ensemble, addr.name, addr.attribute, addr.statFunction, realStr];
+    if (addr.contact != null) {
+        componentArr.push(`contact=${addr.contact}`);
+    }
     if (addr.isoTimeOrInterval !== null) {
         componentArr.push(addr.isoTimeOrInterval);
     }
@@ -95,6 +104,9 @@ export function encodeStatisticalSurfAddrStr(addr: Omit<StatisticalSurfaceAddres
 
 export function encodePartialSurfAddrStr(addr: Omit<PartialSurfaceAddress, "addressType">): string {
     const componentArr = ["PARTIAL", addr.caseUuid, addr.ensemble, addr.name, addr.attribute];
+    if (addr.contact != null) {
+        componentArr.push(`contact=${addr.contact}`);
+    }
     if (addr.isoTimeOrInterval !== null) {
         componentArr.push(addr.isoTimeOrInterval);
     }
