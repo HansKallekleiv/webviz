@@ -7,4 +7,5 @@ ModuleRegistry.registerModule<ModuleInterfaceTypes>({
     category: ModuleCategory.DEBUG,
     devState: ModuleDevState.DEV,
     description: "My module description",
+    documentationUrl: "modules/MyModule",
 });

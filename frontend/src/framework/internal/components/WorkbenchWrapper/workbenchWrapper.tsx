@@ -26,6 +26,7 @@ import { RightNavBar } from "../RightNavBar";
 import { SaveSessionDialog } from "../SaveSessionDialog";
 import { StartPage } from "../StartPage/StartPage";
 import { TemplatesDialog } from "../TemplatesDialog/templatesDialog";
+import { DocumentationDialog } from "../DocumentationDialog";
 
 export function WorkbenchWrapper() {
     // Workbench must be kept as a state in order to keep it when any framework code is changed in dev mode.
@@ -81,12 +82,13 @@ export function WorkbenchWrapper() {
                             <LeftNavBar workbench={workbench} />
                             <SettingsContentPanels workbench={workbench} />
                             <RightNavBar workbench={workbench} />
-                        </div>               
+                        </div>
                     </div>
                 </ActiveDashboardBoundary>
             </ActiveSessionBoundary>
             {content}
             <TemplatesDialog workbench={workbench} />
+            <DocumentationDialog workbench={workbench} />
             <MultiSessionsRecoveryDialog workbench={workbench} />
             <PersistenceManagementDialog workbench={workbench} />
             <ToggleDevToolsButton guiMessageBroker={workbench.getGuiMessageBroker()} />

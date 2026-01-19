@@ -171,6 +171,7 @@ export type ModuleOptions<TSerializedState extends ModuleComponentsStateBase> = 
     channelReceiverDefinitions?: ChannelReceiverDefinition[];
     onInstanceUnloadFunc?: OnInstanceUnloadFunc;
     serializedStateSchema?: ModuleStateSchema<TSerializedState>;
+    documentationUrl?: string;
 };
 
 export class Module<TInterfaceTypes extends ModuleInterfaceTypes, TSerializedState extends ModuleComponentsStateBase> {
@@ -201,6 +202,7 @@ export class Module<TInterfaceTypes extends ModuleInterfaceTypes, TSerializedSta
     private _dataTagIds: ModuleDataTagId[];
     private _serializedStateSchema: ModuleStateSchema<TSerializedState> | null;
     private _serializationFunctions: ModuleComponentSerializationFunctions<TSerializedState> | undefined;
+    private _documentationUrl: string | null;
 
     constructor(options: ModuleOptions<TSerializedState>) {
         this._name = options.name;
@@ -217,6 +219,7 @@ export class Module<TInterfaceTypes extends ModuleInterfaceTypes, TSerializedSta
         this._channelReceiverDefinitions = options.channelReceiverDefinitions ?? null;
         this._dataTagIds = options.dataTagIds ?? [];
         this._serializedStateSchema = options.serializedStateSchema ?? null;
+        this._documentationUrl = options.documentationUrl ?? null;
     }
 
     getSerializedStateSchema(): ModuleStateSchema<TSerializedState> | null {
@@ -229,6 +232,10 @@ export class Module<TInterfaceTypes extends ModuleInterfaceTypes, TSerializedSta
 
     getImportState(): ImportStatus {
         return this._importStatus;
+    }
+
+    getDocumentationUrl(): string | null {
+        return this._documentationUrl;
     }
 
     getName(): string {

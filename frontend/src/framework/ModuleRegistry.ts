@@ -23,6 +23,7 @@ export type RegisterModuleOptions<TSerializedStateDef extends ModuleComponentsSt
     devState: ModuleDevState;
     dataTagIds?: ModuleDataTagId[];
     defaultTitle: string;
+    documentationUrl?: string;
     syncableSettingKeys?: SyncSettingKey[];
     channelDefinitions?: ChannelDefinition[];
     channelReceiverDefinitions?: ChannelReceiverDefinition[];
@@ -69,13 +70,15 @@ export class ModuleRegistry {
         TInterfaceTypes extends ModuleInterfaceTypes,
         TSerializedStateDef extends ModuleComponentsStateBase = NoModuleStateSchema,
     >(options: RegisterModuleOptions<TSerializedStateDef>): Module<TInterfaceTypes, TSerializedStateDef> {
+        // Return existing module if already registered (enables HMR without full reload)
         if (this._registeredModules[options.moduleName]) {
-            throw new Error(`Module with name '${options.moduleName}' is already registered.`);
+            return this._registeredModules[options.moduleName] as Module<TInterfaceTypes, TSerializedStateDef>;
         }
 
         const module = new Module<TInterfaceTypes, TSerializedStateDef>({
             name: options.moduleName,
             defaultTitle: options.defaultTitle,
+            documentationUrl: options.documentationUrl,
             category: options.category,
             devState: options.devState,
             dataTagIds: options.dataTagIds,

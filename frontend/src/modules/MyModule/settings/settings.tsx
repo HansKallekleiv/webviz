@@ -10,7 +10,7 @@ import { Dropdown } from "@lib/components/Dropdown";
 import { Input } from "@lib/components/Input";
 import { Label } from "@lib/components/Label";
 import { RadioGroup } from "@lib/components/RadioGroup";
-import { SettingWrapper } from "@lib/components/SettingWrapper";
+import { SettingWrapper } from "@framework/components/SettingWrapper";
 import { ColorScaleGradientType, ColorScaleType } from "@lib/utils/ColorScale";
 
 import type { Interfaces } from "../interfaces";
@@ -133,7 +133,11 @@ export function Settings(props: ModuleSettingsProps<Interfaces>): React.ReactNod
                         onChange={() => {}}
                     />
                 </SettingWrapper>
-                <SettingWrapper warningAnnotation="This is a warning" label="Warning annotation">
+                <SettingWrapper
+                    warningAnnotation="This is a warning"
+                    label="Warning annotation"
+                    help={{ docUrl: "modules/MyModule/settings/warning.html" }}
+                >
                     <Dropdown
                         options={[
                             {

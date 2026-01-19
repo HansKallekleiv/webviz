@@ -10,7 +10,7 @@ import { useEnsembleRealizationFilterFunc, useEnsembleSet } from "@framework/Wor
 import { Checkbox } from "@lib/components/Checkbox";
 import { CollapsibleGroup } from "@lib/components/CollapsibleGroup";
 import { Dropdown } from "@lib/components/Dropdown";
-import { SettingWrapper } from "@lib/components/SettingWrapper";
+import { SettingWrapper } from "@framework/components/SettingWrapper";
 import { ParametersSelector } from "@modules/_shared/components/ParameterSelector";
 import { useMakePersistableFixableAtomAnnotations } from "@modules/_shared/hooks/useMakePersistableFixableAtomAnnotations";
 

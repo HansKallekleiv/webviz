@@ -70,6 +70,9 @@ export default defineConfig(({ mode, command }) => {
                     target: "http://backend-primary:5000",
                     rewrite: (path) => path.replace(/^\/api/, ""),
                 },
+                "/docs": {
+                    target: "http://documentation:5173",
+                },
             },
         },
     };

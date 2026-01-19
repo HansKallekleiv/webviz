@@ -2,6 +2,16 @@
 # for doing development of the frontend + backend in combination.
 
 services:
+  documentation:
+    build:
+      context: .
+      dockerfile: documentation-dev.Dockerfile
+    ports:
+      - 5173:5173
+    volumes:
+      - ./documentation:/usr/src/app/documentation
+      - /usr/src/app/documentation/node_modules
+
   frontend:
     build:
       context: .

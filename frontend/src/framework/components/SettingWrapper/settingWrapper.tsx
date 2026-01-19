@@ -1,7 +1,7 @@
 import React from "react";
 
 import { Annotations } from "./_components/Annotations";
-import { Help } from "./_components/Help";
+import { Help, type HelpProps } from "./_components/Help";
 import { Overlay, type OverlayProps } from "./_components/Overlay";
 
 export type SettingAnnotation = {
@@ -14,11 +14,6 @@ type PlainAnnotationStrings = {
     warningAnnotation?: string;
     infoAnnotation?: string;
     annotations?: never;
-};
-
-export type Help = {
-    title: string;
-    content: React.ReactNode;
 };
 
 /**
@@ -34,7 +29,7 @@ export type SettingWrapperProps = {
     infoOverlay?: string;
     loadingOverlay?: boolean;
     label?: React.ReactNode;
-    help?: Help;
+    help?: HelpProps;
 } & (
     | {
           annotations?: SettingAnnotation[];
@@ -86,7 +81,7 @@ export function SettingWrapper(props: SettingWrapperProps) {
                     <label className="text-sm text-gray-500 leading-tight" htmlFor={id}>
                         {props.label}
                     </label>
-                    {props.help && <Help title={props.help.title} content={props.help.content} />}
+                    {props.help && <Help {...props.help} />}
                 </div>
             )}
             <div className="relative">

@@ -1,7 +1,7 @@
 import React from "react";
 
 import { Dropdown, MenuButton } from "@mui/base";
-import { Close, CloseFullscreen, Error, History, Input, OpenInFull, Output, Warning } from "@mui/icons-material";
+import { Close, CloseFullscreen, Error, Help, History, Input, OpenInFull, Output, Warning } from "@mui/icons-material";
 
 import {
     GuiEvent,
@@ -65,6 +65,10 @@ export const Header: React.FC<HeaderProps> = (props) => {
         props.moduleInstance,
         ModuleInstanceTopic.HAS_INVALID_PERSISTED_VIEW,
     );
+
+    const [, setDocumentationUrl] = useGuiState(guiMessageBroker, GuiState.DocumentationUrl);
+
+    const documentationUrl = props.moduleInstance.getModule().getDocumentationUrl();
 
     const invalidPersistedState = persistedSettingsInvalid || persistedViewInvalid;
 
@@ -145,6 +149,14 @@ export const Header: React.FC<HeaderProps> = (props) => {
     }
 
     function handleReceiverPointerDown(e: React.PointerEvent<HTMLButtonElement>) {
+        e.stopPropagation();
+    }
+
+    function handleHelpClick(e: React.PointerEvent<HTMLButtonElement>) {
+        if (documentationUrl) {
+            setDocumentationUrl(documentationUrl);
+        }
+        e.preventDefault();
         e.stopPropagation();
     }
 
@@ -239,6 +251,15 @@ export const Header: React.FC<HeaderProps> = (props) => {
                 </DenseIconButton>
             )}
             <HeaderSeparator />
+            {documentationUrl && (
+                <DenseIconButton
+                    onPointerDown={handleHelpClick}
+                    onPointerUp={handlePointerUp}
+                    title="Open module documentation"
+                >
+                    <Help fontSize="inherit" />
+                </DenseIconButton>
+            )}
             {props.isMaximized ? (
                 <DenseIconButton onPointerDown={handleRestoreClick} onPointerUp={handlePointerUp} title="Restore">
                     <CloseFullscreen fontSize="inherit" />

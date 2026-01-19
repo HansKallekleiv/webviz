@@ -8,7 +8,7 @@ import type { ModuleSettingsProps } from "@framework/Module";
 import { useEnsembleSet } from "@framework/WorkbenchSession";
 import { useColorSet } from "@framework/WorkbenchSettings";
 import { CollapsibleGroup } from "@lib/components/CollapsibleGroup";
-import { SettingWrapper } from "@lib/components/SettingWrapper";
+import { SettingWrapper } from "@framework/components/SettingWrapper";
 import type { DataProviderManager } from "@modules/_shared/DataProviderFramework/framework/DataProviderManager/DataProviderManager";
 import { Group } from "@modules/_shared/DataProviderFramework/framework/Group/Group";
 import { GroupRegistry } from "@modules/_shared/DataProviderFramework/groups/GroupRegistry";

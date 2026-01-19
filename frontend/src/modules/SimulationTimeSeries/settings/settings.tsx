@@ -22,7 +22,7 @@ import { Input } from "@lib/components/Input";
 import { Label } from "@lib/components/Label";
 import { RadioGroup } from "@lib/components/RadioGroup";
 import { Select } from "@lib/components/Select";
-import { SettingWrapper } from "@lib/components/SettingWrapper";
+import { SettingWrapper } from "@framework/components/SettingWrapper";
 import type { SmartNodeSelectorSelection } from "@lib/components/SmartNodeSelector";
 import { Switch } from "@lib/components/Switch";
 import { resolveClassNames } from "@lib/utils/resolveClassNames";
