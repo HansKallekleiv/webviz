@@ -18,5 +18,5 @@ The SimulationTimeSeries module provides interactive visualization of reservoir 
 ## Use Cases
 
 - **Uncertainty analysis**: Visualize the spread of simulation outcomes across ensemble members
-- **Parameter correlation**: Use parameter coloring or [data channels](/framework/DataChannels) to sub modules to correlate vectors against parameters. 
+- **Parameter correlation**: Use parameter coloring or [data channels](/framework/DataChannels/) to sub modules to correlate vectors against parameters. 
 - **Ensemble comparison**: Compare statistical distributions between different ensembles or vectors

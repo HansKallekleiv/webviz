@@ -30,7 +30,7 @@ Sub-modules are data consumers that:
 Connect one data source to one or more consumers. Ideal for simple data flow scenarios where a single module's output drives downstream analysis.
 
 <video controls autoplay loop preload="metadata" auto style="max-width: 100%; border-radius: 12px;">
-  <source src="/docs/assets/videos/single_channel.webm" type="video/mp4" />
+  <source src="/assets/videos/single_channel.webm" type="video/mp4" />
 </video>
 
 ### Multi Channel
@@ -40,7 +40,7 @@ Connect multiple data sources simultaneously. Useful for:
 - Building complex analytical workflows
 
 <video controls autoplay loop preload="metadata" auto style="max-width: 100%; border-radius: 12px;">
-  <source src="/docs/assets/videos/multi_channel.webm" type="video/mp4" />
+  <source src="/assets/videos/multi_channel.webm" type="video/mp4" />
 </video>
 
 ## Setting Up Channels
