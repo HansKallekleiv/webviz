@@ -23,4 +23,5 @@ ModuleRegistry.registerModule<Interfaces, SerializedState>({
         ModuleDataTagId.POLYGONS,
     ],
     serializedStateSchema: SERIALIZED_STATE,
+    documentationUrl: "modules/2DViewer",
 });

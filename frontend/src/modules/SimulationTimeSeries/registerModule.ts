@@ -23,4 +23,5 @@ ModuleRegistry.registerModule<Interfaces, SerializedState>({
     channelDefinitions: channelDefs,
     description,
     serializedStateSchema: SERIALIZED_STATE_SCHEMA,
+    documentationUrl: "modules/SimulationTimeSeries",
 });
