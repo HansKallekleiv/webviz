@@ -1,11 +1,14 @@
 # DistributionPlot
 
-This is a filler test text.
+### Description
 
-## What else could be written here?
+This sub module uses generic chart types to visualize data from other modules.
 
-Who knows. We should try with a video.
+## Features
+- Plot data from single or multiple [data channels](/framework/DataChannels) using histograms, crossplots or barplots.
 
-<video controls autoplay loop preload="metadata" auto style="max-width: 100%; border-radius: 12px;">
-  <source src="/docs/assets/videos/video1.webm" type="video/mp4" />
-</video>
+## Use cases
+
+- See distribution of timeseries at a given date
+- Crossplot different data series, e.g. bulk/vs stoiip
+

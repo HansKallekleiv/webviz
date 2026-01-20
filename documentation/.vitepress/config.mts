@@ -22,6 +22,7 @@ function getPageTitle(filePath: string): string {
         return frontmatterMatch[1].trim().replace(/^["']|["']$/g, "");
     }
 
+
     // Check first h1 heading
     const headingMatch = content.match(/^#\s+(.+)$/m);
     if (headingMatch) {
@@ -96,6 +97,30 @@ function getModulesSidebar(): SidebarItem[] {
     ];
 }
 
+function getFrameworkSidebar(): SidebarItem[] {
+    const frameworkDir = path.resolve(__dirname, "../framework");
+    const framework = scanDirectory(frameworkDir, "/framework/");
+
+    return [
+        {
+            text: "Framework",
+            items: framework,
+        },
+    ];
+}
+
+function getDataInputSidebar(): SidebarItem[] {
+    const dataInputDir = path.resolve(__dirname, "../datainput");
+    const dataInput = scanDirectory(dataInputDir, "/datainput/");
+
+    return [
+        {
+            text: "Data Input",
+            items: dataInput,
+        },
+    ];
+}
+
 export default defineConfig({
     title: "FMU Analysis Documentation",
     description: "User documentation",
@@ -107,13 +132,17 @@ export default defineConfig({
     themeConfig: {
         nav: [
             { text: "Home", link: "/" },
+            { text: "Framework", link: "/framework/" },
+            { text: "Data Input", link: "/datainput/" },
             { text: "Modules", link: "/modules/" },
         ],
         logo: { light: "/docs/assets/icons/fmu_logo_light_mode.svg", dark: "/docs/assets/icons/fmu_logo_dark_mode.svg" },
         sidebar: {
+            "/framework/": getFrameworkSidebar(),
+            "/datainput/": getDataInputSidebar(),
             "/modules/": getModulesSidebar(),
         },
-
+        
         socialLinks: [{ icon: "github", link: "https://github.com/equinor/webviz" }],
     },
 });
