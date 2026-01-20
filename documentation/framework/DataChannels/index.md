@@ -24,6 +24,10 @@ Sub-modules are data consumers that:
   - Correlating simulation results with input parameters
   - Creating custom dashboards combining multiple data sources
 
+::: info
+Both the main module (data producer) and the sub-module (data consumer) must be added to the dashboard before they can be connected via data channels.
+:::
+
 ## Channel Types
 
 ### Single Channel

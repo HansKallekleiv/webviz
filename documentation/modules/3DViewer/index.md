@@ -1,23 +1,16 @@
-# 2D Viewer
+# 3D Viewer
 
-The 2D Viewer provides an interactive top-down (map view) visualization of spatial geological and reservoir data. It uses the [Layer Manager](/framework/LayerManager/) system for flexible composition of multiple data sources.
+The 3D Viewer provides an interactive 3D visualization of spatial geological and reservoir data. It uses the [Layer Manager](/framework/LayerManager/) system for flexible composition of multiple data sources.
 
 ## Overview
 
-This module enables visualization of surfaces, well data, polygons and reservoir grids in a map view perspective. Multiple views can be displayed side-by-side for comparison.
-
-[![Multi-view comparison](/assets/images/2dviewer-multiview.webp)](/assets/images/2dviewer-multiview.webp)
-
+This module enables visualization of surfaces, well data, polygons, seismic cubes and reservoir grids in a 3D perspective. Multiple views can be displayed side-by-side for comparison.
 
 ## Supported Data Types
 
 ### Attribute Maps
-- Structural surfaces (depth, thickness)
+- Structural surfaces (depth)
 - Fluid contacts
-- Reservoir property maps (porosity, permeability, saturation)
-- Time-dependent dynamic properties (pressure, water cut)
-- Seismic survey or 4d attribute maps
-- Per realization or statistical surfaces
 
 ### Wells
 - **Well trajectories**: Full well paths projected to map view
@@ -25,13 +18,15 @@ This module enables visualization of surfaces, well data, polygons and reservoir
 
 ### Polygons
 - Fault polylines
-- Field boundaries and license areas
-- Geological features (channels, compartments)
-- Custom regions of interest
 
 ### Grid Models
 - Property distribution on grid cells
 - Selected grid layers or zones
+- Intersection along polylines/well paths
+
+### Seismic slices
+- IJK seismic slices
+- Intersection along polylines/well paths
 
 ## Key Features
 
@@ -41,7 +36,6 @@ Leverages the [Layer Manager](/framework/LayerManager/) framework to:
 - Control individual layer visibility and styling
 - Apply shared settings across layer groups
 - Synchronize views for comparison
-
 
 ### Multi-View Comparison
 - Display multiple synchronized views side-by-side
