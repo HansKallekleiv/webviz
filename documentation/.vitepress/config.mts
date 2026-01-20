@@ -97,16 +97,19 @@ function getModulesSidebar(): SidebarItem[] {
 }
 
 export default defineConfig({
-    title: "Webviz Documentation",
-    description: "User documentation for Webviz",
+    title: "FMU Analysis Documentation",
+    description: "User documentation",
     base: "/docs/",
-
+    head: [
+        ['link', { rel: 'icon', href: '/docs/assets/icons/fmu_logo_dark_mode.svg' }],
+        ['link', { href: 'https://cdn.eds.equinor.com/font/equinor-font.css', rel: 'stylesheet' }]
+    ],
     themeConfig: {
         nav: [
             { text: "Home", link: "/" },
             { text: "Modules", link: "/modules/" },
         ],
-
+        logo: { light: "/docs/assets/icons/fmu_logo_light_mode.svg", dark: "/docs/assets/icons/fmu_logo_dark_mode.svg" },
         sidebar: {
             "/modules/": getModulesSidebar(),
         },

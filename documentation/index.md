@@ -2,9 +2,9 @@
 layout: home
 
 hero:
-  name: Webviz
-  text: User Documentation
-  tagline: Learn how to use Webviz modules and features
+  name: FMU Analysis
+  text: Documentation
+  tagline: Learn how to use FMU analysis modules and features
   # actions:
   #   - theme: brand
   #     text: Browse Modules
@@ -12,10 +12,10 @@ hero:
 
 features:
   - title: Getting started
-    details: Explore the available modules and learn how to use them effectively.
+    details: How to get started using FMU analysis
     link: /modules/
 
   - title: Modules
-    details: Explore the available modules and learn how to use them effectively.
+    details: Documentation of the available modules
     link: /modules/
 ---

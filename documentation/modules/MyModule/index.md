@@ -7,5 +7,5 @@ This is a filler test text.
 Who knows. We should try with a video.
 
 <video controls autoplay loop preload="metadata" auto style="max-width: 100%; border-radius: 12px;">
-  <source src="/docs/assets/videos/video1.webm" type="video/mp4" />
+  <source src="/docs/assets/videos/MyModule-video1.webm" type="video/mp4" />
 </video>
