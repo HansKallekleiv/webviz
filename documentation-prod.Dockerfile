@@ -12,7 +12,6 @@ USER node
 COPY --chown=node:node ./documentation /usr/src/app/documentation
 
 WORKDIR /usr/src/app/documentation
-ENV NODE_ENV=production
 
 RUN npm ci && npm run build
 
