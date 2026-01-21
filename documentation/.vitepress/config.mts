@@ -127,7 +127,7 @@ export default defineConfig({
     base: "/docs/",
     head: [
         ['link', { rel: 'icon', href: '/docs/assets/icons/fmu_logo_dark_mode.svg' }],
-        ['link', { href: 'https://cdn.eds.equinor.com/font/equinor-font.css', rel: 'stylesheet' }]
+        // ['link', { href: 'https://cdn.eds.equinor.com/font/equinor-font.css', rel: 'stylesheet' }]
     ],
     themeConfig: {
         nav: [

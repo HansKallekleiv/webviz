@@ -29,4 +29,5 @@ ModuleRegistry.registerModule<Interfaces, SerializedState>({
     ],
     syncableSettingKeys: [SyncSettingKey.ENSEMBLE, SyncSettingKey.INTERSECTION, SyncSettingKey.VERTICAL_SCALE],
     serializedStateSchema: SERIALIZED_STATE,
+    documentationUrl: "modules/3DViewer",
 });
