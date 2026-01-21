@@ -54,4 +54,4 @@ Watch the videos above to see step-by-step examples of establishing data channel
 1. Identifying the main module that produces the data you need
 2. Adding a sub-module that can consume that data type
 3. Connecting the modules via the data channel interface
-4. Configuring channel parameters as needed
+4. Use the sub-module setting pane to configure visualization
