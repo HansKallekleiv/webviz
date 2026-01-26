@@ -26,7 +26,6 @@ import { SurfaceAddressBuilder, type FullSurfaceAddress } from "@modules/_shared
 import { transformSurfaceData } from "@modules/_shared/Surface/queryDataTransforms";
 import { encodeSurfAddrStr } from "@modules/_shared/Surface/surfaceAddress";
 
-
 import { Representation } from "../../../settings/implementations/RepresentationSetting";
 
 import {
@@ -205,77 +204,28 @@ export class DepthSurfaceProvider
             onFetchCancelOrFinish,
         } = params;
 
-        const ensembleIdent = getSetting(Setting.ENSEMBLE);
-        let filteredRealizations = getStoredData("realizations") ?? [];
-        const surfaceName = getSetting(Setting.SURFACE_NAME);
-        const attribute = getSetting(Setting.DEPTH_ATTRIBUTE);
-
-        const representation = getSetting(Setting.REPRESENTATION);
-        const workbenchSession = getWorkbenchSession();
-
-        let surfaceAddress: FullSurfaceAddress | null = null;
-        if (ensembleIdent && surfaceName && attribute) {
-            const addrBuilder = new SurfaceAddressBuilder();
-            addrBuilder.withEnsembleIdent(ensembleIdent);
-            addrBuilder.withName(surfaceName);
-            addrBuilder.withAttribute(attribute);
-
-            const currentEnsemble = workbenchSession.getEnsembleSet().findEnsemble(ensembleIdent);
-
-            if (representation === Representation.REALIZATION) {
-                const realization = getSetting(Setting.REALIZATION);
-                addrBuilder.withRealization(realization!);
-                surfaceAddress = addrBuilder.buildRealizationAddress();
-                const surfAddrStr = surfaceAddress ? encodeSurfAddrStr(surfaceAddress) : null;
-
-                const surfaceDataOptions = getSurfaceDataOptions({
-                    query: {
-                        surf_addr_str: surfAddrStr ?? "",
-                        data_format: this._dataFormat,
-                        resample_to_def_str: null,
-                        ...makeCacheBustingQueryParam(surfaceAddress ? ensembleIdent : null),
-                    },
-                });
-
-                const promise = fetchQuery(surfaceDataOptions).then((data) => ({
-                    format: this._dataFormat,
-                    surfaceData: transformSurfaceData(data),
-                }));
-
-                return promise as Promise<SurfaceData>;
-            }
-
-            const statisticFunction = getSetting(Setting.STATISTIC_FUNCTION);
-            const sensitivityNameCasePair = getSetting(Setting.SENSITIVITY);
-            if (statisticFunction) {
-                addrBuilder.withStatisticFunction(statisticFunction);
-                // If sensitivity is set, filter realizations further to only include the realizations that are in the sensitivity
-                if (sensitivityNameCasePair) {
-                    const sensitivity = currentEnsemble
-                        ?.getSensitivities()
-                        ?.getCaseByName(
-                            sensitivityNameCasePair.sensitivityName,
-                            sensitivityNameCasePair.sensitivityCase,
-                        );
-
-                    const sensitivityRealizations = sensitivity?.realizations ?? [];
-
-                    filteredRealizations = filteredRealizations.filter((realization) =>
-                        sensitivityRealizations.includes(realization),
-                    );
-                }
-
-                // If realizations are filtered, update the address
-                const allRealizations = currentEnsemble?.getRealizations() ?? [];
-                if (!isEqual([...allRealizations], [...filteredRealizations])) {
-                    addrBuilder.withStatisticRealizations([...filteredRealizations]);
-                }
-
-                surfaceAddress = addrBuilder.buildStatisticalAddress();
-            }
-        }
-
+        const surfaceAddress = this.getSurfaceAddress(params);
         const surfAddrStr = surfaceAddress ? encodeSurfAddrStr(surfaceAddress) : null;
+
+        if (surfaceAddress?.addressType === "REAL") {
+            const ensembleIdent = getSetting(Setting.ENSEMBLE);
+
+            const surfaceDataOptions = getSurfaceDataOptions({
+                query: {
+                    surf_addr_str: surfAddrStr ?? "",
+                    data_format: this._dataFormat,
+                    resample_to_def_str: null,
+                    ...makeCacheBustingQueryParam(surfaceAddress ? ensembleIdent : null),
+                },
+            });
+
+            const promise = fetchQuery(surfaceDataOptions).then((data) => ({
+                format: this._dataFormat,
+                surfaceData: transformSurfaceData(data),
+            }));
+
+            return promise as Promise<SurfaceData>;
+        }
 
         const apiFunctionArgs: Options<GetStatisticalSurfaceDataHybridData_api, false> = {
             query: {
@@ -286,11 +236,6 @@ export class DepthSurfaceProvider
         };
         const queryKey = getStatisticalSurfaceDataHybridQueryKey(apiFunctionArgs);
 
-        // For now use just a fixed delay and max duration in seconds
-        // Maybe later extend delay/backoff to include:
-        //  * backoff: none, linear, exponential
-        //  * maxDelayS - maximum delay for linear or exponential backoff
-        //  * jitter
         const queryOptions = wrapLongRunningQuery({
             queryFn: getStatisticalSurfaceDataHybrid,
             queryFnArgs: apiFunctionArgs,
@@ -313,5 +258,70 @@ export class DepthSurfaceProvider
         }));
 
         return promise as Promise<SurfaceData>;
+    }
+
+    getSurfaceAddress(
+        params: Pick<
+            FetchDataParams<DepthSurfaceSettings, SurfaceData>,
+            "getSetting" | "getStoredData" | "getWorkbenchSession"
+        >,
+    ): FullSurfaceAddress | null {
+        const { getSetting, getStoredData, getWorkbenchSession } = params;
+
+        const ensembleIdent = getSetting(Setting.ENSEMBLE);
+        let filteredRealizations = getStoredData("realizations") ?? [];
+        const surfaceName = getSetting(Setting.SURFACE_NAME);
+        const attribute = getSetting(Setting.DEPTH_ATTRIBUTE);
+        const representation = getSetting(Setting.REPRESENTATION);
+        const workbenchSession = getWorkbenchSession();
+
+        if (!ensembleIdent || !surfaceName || !attribute) {
+            return null;
+        }
+
+        const addrBuilder = new SurfaceAddressBuilder();
+        addrBuilder.withEnsembleIdent(ensembleIdent);
+        addrBuilder.withName(surfaceName);
+        addrBuilder.withAttribute(attribute);
+
+        const currentEnsemble = workbenchSession.getEnsembleSet().findEnsemble(ensembleIdent);
+
+        if (representation === Representation.REALIZATION) {
+            const realization = getSetting(Setting.REALIZATION);
+            if (realization === null) {
+                return null;
+            }
+            addrBuilder.withRealization(realization);
+            return addrBuilder.buildRealizationAddress();
+        }
+
+        const statisticFunction = getSetting(Setting.STATISTIC_FUNCTION);
+        const sensitivityNameCasePair = getSetting(Setting.SENSITIVITY);
+
+        if (!statisticFunction) {
+            return null;
+        }
+
+        addrBuilder.withStatisticFunction(statisticFunction);
+
+        // If sensitivity is set, filter realizations further to only include the realizations that are in the sensitivity
+        if (sensitivityNameCasePair) {
+            const sensitivity = currentEnsemble
+                ?.getSensitivities()
+                ?.getCaseByName(sensitivityNameCasePair.sensitivityName, sensitivityNameCasePair.sensitivityCase);
+
+            const sensitivityRealizations = sensitivity?.realizations ?? [];
+            filteredRealizations = filteredRealizations.filter((realization) =>
+                sensitivityRealizations.includes(realization),
+            );
+        }
+
+        // If realizations are filtered, update the address
+        const allRealizations = currentEnsemble?.getRealizations() ?? [];
+        if (!isEqual([...allRealizations], [...filteredRealizations])) {
+            addrBuilder.withStatisticRealizations([...filteredRealizations]);
+        }
+
+        return addrBuilder.buildStatisticalAddress();
     }
 }

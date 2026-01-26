@@ -340,6 +340,11 @@ const ACTIONS: ActionGroup[] = [
                 label: "Surfaces",
                 children: [
                     {
+                        identifier: "delta-surface",
+                        icon: <Icon data={surface_layer} fontSize="small" />,
+                        label: "Delta Surface",
+                    },
+                    {
                         identifier: "depth-surface",
                         icon: <Icon data={surface_layer} fontSize="small" />,
                         label: "Depth",
