@@ -372,12 +372,11 @@ async def get_delta_surface_data(
     xtgeo_surf_b = surf_b_task.result()
     perf_metrics.record_lap("get-surfs")
 
-    # TODO: Calculate delta surface (surf_a - surf_b)
-    # For now, just return surf_a as placeholder
-    delta_surf = xtgeo_surf_a
+    # TODO: Validation
+    xtgeo_surf_a.subtract(xtgeo_surf_b)
 
     surf_data_response = _resample_and_convert_to_surface_data_response(
-        xtgeo_surf=delta_surf, resample_to=resample_to, data_format=data_format, perf_metrics=perf_metrics
+        xtgeo_surf=xtgeo_surf_a, resample_to=resample_to, data_format=data_format, perf_metrics=perf_metrics
     )
 
     LOGGER.info(f"Got delta surface in: {perf_metrics.to_string()}")
