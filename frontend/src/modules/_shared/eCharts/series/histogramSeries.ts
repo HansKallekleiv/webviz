@@ -4,22 +4,18 @@ import type {
     CustomSeriesRenderItemAPI,
     CustomSeriesRenderItemParams,
     CustomSeriesRenderItemReturn,
-    LineSeriesOption,
 } from "echarts/types/dist/shared";
 
 import { formatNumber } from "@modules/_shared/utils/numberFormatting";
 
 import type { ChartSeriesOption } from "../builders/composeChartOption";
 import { formatCompactTooltip } from "../interaction/tooltipFormatters";
-import type { DistributionTrace, PointStatistics } from "../types";
+import type { DistributionTrace } from "../types";
 import { HistogramType } from "../types";
 import { computeHistogramLayout, computeHistogramTraceData } from "../utils/histogram";
-import { computePointStatistics } from "../utils/statistics";
 
 export interface HistogramDisplayOptions {
     numBins?: number;
-    showStatisticalMarkers?: boolean;
-    showStatisticalLabels?: boolean;
     showRealizationPoints?: boolean;
     showPercentageInBar?: boolean;
     color?: string;
@@ -35,23 +31,19 @@ export function buildHistogramSeries(
 ): ChartSeriesOption[] {
     const {
         numBins = 15,
-        showStatisticalMarkers = false,
-        showStatisticalLabels = false,
         showRealizationPoints = false,
         showPercentageInBar = false,
         color = trace.color,
-        opacity = showStatisticalMarkers ? 0.6 : 1,
+        opacity = 1,
         borderColor = "black",
         borderWidth = 1,
     } = options;
 
     if (trace.values.length === 0) return [];
 
-    const stats = computePointStatistics(trace.values);
     const traceData = computeHistogramTraceData([trace], numBins);
     const histogramLayout = computeHistogramLayout(traceData, HistogramType.Overlay);
     const bars = histogramLayout.barsByTrace[0] ?? [];
-    const maxPercentage = histogramLayout.yMax;
 
     const series: ChartSeriesOption[] = [];
 
@@ -129,19 +121,6 @@ export function buildHistogramSeries(
         z: 2,
     });
 
-    if (showStatisticalMarkers) {
-        series.push(
-            ...createHistogramStatLines(
-                stats,
-                maxPercentage * 1.05,
-                trace.name,
-                color,
-                axisIndex,
-                showStatisticalLabels,
-            ),
-        );
-    }
-
     if (showRealizationPoints) {
         series.push({
             type: "scatter",
@@ -173,45 +152,4 @@ export function buildHistogramSeries(
     }
 
     return series;
-}
-
-function createHistogramStatLines(
-    stats: PointStatistics,
-    maxPct: number,
-    traceName: string,
-    color: string,
-    axisIndex: number,
-    showLabels = false,
-): LineSeriesOption[] {
-    function makeLine(value: number, label: string, dash: "solid" | "dashed" | "dotted"): LineSeriesOption {
-        return {
-            type: "line",
-            name: traceName,
-            xAxisIndex: axisIndex,
-            yAxisIndex: axisIndex,
-            data: [
-                [value, 0],
-                [value, maxPct],
-            ],
-            lineStyle: { color, width: 4, type: dash },
-            symbol: "none",
-            silent: true,
-            tooltip: {
-                formatter: formatCompactTooltip(traceName, [{ label, value: formatNumber(value), color }]),
-            },
-            endLabel: showLabels
-                ? {
-                      show: true,
-                      formatter: `${label}: ${formatNumber(value)}`,
-                      fontSize: 11,
-                  }
-                : undefined,
-        };
-    }
-
-    return [
-        makeLine(stats.p10, "P10", "dashed"),
-        makeLine(stats.mean, "Mean", "solid"),
-        makeLine(stats.p90, "P90", "dashed"),
-    ];
 }

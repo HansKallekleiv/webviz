@@ -10,6 +10,7 @@ import type {
     ContainerSize,
     DistributionTrace,
     HistogramType,
+    RealizationScatterTrace,
     SubplotGroup,
     TimeseriesDisplayConfig,
 } from "@modules/_shared/eCharts";
@@ -20,6 +21,7 @@ import {
     buildHeatmapChart,
     buildHistogramChart,
     buildPercentileRangeChart,
+    buildRealizationScatterChart,
     buildTimeseriesChart,
     computeSubplotGridLayout,
     useHighlightOnHover,
@@ -31,6 +33,7 @@ import {
     generateBarTraces,
     generateDistributionTraces,
     generateHeatmapTraces,
+    generateRealizationScatterTraces,
     generateTimeseriesGroups,
 } from "./utils/syntheticData";
 
@@ -48,16 +51,20 @@ export function View(props: ModuleViewProps<Interfaces>): React.ReactNode {
     const showFanchart = viewContext.useSettingsToViewInterfaceValue("showFanchart");
     const selectedStatistics = viewContext.useSettingsToViewInterfaceValue("selectedStatistics");
     const showStatisticalMarkers = viewContext.useSettingsToViewInterfaceValue("showStatisticalMarkers");
+    const showBarLabels = viewContext.useSettingsToViewInterfaceValue("showBarLabels");
     const showRealizationPoints = viewContext.useSettingsToViewInterfaceValue("showRealizationPoints");
     const histogramBins = viewContext.useSettingsToViewInterfaceValue("histogramBins");
     const histogramType = viewContext.useSettingsToViewInterfaceValue("histogramType");
+    const sharedXAxis = viewContext.useSettingsToViewInterfaceValue("sharedXAxis");
+    const sharedYAxis = viewContext.useSettingsToViewInterfaceValue("sharedYAxis");
     const scrollMode = viewContext.useSettingsToViewInterfaceValue("scrollMode");
 
     const containerRef = React.useRef<HTMLDivElement>(null);
     const containerSize = useElementSize(containerRef);
     const chartRef = React.useRef<ReactECharts>(null);
 
-    const hasRealizations = plotType === PlotType.Timeseries && showRealizations;
+    const hasRealizations =
+        plotType === PlotType.RealizationScatter || (plotType === PlotType.Timeseries && showRealizations);
     const onChartEvents = useHighlightOnHover(chartRef, hasRealizations);
 
     const echartsOptions = React.useMemo(() => {
@@ -75,38 +82,51 @@ export function View(props: ModuleViewProps<Interfaces>): React.ReactNode {
                     showFanchart,
                     selectedStatistics,
                     size,
+                    sharedXAxis,
+                    sharedYAxis,
                 );
             case PlotType.Histogram:
                 return buildHistogramDemoChart(
                     numSubplots,
                     numGroups,
                     numRealizations,
-                    showStatisticalMarkers,
                     showRealizationPoints,
                     histogramBins,
                     histogramType,
                     size,
+                    sharedXAxis,
+                    sharedYAxis,
                 );
             case PlotType.PercentileRange:
                 return buildPercentileRangeChart(
                     createDistributionSubplotGroups(numSubplots, numGroups, numRealizations),
-                    { showRealizationPoints },
+                    { showRealizationPoints, sharedXAxis, sharedYAxis },
                     size,
                 );
             case PlotType.Distribution:
                 return buildDistributionChart(
                     createDistributionSubplotGroups(numSubplots, numGroups, numRealizations),
-                    { showRealizationPoints },
+                    { showRealizationPoints, sharedXAxis, sharedYAxis },
                     size,
                 );
             case PlotType.Convergence:
                 return buildConvergenceChart(
                     createDistributionSubplotGroups(numSubplots, numGroups, numRealizations),
-                    undefined,
+                    { sharedXAxis, sharedYAxis },
                     size,
                 );
             case PlotType.Bar:
-                return buildBarChart(createBarSubplotGroups(numSubplots, numGroups), { showStatisticalMarkers }, size);
+                return buildBarChart(
+                    createBarSubplotGroups(numSubplots, numGroups),
+                    { showStatisticalMarkers, showLabels: showBarLabels, sharedXAxis, sharedYAxis },
+                    size,
+                );
+            case PlotType.RealizationScatter:
+                return buildRealizationScatterChart(
+                    createScatterSubplotGroups(numSubplots, numGroups, numRealizations),
+                    { sharedXAxis, sharedYAxis },
+                    size,
+                );
             case PlotType.Heatmap:
                 return buildHeatmapChart(generateHeatmapTraces(numSubplots), "Value");
             default:
@@ -122,9 +142,12 @@ export function View(props: ModuleViewProps<Interfaces>): React.ReactNode {
         showFanchart,
         selectedStatistics,
         showStatisticalMarkers,
+        showBarLabels,
         showRealizationPoints,
         histogramBins,
         histogramType,
+        sharedXAxis,
+        sharedYAxis,
         containerSize,
     ]);
 
@@ -157,6 +180,8 @@ function buildTimeseries(
     showFanchart: boolean,
     selectedStatistics: string[],
     containerSize?: ContainerSize,
+    sharedXAxis?: boolean,
+    sharedYAxis?: boolean,
 ): EChartsOption {
     const groups = generateTimeseriesGroups(numSubplots, numGroups, numRealizations);
     const config: TimeseriesDisplayConfig = {
@@ -165,26 +190,28 @@ function buildTimeseries(
         showFanchart,
         selectedStatistics: selectedStatistics as TimeseriesDisplayConfig["selectedStatistics"],
     };
-    return buildTimeseriesChart(groups, config, "Value", null, containerSize);
+    return buildTimeseriesChart(groups, config, "Value", null, containerSize, { sharedXAxis, sharedYAxis });
 }
 
 function buildHistogramDemoChart(
     numSubplots: number,
     numGroups: number,
     numRealizations: number,
-    showStatisticalMarkers: boolean,
     showRealizationPoints: boolean,
     histogramBins: number,
     histogramType: HistogramType,
     containerSize?: ContainerSize,
+    sharedXAxis?: boolean,
+    sharedYAxis?: boolean,
 ): EChartsOption {
     return buildHistogramChart(
         createDistributionSubplotGroups(numSubplots, numGroups, numRealizations),
         {
             numBins: histogramBins,
             histogramType,
-            showStatisticalMarkers,
             showRealizationPoints,
+            sharedXAxis,
+            sharedYAxis,
         },
         containerSize,
     );
@@ -205,5 +232,16 @@ function createBarSubplotGroups(numSubplots: number, numGroups: number): Subplot
     return Array.from({ length: numSubplots }, (_, index) => ({
         title: `Subplot ${index + 1}`,
         traces: generateBarTraces(numGroups, index),
+    }));
+}
+
+function createScatterSubplotGroups(
+    numSubplots: number,
+    numGroups: number,
+    numRealizations: number,
+): SubplotGroup<RealizationScatterTrace>[] {
+    return Array.from({ length: numSubplots }, (_, index) => ({
+        title: `Subplot ${index + 1}`,
+        traces: generateRealizationScatterTraces(numGroups, numRealizations, index),
     }));
 }

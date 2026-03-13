@@ -10,6 +10,8 @@ import type { CartesianChartSeries } from "./cartesianSubplotChartBuilder";
 export type ConvergenceChartOptions = {
     xAxisLabel?: string;
     yAxisLabel?: string;
+    sharedXAxis?: boolean;
+    sharedYAxis?: boolean;
 };
 
 export function buildConvergenceChart(
@@ -17,7 +19,7 @@ export function buildConvergenceChart(
     options: ConvergenceChartOptions = {},
     containerSize?: ContainerSize,
 ): EChartsOption {
-    const { xAxisLabel = "Realizations", yAxisLabel = "Value" } = options;
+    const { xAxisLabel = "Realizations", yAxisLabel = "Value", sharedXAxis, sharedYAxis } = options;
 
     return buildCartesianSubplotChart(
         subplotGroups,
@@ -28,8 +30,10 @@ export function buildConvergenceChart(
             yAxis: { type: "value", label: yAxisLabel },
             title: group.title,
         }),
-        containerSize,
         {
+            containerSize,
+            sharedXAxis,
+            sharedYAxis,
             tooltip: {
                 trigger: "axis" as const,
                 axisPointer: { type: "line" as const },

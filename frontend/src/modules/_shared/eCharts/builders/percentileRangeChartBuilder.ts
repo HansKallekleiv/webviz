@@ -10,6 +10,8 @@ import type { CartesianChartSeries } from "./cartesianSubplotChartBuilder";
 export type PercentileRangeChartOptions = PercentileRangeDisplayOptions & {
     xAxisLabel?: string;
     yAxisLabel?: string;
+    sharedXAxis?: boolean;
+    sharedYAxis?: boolean;
 };
 
 export function buildPercentileRangeChart(
@@ -17,12 +19,12 @@ export function buildPercentileRangeChart(
     options: PercentileRangeChartOptions = {},
     containerSize?: ContainerSize,
 ): EChartsOption {
-    const { xAxisLabel = "Value", yAxisLabel, ...seriesOptions } = options;
+    const { xAxisLabel = "Value", yAxisLabel, sharedXAxis, sharedYAxis, ...seriesOptions } = options;
 
     return buildCartesianSubplotChart(
         subplotGroups,
         (group, axisIndex) => buildPercentileRangeSubplot(group, axisIndex, seriesOptions, xAxisLabel, yAxisLabel),
-        containerSize,
+        { containerSize, sharedXAxis, sharedYAxis },
     );
 }
 

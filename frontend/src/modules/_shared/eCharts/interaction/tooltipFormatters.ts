@@ -131,30 +131,6 @@ export function formatBarTooltip(params: CallbackDataParams | CallbackDataParams
 }
 
 // ---------------------------------------------------------------------------
-// Distribution tooltip
-// ---------------------------------------------------------------------------
-
-export function formatDistributionTooltip(params: CallbackDataParams): string {
-    const point = extractPointValue(params.value);
-    if (!point) return "";
-
-    const header = params.seriesName ?? "";
-    const color = typeof params.color === "string" ? params.color : undefined;
-
-    if (params.seriesType === "scatter") {
-        return formatCompactTooltip(header, [
-            { label: "Value", value: formatNumber(point[0]), color },
-            { label: "Realization", value: String(extractRealizationIdFromData(params)), color },
-        ]);
-    }
-
-    return formatCompactTooltip(header, [
-        { label: "Value", value: formatNumber(point[0]), color },
-        { label: "Density", value: formatNumber(point[1], 4), color },
-    ]);
-}
-
-// ---------------------------------------------------------------------------
 // Convergence tooltip
 // ---------------------------------------------------------------------------
 
@@ -209,6 +185,30 @@ export function formatHistogramRugTooltip(params: CallbackDataParams, traceName:
         { label: "Value", value: formatNumber(value[0]), color: traceColor },
         { label: "Realization", value: String(realizationId), color: traceColor },
     ]);
+}
+
+// ---------------------------------------------------------------------------
+// Realization scatter tooltip
+// ---------------------------------------------------------------------------
+
+export function formatRealizationScatterTooltip(params: CallbackDataParams | CallbackDataParams[]): string {
+    const p = Array.isArray(params) ? params[0] : params;
+    if (!p) return "";
+
+    const seriesId = typeof p.seriesId === "string" ? p.seriesId : "";
+    const realId = getRealizationId(seriesId);
+    const point = extractPointValue(p.value);
+
+    const rows: { label: string; value: string; color?: string }[] = [];
+    if (point) {
+        rows.push({ label: "X", value: formatNumber(point[0]) });
+        rows.push({ label: "Y", value: formatNumber(point[1]) });
+    }
+    if (realId != null) {
+        rows.push({ label: "Realization", value: realId, color: typeof p.color === "string" ? p.color : undefined });
+    }
+
+    return formatCompactTooltip(p.seriesName ?? "", rows);
 }
 
 // ---------------------------------------------------------------------------

@@ -1,5 +1,7 @@
 # Shared ECharts Guide
 
+> Agent-facing rules live in [`AGENTS.md`](AGENTS.md) and are loaded automatically by Copilot.
+
 ## What This Folder Is
 
 This folder is the shared charting layer for frontend modules that use ECharts.
@@ -58,7 +60,7 @@ In short:
 - `layout/`: Shared subplot grid and axis layout logic.
 - `interaction/`: Shared tooltip formatting (all formatters live in `tooltipFormatters.ts`) and chart interaction helpers.
 - `hooks/`: React hooks for behaviors such as linked hover, click-to-timestamp, and the combined `useTimeseriesInteractions` hook.
-- `utils/`: Shared statistics, histogram helpers, KDE computation (`kde.ts`), and the structured series ID module (`seriesId.ts`).
+- `utils/`: Shared statistics, histogram helpers, KDE computation (`kde.ts`), convergence calculation (`convergence.ts`), and the structured series ID module (`seriesId.ts`).
 - `index.ts`: Public exports for the shared API.
 
 ## Supported Pattern
@@ -244,6 +246,18 @@ type SeriesBuildResult = {
 
 This allows chart builders to compose series uniformly without knowing which specific series builder was used.
 
+### Builder Architecture
+
+All cartesian chart builders (timeseries, histogram, distribution, convergence, percentile range, bar) go through a single base pipeline in `buildCartesianSubplotChart`. This ensures consistent behavior for cross-cutting features.
+
+The base builder accepts a `CartesianChartOptions` object with:
+
+- `sharedXAxis` / `sharedYAxis` — force all subplots to share the same axis range
+- `postProcessAxes(axes, allSeries)` — hook for builders that need to modify axes after construction (e.g. histogram y-extent adjustment, timestamp markers)
+- compose overrides for tooltip, axisPointer, dataZoom, visualMap, toolbox
+
+If you need custom pre- or post-processing of axes or series, use `postProcessAxes` rather than bypassing the base builder.
+
 ### Centralized Tooltip Formatters
 
 All tooltip formatting functions live in `interaction/tooltipFormatters.ts`. When adding a new chart type, add its tooltip formatter there rather than inlining it in the builder.
@@ -290,3 +304,19 @@ If you only need the short version:
 - `useTimeseriesInteractions` bundles hover + click-to-timestamp for timeseries charts
 - shared files own common behavior and styling
 - module files own domain mapping and state
+
+## Maintaining This Module
+
+### Keep this README up to date
+
+When adding new builders, utils, or conventions, update the relevant sections here. Future contributors rely on this document to understand the shared layer without reading every file.
+
+### Add unit tests for calculation and utility functions
+
+Pure calculation functions in `utils/` (statistics, KDE, histogram binning, convergence, series ID parsing) must have unit tests in `tests/unit/eCharts/`. When adding or changing a utility function, add or update the corresponding test file.
+
+Tests should be concise and cover:
+
+- edge cases (empty input, single value, zero variance)
+- correctness of computed values against known results
+- structural invariants (e.g. percentages sum to 100%, density integrates to ~1)

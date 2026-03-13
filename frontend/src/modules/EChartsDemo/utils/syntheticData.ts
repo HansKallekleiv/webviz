@@ -2,6 +2,7 @@ import type {
     BarTrace,
     DistributionTrace,
     HeatmapTrace,
+    RealizationScatterTrace,
     SubplotGroup,
     TimeseriesTrace,
 } from "@modules/_shared/eCharts";
@@ -162,4 +163,35 @@ export function generateHeatmapTraces(numSubplots: number): SubplotGroup<Heatmap
     }
 
     return subplots;
+}
+
+export function generateRealizationScatterTraces(
+    numGroups: number,
+    numRealizations: number,
+    subplotIndex = 0,
+): RealizationScatterTrace[] {
+    const traces: RealizationScatterTrace[] = [];
+    for (let g = 0; g < numGroups; g++) {
+        const rng = seededRandom(g * 1000 + subplotIndex * 100 + 42);
+        const realizationIds: number[] = [];
+        const xValues: number[] = [];
+        const yValues: number[] = [];
+        for (let r = 0; r < numRealizations; r++) {
+            realizationIds.push(r);
+            const x = rng() * 100 + g * 20 + subplotIndex * 5;
+            // Correlated y with noise
+            const noise = (rng() - 0.5) * 30;
+            yValues.push(x * 0.8 + 10 + noise);
+            xValues.push(x);
+        }
+        traces.push({
+            name: getEnsembleName(g),
+            color: getEnsembleColor(g),
+            highlightGroupKey: getEnsembleKey(g),
+            realizationIds,
+            xValues,
+            yValues,
+        });
+    }
+    return traces;
 }

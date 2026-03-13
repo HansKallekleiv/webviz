@@ -5,7 +5,7 @@ import { formatNumber } from "@modules/_shared/utils/numberFormatting";
 
 import type { SeriesBuildResult } from "../builders/composeChartOption";
 import { formatCompactTooltip } from "../interaction/tooltipFormatters";
-import type { BarTrace, PointStatistics } from "../types";
+import type { BarTrace } from "../types";
 import { computePointStatistics } from "../utils/statistics";
 
 export type BarSortBy = "categories" | "values";
@@ -13,6 +13,7 @@ export type BarSortBy = "categories" | "values";
 export type BuildBarSeriesOptions = {
     sortBy?: BarSortBy;
     showStatisticalMarkers?: boolean;
+    showLabels?: boolean;
     maxLabelsForText?: number;
 };
 
@@ -25,7 +26,12 @@ export type BuildBarSeriesResult = SeriesBuildResult & {
 const MAX_LABELS_FOR_BARS = 20;
 
 export function buildBarSeries(trace: BarTrace, options: BuildBarSeriesOptions = {}): BuildBarSeriesResult {
-    const { sortBy = "categories", showStatisticalMarkers = false, maxLabelsForText = MAX_LABELS_FOR_BARS } = options;
+    const {
+        sortBy = "categories",
+        showStatisticalMarkers = false,
+        showLabels = false,
+        maxLabelsForText = MAX_LABELS_FOR_BARS,
+    } = options;
 
     const dataPoints = trace.categories.map((cat, i) => ({ x: cat, y: trace.values[i] }));
 
@@ -36,7 +42,7 @@ export function buildBarSeries(trace: BarTrace, options: BuildBarSeriesOptions =
 
     const xData = sorted.map((p) => p.x);
     const yData = sorted.map((p) => p.y);
-    const showText = xData.length <= maxLabelsForText;
+    const showText = showLabels && xData.length <= maxLabelsForText;
 
     const series: BarChartSeries[] = [];
 
@@ -48,10 +54,9 @@ export function buildBarSeries(trace: BarTrace, options: BuildBarSeriesOptions =
         label: showText
             ? {
                   show: true,
-                  position: "inside",
+                  position: "top",
                   formatter: (params: CallbackDataParams) => formatNumber(params.value as number),
-                  fontSize: 12,
-                  color: "black",
+                  fontSize: 11,
               }
             : undefined,
         encode: { x: 0, y: 1 },
@@ -61,41 +66,26 @@ export function buildBarSeries(trace: BarTrace, options: BuildBarSeriesOptions =
 
     if (showStatisticalMarkers) {
         const stats = computePointStatistics(yData);
-        series.push(...createStatMarkerLines(stats, xData, trace));
+        series.push(createMeanReferenceLine(stats.mean, xData, trace));
     }
 
     return { series, categoryData: xData, legendData: [trace.name] };
 }
 
-function createStatMarkerLines(
-    stats: PointStatistics,
-    xData: (string | number)[],
-    trace: BarTrace,
-): LineSeriesOption[] {
-    const xStart = xData[0];
-    const xEnd = xData[xData.length - 1];
-
-    function makeLine(value: number, label: string, dash: "solid" | "dashed"): LineSeriesOption {
-        return {
-            type: "line",
-            name: trace.name,
-            data: [
-                [xStart, value],
-                [xEnd, value],
-            ],
-            lineStyle: { color: trace.color, width: 3, type: dash },
-            symbol: "none",
-            silent: true,
-            tooltip: {
-                formatter: () =>
-                    formatCompactTooltip(trace.name, [{ label, value: formatNumber(value), color: trace.color }]),
-            },
-        };
-    }
-
-    return [
-        makeLine(stats.p10, "P10", "dashed"),
-        makeLine(stats.mean, "Mean", "solid"),
-        makeLine(stats.p90, "P90", "dashed"),
-    ];
+function createMeanReferenceLine(mean: number, xData: (string | number)[], trace: BarTrace): LineSeriesOption {
+    return {
+        type: "line",
+        name: trace.name,
+        data: [
+            [xData[0], mean],
+            [xData[xData.length - 1], mean],
+        ],
+        lineStyle: { color: trace.color, width: 1.5, type: "dashed", opacity: 0.7 },
+        symbol: "none",
+        silent: true,
+        tooltip: {
+            formatter: () =>
+                formatCompactTooltip(trace.name, [{ label: "Mean", value: formatNumber(mean), color: trace.color }]),
+        },
+    };
 }

@@ -10,6 +10,8 @@ import type { CartesianChartSeries, CartesianSubplotBuildResult } from "./cartes
 
 export type BarChartOptions = BuildBarSeriesOptions & {
     yAxisLabel?: string;
+    sharedXAxis?: boolean;
+    sharedYAxis?: boolean;
 };
 
 export function buildBarChart(
@@ -17,13 +19,12 @@ export function buildBarChart(
     options: BarChartOptions = {},
     containerSize?: ContainerSize,
 ): EChartsOption {
-    const { yAxisLabel = "Value", ...seriesOptions } = options;
+    const { yAxisLabel = "Value", sharedXAxis, sharedYAxis, ...seriesOptions } = options;
 
     return buildCartesianSubplotChart(
         subplotGroups,
         (group, axisIndex) => buildBarSubplot(group, axisIndex, seriesOptions, yAxisLabel),
-        containerSize,
-        { tooltip: { trigger: "axis" as const, formatter: formatBarTooltip } },
+        { containerSize, sharedXAxis, sharedYAxis, tooltip: { trigger: "axis" as const, formatter: formatBarTooltip } },
     );
 }
 

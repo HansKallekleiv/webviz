@@ -3,8 +3,8 @@ export {
     formatStatisticsTooltip,
     formatRealizationItemTooltip,
     formatBarTooltip,
-    formatDistributionTooltip,
     formatConvergenceTooltip,
     formatHistogramBarTooltip,
     formatHistogramRugTooltip,
+    formatRealizationScatterTooltip,
 } from "./tooltipFormatters";

@@ -7,6 +7,7 @@ export type {
     DistributionTrace,
     BarTrace,
     HeatmapTrace,
+    RealizationScatterTrace,
     SubplotGroup,
     TimeseriesDisplayConfig,
     DistributionDisplayConfig,
@@ -39,6 +40,7 @@ export {
     buildDistributionSeries,
     buildConvergenceSeries,
     buildHeatmapSeries,
+    buildRealizationScatterSeries,
 } from "./series";
 export type {
     BarSortBy,
@@ -57,6 +59,7 @@ export {
     buildDistributionChart,
     buildPercentileRangeChart,
     buildConvergenceChart,
+    buildRealizationScatterChart,
     composeChartOption,
 } from "./builders";
 export { buildHistogramChart } from "./builders/histogramChartBuilder";

@@ -76,6 +76,15 @@ export interface ContainerSize {
     height: number;
 }
 
+export interface RealizationScatterTrace {
+    name: string;
+    color: string;
+    highlightGroupKey?: string;
+    realizationIds: number[];
+    xValues: number[];
+    yValues: number[];
+}
+
 export enum HistogramType {
     Stack = "stack",
     Group = "group",

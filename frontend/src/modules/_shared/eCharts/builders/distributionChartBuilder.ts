@@ -1,6 +1,5 @@
 import type { EChartsOption } from "echarts";
 
-import { formatDistributionTooltip } from "../interaction/tooltipFormatters";
 import { buildDistributionSeries } from "../series/distributionSeries";
 import type { DistributionDisplayOptions } from "../series/distributionSeries";
 import type { ContainerSize, DistributionTrace, SubplotGroup } from "../types";
@@ -11,6 +10,8 @@ import type { CartesianChartSeries } from "./cartesianSubplotChartBuilder";
 export type DistributionChartOptions = DistributionDisplayOptions & {
     xAxisLabel?: string;
     yAxisLabel?: string;
+    sharedXAxis?: boolean;
+    sharedYAxis?: boolean;
 };
 
 export function buildDistributionChart(
@@ -18,7 +19,7 @@ export function buildDistributionChart(
     options: DistributionChartOptions = {},
     containerSize?: ContainerSize,
 ): EChartsOption {
-    const { xAxisLabel = "Value", yAxisLabel = "Density", ...seriesOptions } = options;
+    const { xAxisLabel = "Value", yAxisLabel = "Density", sharedXAxis, sharedYAxis, ...seriesOptions } = options;
 
     return buildCartesianSubplotChart(
         subplotGroups,
@@ -29,8 +30,7 @@ export function buildDistributionChart(
             yAxis: { type: "value", label: yAxisLabel },
             title: group.title,
         }),
-        containerSize,
-        { tooltip: { trigger: "item" as const, formatter: formatDistributionTooltip } },
+        { containerSize, sharedXAxis, sharedYAxis },
     );
 }
 

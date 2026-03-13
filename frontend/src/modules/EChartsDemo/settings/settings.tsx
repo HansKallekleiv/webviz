@@ -23,6 +23,7 @@ import {
     selectedStatisticsAtom,
     sharedXAxisAtom,
     sharedYAxisAtom,
+    showBarLabelsAtom,
     showFanchartAtom,
     showRealizationPointsAtom,
     showRealizationsAtom,
@@ -54,6 +55,7 @@ export function Settings(): React.ReactNode {
     const [showFanchart, setShowFanchart] = useAtom(showFanchartAtom);
     const [selectedStatistics, setSelectedStatistics] = useAtom(selectedStatisticsAtom);
     const [showStatisticalMarkers, setShowStatisticalMarkers] = useAtom(showStatisticalMarkersAtom);
+    const [showBarLabels, setShowBarLabels] = useAtom(showBarLabelsAtom);
     const [showRealizationPoints, setShowRealizationPoints] = useAtom(showRealizationPointsAtom);
     const [histogramBins, setHistogramBins] = useAtom(histogramBinsAtom);
     const [histogramType, setHistogramType] = useAtom(histogramTypeAtom);
@@ -64,7 +66,8 @@ export function Settings(): React.ReactNode {
     const isTimeseries = plotType === PlotType.Timeseries;
     const isHistogram = plotType === PlotType.Histogram;
     const isPercentileRange = plotType === PlotType.PercentileRange;
-    const supportsStatisticalMarkers = plotType === PlotType.Histogram || plotType === PlotType.Bar;
+    const supportsStatisticalMarkers = plotType === PlotType.Bar;
+    const supportsBarLabels = plotType === PlotType.Bar;
     const supportsRealizationPoints = isHistogram || isPercentileRange || plotType === PlotType.Distribution;
 
     function handleStatToggle(key: StatisticKey, checked: boolean) {
@@ -163,13 +166,20 @@ export function Settings(): React.ReactNode {
                 </CollapsibleGroup>
             )}
 
-            {(supportsStatisticalMarkers || supportsRealizationPoints) && (
+            {(supportsStatisticalMarkers || supportsBarLabels || supportsRealizationPoints) && (
                 <CollapsibleGroup title="Markers & points" expanded>
                     {supportsStatisticalMarkers && (
                         <Checkbox
                             label="Show statistical markers"
                             checked={showStatisticalMarkers}
                             onChange={(_, c) => setShowStatisticalMarkers(c)}
+                        />
+                    )}
+                    {supportsBarLabels && (
+                        <Checkbox
+                            label="Show bar labels"
+                            checked={showBarLabels}
+                            onChange={(_, c) => setShowBarLabels(c)}
                         />
                     )}
                     {supportsRealizationPoints && (

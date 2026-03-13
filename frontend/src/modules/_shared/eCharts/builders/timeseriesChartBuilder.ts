@@ -5,19 +5,16 @@ import { timestampUtcMsToCompactIsoString } from "@framework/utils/timestampUtil
 import { applyActiveTimestampMarker } from "../interaction/activeTimestampMarker";
 import { formatRealizationItemTooltip, formatStatisticsTooltip } from "../interaction/tooltipFormatters";
 import { getResponsiveFeatures } from "../layout/responsiveConfig";
-import type { SubplotAxisDef } from "../layout/subplotAxes";
-import { buildSubplotAxes } from "../layout/subplotAxes";
-import type { SubplotLayoutResult } from "../layout/subplotGridLayout";
-import { computeSubplotGridLayout } from "../layout/subplotGridLayout";
 import { buildFanchartSeries, buildRealizationsSeries, buildStatisticsSeries } from "../series";
 import type { ContainerSize, SubplotGroup, TimeseriesDisplayConfig, TimeseriesTrace } from "../types";
 
-import { composeChartOption } from "./composeChartOption";
-import type { ChartSeriesOption, ComposeChartConfig } from "./composeChartOption";
+import { buildCartesianSubplotChart } from "./cartesianSubplotChartBuilder";
+import type { CartesianChartSeries, CartesianSubplotBuildResult } from "./cartesianSubplotChartBuilder";
+import type { ComposeChartConfig } from "./composeChartOption";
 
-type TimeseriesSeriesBuildResult = {
-    series: ChartSeriesOption[];
-    legendData: string[];
+export type TimeseriesChartOptions = {
+    sharedXAxis?: boolean;
+    sharedYAxis?: boolean;
 };
 
 export function buildTimeseriesChart(
@@ -26,22 +23,32 @@ export function buildTimeseriesChart(
     yAxisLabel: string,
     activeTimestampUtcMs: number | null = null,
     containerSize?: ContainerSize,
+    chartOptions: TimeseriesChartOptions = {},
 ): EChartsOption {
     const categoryData = buildCategoryData(subplotGroups);
     if (categoryData.length === 0) return {};
 
-    const { series, legendData } = buildTimeseriesSeries(subplotGroups, config);
+    const realtimePointer = buildRealtimeAxisPointer(config);
+    const numSubplots = subplotGroups.length;
 
-    if (activeTimestampUtcMs != null) {
-        applyActiveTimestampMarker(series, timestampUtcMsToCompactIsoString(activeTimestampUtcMs));
-    }
-
-    const layout = computeSubplotGridLayout(subplotGroups.length);
-    const axes = buildTimeseriesAxes(layout, subplotGroups, categoryData, yAxisLabel, config);
-    return composeChartOption(
-        layout,
-        axes,
-        buildTimeseriesComposeConfig(series, legendData, subplotGroups.length, config, containerSize),
+    return buildCartesianSubplotChart(
+        subplotGroups,
+        (group, axisIndex) =>
+            buildTimeseriesSubplot(group, axisIndex, config, categoryData, yAxisLabel, realtimePointer),
+        {
+            containerSize,
+            sharedXAxis: chartOptions.sharedXAxis,
+            sharedYAxis: chartOptions.sharedYAxis,
+            postProcessAxes: (_axes, allSeries) => {
+                if (activeTimestampUtcMs != null) {
+                    applyActiveTimestampMarker(
+                        allSeries,
+                        timestampUtcMsToCompactIsoString(activeTimestampUtcMs),
+                    );
+                }
+            },
+            ...buildTimeseriesComposeOverrides(numSubplots, config, containerSize),
+        },
     );
 }
 
@@ -58,29 +65,6 @@ function buildCategoryData(subplotGroups: SubplotGroup<TimeseriesTrace>[]): stri
     return firstTrace ? firstTrace.timestamps.map((timestamp) => timestampUtcMsToCompactIsoString(timestamp)) : [];
 }
 
-function buildTimeseriesAxes(
-    layout: SubplotLayoutResult,
-    subplotGroups: SubplotGroup<TimeseriesTrace>[],
-    categoryData: string[],
-    yAxisLabel: string,
-    config: TimeseriesDisplayConfig,
-) {
-    const realtimePointer = buildRealtimeAxisPointer(config);
-    const axisDefs: SubplotAxisDef[] = subplotGroups.map((group) => ({
-        xAxis: { type: "category", data: categoryData, boundaryGap: false, axisPointer: realtimePointer },
-        yAxis: {
-            type: "value",
-            label: yAxisLabel,
-            scale: true,
-            splitLine: false,
-            axisPointer: realtimePointer,
-        },
-        title: group.title,
-    }));
-
-    return buildSubplotAxes(layout, axisDefs);
-}
-
 function buildRealtimeAxisPointer(config: TimeseriesDisplayConfig) {
     const showCrosshair = config.showRealizations && !config.showStatistics;
     return showCrosshair
@@ -88,21 +72,54 @@ function buildRealtimeAxisPointer(config: TimeseriesDisplayConfig) {
         : { show: true, type: "line" as const, triggerTooltip: false, label: { show: true } };
 }
 
-function buildTimeseriesComposeConfig(
-    series: ChartSeriesOption[],
-    legendData: string[],
-    numSubplots: number,
+function buildTimeseriesSubplot(
+    group: SubplotGroup<TimeseriesTrace>,
+    axisIndex: number,
     config: TimeseriesDisplayConfig,
-    containerSize?: ContainerSize,
-): ComposeChartConfig {
+    categoryData: string[],
+    yAxisLabel: string,
+    realtimePointer: ReturnType<typeof buildRealtimeAxisPointer>,
+): CartesianSubplotBuildResult {
+    const series: CartesianChartSeries[] = [];
+    const legendData: string[] = [];
+    const seenLegend = new Set<string>();
+
+    for (const trace of group.traces) {
+        if (config.showRealizations && trace.realizationValues) {
+            const realizationResult = buildRealizationsSeries(trace, axisIndex);
+            series.push(...realizationResult.series);
+            addLegendEntries(legendData, seenLegend, realizationResult.legendData);
+        }
+
+        if (config.showStatistics && trace.statistics) {
+            series.push(...buildStatisticsSeries(trace, config.selectedStatistics, axisIndex));
+            addLegendEntries(legendData, seenLegend, [trace.name]);
+        }
+
+        if (config.showFanchart && trace.statistics) {
+            series.push(...buildFanchartSeries(trace, config.selectedStatistics, axisIndex));
+        }
+    }
+
     return {
         series,
         legendData,
-        containerSize,
+        xAxis: { type: "category", data: categoryData, boundaryGap: false, axisPointer: realtimePointer },
+        yAxis: { type: "value", label: yAxisLabel, scale: true, splitLine: false, axisPointer: realtimePointer },
+        title: group.title,
+    };
+}
+
+function buildTimeseriesComposeOverrides(
+    numSubplots: number,
+    config: TimeseriesDisplayConfig,
+    containerSize?: ContainerSize,
+) {
+    return {
         tooltip: buildTimeseriesTooltip(config),
         axisPointer: {
             show: true,
-            type: "line",
+            type: "line" as const,
             triggerEmphasis: false,
             triggerTooltip: false,
             label: { show: true },
@@ -169,37 +186,6 @@ function buildTimeseriesDataZoom(
         { type: "inside" as const, xAxisIndex: allAxisIndices, filterMode: "none" as const },
         { type: "inside" as const, yAxisIndex: allAxisIndices, filterMode: "none" as const },
     ];
-}
-
-function buildTimeseriesSeries(
-    subplotGroups: SubplotGroup<TimeseriesTrace>[],
-    config: TimeseriesDisplayConfig,
-): TimeseriesSeriesBuildResult {
-    const series: ChartSeriesOption[] = [];
-    const legendData: string[] = [];
-    const seenLegend = new Set<string>();
-
-    for (let gridIdx = 0; gridIdx < subplotGroups.length; gridIdx++) {
-        const group = subplotGroups[gridIdx];
-        for (const trace of group.traces) {
-            if (config.showRealizations && trace.realizationValues) {
-                const realizationResult = buildRealizationsSeries(trace, gridIdx);
-                series.push(...realizationResult.series);
-                addLegendEntries(legendData, seenLegend, realizationResult.legendData);
-            }
-
-            if (config.showStatistics && trace.statistics) {
-                series.push(...buildStatisticsSeries(trace, config.selectedStatistics, gridIdx));
-                addLegendEntries(legendData, seenLegend, [trace.name]);
-            }
-
-            if (config.showFanchart && trace.statistics) {
-                series.push(...buildFanchartSeries(trace, config.selectedStatistics, gridIdx));
-            }
-        }
-    }
-
-    return { series, legendData };
 }
 
 function addLegendEntries(legendData: string[], seenLegend: Set<string>, entries: string[]): void {

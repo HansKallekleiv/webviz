@@ -1,5 +1,5 @@
-export { buildRealizationsSeries } from "./timeseriesSeries";
-export { buildStatisticsSeries, buildFanchartSeries } from "./statisticsSeries";
+export { buildRealizationsSeries } from "./timeseriesRealizationSeries";
+export { buildStatisticsSeries, buildFanchartSeries } from "./timeseriesStatisticsSeries";
 export { buildBarSeries, type BarSortBy, type BuildBarSeriesOptions } from "./barSeries";
 export { buildHistogramSeries, type HistogramDisplayOptions } from "./histogramSeries";
 export {
@@ -10,3 +10,4 @@ export {
 export { buildDistributionSeries, type DistributionDisplayOptions } from "./distributionSeries";
 export { buildConvergenceSeries } from "./convergenceSeries";
 export { buildHeatmapSeries } from "./heatmapSeries";
+export { buildRealizationScatterSeries } from "./realizationScatterSeries";

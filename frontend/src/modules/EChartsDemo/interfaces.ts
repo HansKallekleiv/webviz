@@ -12,6 +12,7 @@ import {
     selectedStatisticsAtom,
     sharedXAxisAtom,
     sharedYAxisAtom,
+    showBarLabelsAtom,
     showFanchartAtom,
     showRealizationPointsAtom,
     showRealizationsAtom,
@@ -30,6 +31,7 @@ export type SettingsToViewInterface = {
     showFanchart: boolean;
     selectedStatistics: StatisticKey[];
     showStatisticalMarkers: boolean;
+    showBarLabels: boolean;
     showRealizationPoints: boolean;
     histogramBins: number;
     histogramType: HistogramType;
@@ -52,6 +54,7 @@ export const settingsToViewInterfaceInitialization: InterfaceInitialization<Sett
     showFanchart: (get) => get(showFanchartAtom),
     selectedStatistics: (get) => get(selectedStatisticsAtom),
     showStatisticalMarkers: (get) => get(showStatisticalMarkersAtom),
+    showBarLabels: (get) => get(showBarLabelsAtom),
     showRealizationPoints: (get) => get(showRealizationPointsAtom),
     histogramBins: (get) => get(histogramBinsAtom),
     histogramType: (get) => get(histogramTypeAtom),

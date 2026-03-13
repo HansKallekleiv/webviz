@@ -16,6 +16,7 @@ export const showFanchartAtom = atom<boolean>(false);
 export const selectedStatisticsAtom = atom<StatisticKey[]>(["mean", "p10", "p90"]);
 
 export const showStatisticalMarkersAtom = atom<boolean>(true);
+export const showBarLabelsAtom = atom<boolean>(false);
 export const showRealizationPointsAtom = atom<boolean>(false);
 export const histogramBinsAtom = atom<number>(10);
 export const histogramTypeAtom = atom<HistogramType>(HistogramType.Overlay);

@@ -4,37 +4,32 @@ import type {
     CustomSeriesOption,
     CustomSeriesRenderItemAPI,
     CustomSeriesRenderItemParams,
-    LineSeriesOption,
     ScatterSeriesOption,
 } from "echarts/types/dist/shared";
 
-import { formatNumber } from "@modules/_shared/utils/numberFormatting";
-
 import { formatHistogramBarTooltip, formatHistogramRugTooltip } from "../interaction/tooltipFormatters";
 import type { SubplotAxesResult } from "../layout/subplotAxes";
-import { buildSubplotAxes } from "../layout/subplotAxes";
-import type { SubplotLayoutResult } from "../layout/subplotGridLayout";
-import { computeSubplotGridLayout } from "../layout/subplotGridLayout";
 import type { ContainerSize, DistributionTrace, SubplotGroup } from "../types";
 import { HistogramType } from "../types";
 import { computeHistogramLayout, computeHistogramTraceData } from "../utils";
 import type { HistogramBarGeometry, HistogramTraceData } from "../utils/histogram";
 
-import { composeChartOption } from "./composeChartOption";
+import { buildCartesianSubplotChart } from "./cartesianSubplotChartBuilder";
+import type { CartesianSubplotBuildResult } from "./cartesianSubplotChartBuilder";
 import type { ChartSeriesOption } from "./composeChartOption";
 
 export type HistogramChartOptions = {
     numBins?: number;
     histogramType?: HistogramType;
-    showStatisticalMarkers?: boolean;
-    showStatisticalLabels?: boolean;
     showRealizationPoints?: boolean;
     showPercentageInBar?: boolean;
     borderColor?: string;
     borderWidth?: number;
+    sharedXAxis?: boolean;
+    sharedYAxis?: boolean;
 };
 
-type ResolvedHistogramChartOptions = Required<HistogramChartOptions>;
+type ResolvedHistogramChartOptions = Required<Omit<HistogramChartOptions, "sharedXAxis" | "sharedYAxis">>;
 
 type HistogramBarValue = [number, number, number, number];
 
@@ -46,41 +41,35 @@ type HistogramBarDatum = {
     percentage: number;
 };
 
-type HistogramGroupSeriesResult = {
-    series: ChartSeriesOption[];
-    legendData: string[];
-    yMax: number;
-};
-
 export function buildHistogramChart(
     subplotGroups: SubplotGroup<DistributionTrace>[],
     options: HistogramChartOptions = {},
     containerSize?: ContainerSize,
 ): EChartsOption {
-    const groups = subplotGroups.filter((group) => group.traces.length > 0);
-    if (groups.length === 0) return {};
+    const { sharedXAxis, sharedYAxis, ...rest } = options;
+    const config = resolveHistogramChartOptions(rest);
 
-    const config = resolveHistogramChartOptions(options);
+    // Accumulate per-axis yMax during subplot building for post-process y-extent adjustment
+    const yMaxByAxis: number[] = [];
 
-    const layout = computeSubplotGridLayout(groups.length);
-    const axes = buildHistogramAxes(layout, groups);
-    const { allSeries, legendData, yMaxByAxis } = buildAllSeries(groups, config);
-
-    applyYAxisExtents(axes, yMaxByAxis, config.showRealizationPoints);
-
-    return composeChartOption(layout, axes, {
-        series: allSeries,
-        legendData,
-        containerSize,
-    });
+    return buildCartesianSubplotChart(
+        subplotGroups,
+        (group, axisIndex) => buildHistogramSubplot(group, axisIndex, config, yMaxByAxis),
+        {
+            containerSize,
+            sharedXAxis,
+            sharedYAxis,
+            postProcessAxes: (axes) => applyYAxisExtents(axes, yMaxByAxis, config.showRealizationPoints),
+        },
+    );
 }
 
-function resolveHistogramChartOptions(options: HistogramChartOptions): ResolvedHistogramChartOptions {
+function resolveHistogramChartOptions(
+    options: Omit<HistogramChartOptions, "sharedXAxis" | "sharedYAxis">,
+): ResolvedHistogramChartOptions {
     return {
         numBins: options.numBins ?? 15,
         histogramType: options.histogramType ?? HistogramType.Overlay,
-        showStatisticalMarkers: options.showStatisticalMarkers ?? false,
-        showStatisticalLabels: options.showStatisticalLabels ?? false,
         showRealizationPoints: options.showRealizationPoints ?? false,
         showPercentageInBar: options.showPercentageInBar ?? false,
         borderColor: options.borderColor ?? "black",
@@ -88,49 +77,16 @@ function resolveHistogramChartOptions(options: HistogramChartOptions): ResolvedH
     };
 }
 
-function buildHistogramAxes(layout: SubplotLayoutResult, groups: SubplotGroup<DistributionTrace>[]): SubplotAxesResult {
-    return buildSubplotAxes(
-        layout,
-        groups.map((group) => ({
-            xAxis: { type: "value", label: "Value" },
-            yAxis: { type: "value", label: "Percentage (%)" },
-            title: group.title,
-        })),
-    );
-}
-
-function buildAllSeries(
-    groups: SubplotGroup<DistributionTrace>[],
-    config: ResolvedHistogramChartOptions,
-): { allSeries: ChartSeriesOption[]; legendData: string[]; yMaxByAxis: number[] } {
-    const allSeries: ChartSeriesOption[] = [];
-    const legendData: string[] = [];
-    const yMaxByAxis: number[] = [];
-    const seenLegend = new Set<string>();
-
-    groups.forEach((group, axisIndex) => {
-        const { series, legendData: groupLegendData, yMax } = buildGroupSeries(group, axisIndex, config);
-        allSeries.push(...series);
-        yMaxByAxis[axisIndex] = yMax;
-
-        for (const legendName of groupLegendData) {
-            if (!seenLegend.has(legendName)) {
-                legendData.push(legendName);
-                seenLegend.add(legendName);
-            }
-        }
-    });
-
-    return { allSeries, legendData, yMaxByAxis };
-}
-
-function buildGroupSeries(
+function buildHistogramSubplot(
     group: SubplotGroup<DistributionTrace>,
     axisIndex: number,
     config: ResolvedHistogramChartOptions,
-): HistogramGroupSeriesResult {
+    yMaxByAxis: number[],
+): CartesianSubplotBuildResult {
     const traceData = computeHistogramTraceData(group.traces, config.numBins);
     const { barsByTrace, yMax } = computeHistogramLayout(traceData, config.histogramType);
+    yMaxByAxis[axisIndex] = yMax;
+
     const series: ChartSeriesOption[] = [];
 
     traceData.forEach((traceDataEntry, traceIndex) => {
@@ -149,7 +105,9 @@ function buildGroupSeries(
     return {
         series,
         legendData: traceData.map((entry) => entry.trace.name),
-        yMax,
+        xAxis: { type: "value", label: "Value" },
+        yAxis: { type: "value", label: "Percentage (%)" },
+        title: group.title,
     };
 }
 
@@ -166,19 +124,6 @@ function buildTraceSeries(
 
     series.push(createHistogramBarSeries(traceDataEntry, bars, axisIndex, barOpacity, config));
 
-    if (config.showStatisticalMarkers) {
-        series.push(
-            ...createHistogramStatLines(
-                traceDataEntry.stats,
-                yMax * 1.05,
-                traceDataEntry.trace.name,
-                traceDataEntry.trace.color,
-                axisIndex,
-                config.showStatisticalLabels,
-            ),
-        );
-    }
-
     if (config.showRealizationPoints) {
         series.push(createHistogramRugSeries(traceDataEntry, axisIndex));
     }
@@ -188,7 +133,7 @@ function buildTraceSeries(
 
 function computeBarOpacity(config: ResolvedHistogramChartOptions, traceCount: number): number {
     if (config.histogramType === HistogramType.Overlay && traceCount > 1) return 0.55;
-    return config.showStatisticalMarkers ? 0.6 : 1;
+    return 1;
 }
 
 function createHistogramBarSeries(
@@ -251,45 +196,6 @@ function applyYAxisExtents(axes: SubplotAxesResult, yMaxByAxis: number[], showRe
             max: Math.max(yMax * 1.1, 1),
         };
     });
-}
-
-function createHistogramStatLines(
-    stats: Pick<HistogramTraceData["stats"], "p10" | "mean" | "p90">,
-    maxPct: number,
-    traceName: string,
-    color: string,
-    axisIndex: number,
-    showLabels: boolean,
-): LineSeriesOption[] {
-    function makeLine(value: number, label: string, dash: "solid" | "dashed"): LineSeriesOption {
-        return {
-            type: "line",
-            name: traceName,
-            xAxisIndex: axisIndex,
-            yAxisIndex: axisIndex,
-            data: [
-                [value, 0],
-                [value, maxPct],
-            ],
-            lineStyle: { color, width: 4, type: dash },
-            symbol: "none",
-            silent: true,
-            label: showLabels
-                ? {
-                      show: true,
-                      position: "insideTop",
-                      formatter: `${label}: ${formatNumber(value)}`,
-                      fontSize: 11,
-                  }
-                : undefined,
-        };
-    }
-
-    return [
-        makeLine(stats.p10, "P10", "dashed"),
-        makeLine(stats.mean, "Mean", "solid"),
-        makeLine(stats.p90, "P90", "dashed"),
-    ];
 }
 
 function createHistogramBarRenderItem(

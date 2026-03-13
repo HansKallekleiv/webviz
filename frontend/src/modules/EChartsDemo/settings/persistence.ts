@@ -16,6 +16,7 @@ import {
     showFanchartAtom,
     selectedStatisticsAtom,
     showStatisticalMarkersAtom,
+    showBarLabelsAtom,
     showRealizationPointsAtom,
     histogramBinsAtom,
     histogramTypeAtom,
@@ -34,6 +35,7 @@ export type SerializedSettings = {
     showFanchart: boolean;
     selectedStatistics: StatisticKey[];
     showStatisticalMarkers: boolean;
+    showBarLabels: boolean;
     showRealizationPoints: boolean;
     histogramBins: number;
     histogramType: HistogramType;
@@ -59,6 +61,7 @@ const schemaBuilder = new SchemaBuilder<SerializedSettings>(() => ({
             },
         },
         showStatisticalMarkers: { type: "boolean" },
+        showBarLabels: { type: "boolean" },
         showRealizationPoints: { type: "boolean" },
         histogramBins: { type: "int16" },
         histogramType: {
@@ -83,6 +86,7 @@ export const serializeSettings: SerializeStateFunction<SerializedSettings> = (ge
         showFanchart: get(showFanchartAtom),
         selectedStatistics: get(selectedStatisticsAtom),
         showStatisticalMarkers: get(showStatisticalMarkersAtom),
+        showBarLabels: get(showBarLabelsAtom),
         showRealizationPoints: get(showRealizationPointsAtom),
         histogramBins: get(histogramBinsAtom),
         histogramType: get(histogramTypeAtom),
@@ -102,6 +106,7 @@ export const deserializeSettings: DeserializeStateFunction<SerializedSettings> =
     setIfDefined(set, showFanchartAtom, raw.showFanchart);
     setIfDefined(set, selectedStatisticsAtom, raw.selectedStatistics);
     setIfDefined(set, showStatisticalMarkersAtom, raw.showStatisticalMarkers);
+    setIfDefined(set, showBarLabelsAtom, raw.showBarLabels);
     setIfDefined(set, showRealizationPointsAtom, raw.showRealizationPoints);
     setIfDefined(set, histogramBinsAtom, raw.histogramBins);
     setIfDefined(set, histogramTypeAtom, raw.histogramType);
