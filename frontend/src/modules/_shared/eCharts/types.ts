@@ -14,7 +14,7 @@ export type PointStatistics = Record<StatisticKey, number> & {
  * Can carry both realizationValues AND statistics simultaneously.
  * The display config controls what gets rendered.
  */
-export type TimeseriesTrace = {
+export interface TimeseriesTrace {
     name: string;
     color: string;
     timestamps: number[];
@@ -22,23 +22,23 @@ export type TimeseriesTrace = {
     realizationValues?: number[][];
     realizationIds?: number[];
     statistics?: TimeseriesStatistics;
-};
+}
 
-export type DistributionTrace = {
+export interface DistributionTrace {
     name: string;
     color: string;
     values: number[];
     realizationIds?: number[];
-};
+}
 
-export type BarTrace = {
+export interface BarTrace {
     name: string;
     color: string;
     categories: (string | number)[];
     values: number[];
-};
+}
 
-export type HeatmapTrace = {
+export interface HeatmapTrace {
     name: string;
     xLabels: string[];
     yLabels: string[];
@@ -46,29 +46,39 @@ export type HeatmapTrace = {
     data: [number, number, number][];
     minValue: number;
     maxValue: number;
-};
+}
 
-export type SubplotGroup<T = TimeseriesTrace> = {
+export interface SubplotGroup<T = TimeseriesTrace> {
     title: string;
     traces: T[];
-};
+}
 
-export type TimeseriesDisplayConfig = {
+export interface TimeseriesDisplayConfig {
     showRealizations: boolean;
     showStatistics: boolean;
     showFanchart: boolean;
     selectedStatistics: StatisticKey[];
-};
+}
 
-export type DistributionDisplayConfig = {
+export interface DistributionDisplayConfig {
     showStatisticalMarkers: boolean;
     showRealizationPoints: boolean;
-};
+}
 
-export type BarDisplayConfig = {
+export interface BarDisplayConfig {
     sortBy: "categories" | "values";
     showStatisticalMarkers: boolean;
     maxLabelsForText: number;
-};
+}
 
-export type ContainerSize = { width: number; height: number };
+export interface ContainerSize {
+    width: number;
+    height: number;
+}
+
+export enum HistogramType {
+    Stack = "stack",
+    Group = "group",
+    Overlay = "overlay",
+    Relative = "relative",
+}

@@ -1,6 +1,5 @@
 import type { InterfaceInitialization } from "@framework/UniDirectionalModuleComponentsInterface";
-import type { StatisticKey } from "@modules/_shared/eCharts";
-import type { HistogramType } from "@modules/_shared/histogram";
+import type { HistogramType, StatisticKey } from "@modules/_shared/eCharts";
 
 import {
     histogramBinsAtom,

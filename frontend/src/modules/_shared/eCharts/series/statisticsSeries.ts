@@ -1,6 +1,7 @@
 import type { CustomSeriesOption, LineSeriesOption } from "echarts/charts";
 
 import type { StatisticKey, TimeseriesTrace } from "../types";
+import { makeFanchartSeriesId, makeStatisticSeriesId } from "../utils/seriesId";
 
 type StatSeriesEntry = {
     key: StatisticKey;
@@ -29,7 +30,7 @@ export function buildStatisticsSeries(
     for (const def of STAT_SERIES_DEFS) {
         if (selectedStatistics.includes(def.key)) {
             series.push({
-                id: `${trace.name}_${def.key}_${axisIndex}`,
+                id: makeStatisticSeriesId(trace.name, def.key, axisIndex),
                 name: trace.name,
                 type: "line",
                 data: trace.statistics[def.key],
@@ -58,9 +59,11 @@ function createBandSeries(
     fillOpacity: number,
     name: string,
     axisIndex: number,
+    seriesId?: string,
 ): CustomSeriesOption {
     return {
         type: "custom",
+        ...(seriesId ? { id: seriesId } : {}),
         name,
         xAxisIndex: axisIndex,
         yAxisIndex: axisIndex,
@@ -116,14 +119,58 @@ export function buildFanchartSeries(
 
     if (hasMinMax && hasPercentiles) {
         series.push(
-            createBandSeries(p10, min, trace.color, 0.08, `${trace.name} _fan_low`, axisIndex),
-            createBandSeries(p90, p10, trace.color, 0.3, `${trace.name} _fan_mid`, axisIndex),
-            createBandSeries(max, p90, trace.color, 0.08, `${trace.name} _fan_high`, axisIndex),
+            createBandSeries(
+                p10,
+                min,
+                trace.color,
+                0.08,
+                `${trace.name} _fan_low`,
+                axisIndex,
+                makeFanchartSeriesId(trace.name, "low", axisIndex),
+            ),
+            createBandSeries(
+                p90,
+                p10,
+                trace.color,
+                0.3,
+                `${trace.name} _fan_mid`,
+                axisIndex,
+                makeFanchartSeriesId(trace.name, "mid", axisIndex),
+            ),
+            createBandSeries(
+                max,
+                p90,
+                trace.color,
+                0.08,
+                `${trace.name} _fan_high`,
+                axisIndex,
+                makeFanchartSeriesId(trace.name, "high", axisIndex),
+            ),
         );
     } else if (hasMinMax) {
-        series.push(createBandSeries(max, min, trace.color, 0.1, `${trace.name} _fan_band`, axisIndex));
+        series.push(
+            createBandSeries(
+                max,
+                min,
+                trace.color,
+                0.1,
+                `${trace.name} _fan_band`,
+                axisIndex,
+                makeFanchartSeriesId(trace.name, "band", axisIndex),
+            ),
+        );
     } else if (hasPercentiles) {
-        series.push(createBandSeries(p90, p10, trace.color, 0.3, `${trace.name} _fan_band`, axisIndex));
+        series.push(
+            createBandSeries(
+                p90,
+                p10,
+                trace.color,
+                0.3,
+                `${trace.name} _fan_band`,
+                axisIndex,
+                makeFanchartSeriesId(trace.name, "band", axisIndex),
+            ),
+        );
     }
 
     return series;

@@ -1,6 +1,6 @@
 import { atom } from "jotai";
 
-import { HistogramType } from "@modules/_shared/histogram";
+import { HistogramType } from "@modules/_shared/eCharts";
 import type { StatisticKey } from "@modules/_shared/eCharts";
 
 import { PlotType } from "../../typesAndEnums";

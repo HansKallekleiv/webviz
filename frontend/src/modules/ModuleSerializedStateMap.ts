@@ -8,6 +8,7 @@ import type { SerializedView as M_3DViewerView } from "@modules/3DViewer/view/pe
 import type { SerializedSettings as DistributionPlotSettings } from "@modules/DistributionPlot/settings/persistence";
 import type { SerializedSettings as DynamicVolumesSettings } from "@modules/DynamicVolumes/settings/persistence";
 import type { SerializedView as DynamicVolumesView } from "@modules/DynamicVolumes/view/persistence";
+import type { SerializedSettings as EChartsDemoSettings } from "@modules/EChartsDemo/settings/persistence";
 import type { SerializedSettings as FlowNetworkSettings } from "@modules/FlowNetwork/settings/persistence";
 import type { SerializedSettings as InplaceVolumesNewSettings } from "@modules/InplaceVolumesNew/settings/persistence";
 import type { SerializedSettings as InplaceVolumesPlotSettings } from "@modules/InplaceVolumesPlot/settings/persistence";
@@ -48,7 +49,7 @@ export type ModuleSerializedStateMap = {
     view?: Partial<DynamicVolumesView>,
   },
   "EChartsDemo": {
-    settings?: never,
+    settings?: Partial<EChartsDemoSettings>,
     view?: never,
   },
   "FlowNetwork": {

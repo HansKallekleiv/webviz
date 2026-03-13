@@ -3,6 +3,7 @@ import type { CallbackDataParams } from "echarts/types/dist/shared";
 
 import { formatNumber } from "@modules/_shared/utils/numberFormatting";
 
+import type { SeriesBuildResult } from "../builders/composeChartOption";
 import { formatCompactTooltip } from "../interaction/tooltipFormatters";
 import type { BarTrace, PointStatistics } from "../types";
 import { computePointStatistics } from "../utils/statistics";
@@ -17,10 +18,8 @@ export type BuildBarSeriesOptions = {
 
 export type BarChartSeries = BarSeriesOption | LineSeriesOption;
 
-export type BuildBarSeriesResult = {
-    series: BarChartSeries[];
+export type BuildBarSeriesResult = SeriesBuildResult & {
     categoryData: (string | number)[];
-    legendEntry: string;
 };
 
 const MAX_LABELS_FOR_BARS = 20;
@@ -65,7 +64,7 @@ export function buildBarSeries(trace: BarTrace, options: BuildBarSeriesOptions =
         series.push(...createStatMarkerLines(stats, xData, trace));
     }
 
-    return { series, categoryData: xData, legendEntry: trace.name };
+    return { series, categoryData: xData, legendData: [trace.name] };
 }
 
 function createStatMarkerLines(

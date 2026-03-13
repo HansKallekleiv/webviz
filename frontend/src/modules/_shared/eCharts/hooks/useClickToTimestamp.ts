@@ -36,7 +36,7 @@ export function useClickToTimestamp(
             const pixelY = event.clientY - rect.top;
 
             const opts = chart.getOption();
-            const numGrids = Array.isArray(opts.grid) ? (opts.grid as any[]).length : 1;
+            const numGrids = Array.isArray(opts.grid) ? opts.grid.length : 1;
 
             for (let gridIdx = 0; gridIdx < numGrids; gridIdx++) {
                 try {

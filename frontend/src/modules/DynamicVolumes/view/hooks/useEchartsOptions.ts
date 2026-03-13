@@ -1,13 +1,12 @@
 import React from "react";
 
-import type ReactECharts from "echarts-for-react";
 import { useAtomValue, useSetAtom } from "jotai";
 
 import {
     buildHeatmapChart,
     buildTimeseriesChart,
-    useClickToTimestamp,
-    useHighlightOnHover,
+    extractTimeseriesCategoryData,
+    useTimeseriesInteractions,
 } from "@modules/_shared/eCharts";
 import type {
     ContainerSize,
@@ -73,8 +72,6 @@ export function useEchartsOptions(
     const showFanchart = visualizationMode === VisualizationMode.StatisticalFanchart;
     const showRealizations = !isHeatmap && !showStatLines;
 
-    const chartRef = React.useRef<ReactECharts>(null);
-
     const displayConfig: TimeseriesDisplayConfig = React.useMemo(
         () => ({
             showRealizations,
@@ -95,16 +92,15 @@ export function useEchartsOptions(
         }
 
         const sharedGroups = toSharedSubplotGroups(subplotGroups);
-        const result = buildTimeseriesChart(
-            sharedGroups,
-            displayConfig,
-            yAxisLabel,
-            activeTimestampUtcMs,
-            containerSize,
-        );
         return {
-            echartsOptions: result.echartsOptions,
-            timeseriesChartData: result.categoryData,
+            echartsOptions: buildTimeseriesChart(
+                sharedGroups,
+                displayConfig,
+                yAxisLabel,
+                activeTimestampUtcMs,
+                containerSize,
+            ),
+            timeseriesChartData: extractTimeseriesCategoryData(sharedGroups),
         };
     }, [isHeatmap, heatmapDatasets, subplotGroups, displayConfig, yAxisLabel, activeTimestampUtcMs, containerSize]);
 
@@ -116,9 +112,13 @@ export function useEchartsOptions(
         return firstTrace?.timestamps ?? [];
     }, [isHeatmap, heatmapDatasets, subplotGroups]);
 
-    useClickToTimestamp(chartRef, timestamps, activeTimestampUtcMs, setActiveTimestampUtcMs, echartsOptions);
-
-    const onChartEvents = useHighlightOnHover(chartRef, !isHeatmap && showRealizations);
+    const { chartRef, onChartEvents } = useTimeseriesInteractions({
+        enableLinkedHover: !isHeatmap && showRealizations,
+        timestamps,
+        activeTimestampUtcMs,
+        setActiveTimestampUtcMs,
+        layoutDependency: echartsOptions,
+    });
 
     return {
         chartRef,

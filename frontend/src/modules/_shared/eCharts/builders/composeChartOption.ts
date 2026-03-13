@@ -1,4 +1,11 @@
 import type { EChartsOption } from "echarts";
+import type {
+    BarSeriesOption,
+    CustomSeriesOption,
+    HeatmapSeriesOption,
+    LineSeriesOption,
+    ScatterSeriesOption,
+} from "echarts/types/dist/shared";
 
 import { buildCompactTooltipConfig } from "../interaction/tooltipFormatters";
 import { getResponsiveFeatures } from "../layout/responsiveConfig";
@@ -10,16 +17,33 @@ const LEGEND_RIGHT_PX = 8;
 const LEGEND_BOTTOM_PX = 12;
 const LEGEND_LEFT_PCT = 55;
 
-export type ComposeChartConfig = {
-    series: any[];
+export type ChartSeriesOption =
+    | BarSeriesOption
+    | CustomSeriesOption
+    | HeatmapSeriesOption
+    | LineSeriesOption
+    | ScatterSeriesOption;
+
+/**
+ * Standard return type for series builders.
+ * All series builders should return this shape so callers can compose uniformly.
+ */
+export interface SeriesBuildResult {
+    series: ChartSeriesOption[];
+    legendData: string[];
+}
+
+export interface ComposeChartConfig {
+    series: ChartSeriesOption[];
     legendData?: string[];
-    tooltip?: any;
+    /** Tooltip config passed to ECharts. Typed loosely because ECharts' formatter callback types are impractical. */
+    tooltip?: Record<string, unknown>;
     containerSize?: ContainerSize;
-    dataZoom?: any[];
-    visualMap?: any;
-    axisPointer?: any;
-    toolbox?: any;
-};
+    dataZoom?: EChartsOption["dataZoom"];
+    visualMap?: EChartsOption["visualMap"];
+    axisPointer?: EChartsOption["axisPointer"];
+    toolbox?: EChartsOption["toolbox"];
+}
 
 export function composeChartOption(
     layout: SubplotLayoutResult,
@@ -37,9 +61,9 @@ export function composeChartOption(
         tooltip: buildCompactTooltipConfig(config.tooltip ?? { trigger: "item" as const }),
         legend: config.legendData ? buildLegendConfig(config.legendData, showLegend) : { show: false },
         grid: isSingle ? layout.grids[0] : layout.grids,
-        xAxis: isSingle ? axes.xAxes[0] : axes.xAxes,
-        yAxis: isSingle ? axes.yAxes[0] : axes.yAxes,
-        series: config.series,
+        xAxis: (isSingle ? axes.xAxes[0] : axes.xAxes) as EChartsOption["xAxis"],
+        yAxis: (isSingle ? axes.yAxes[0] : axes.yAxes) as EChartsOption["yAxis"],
+        series: config.series as EChartsOption["series"],
         ...(config.dataZoom ? { dataZoom: config.dataZoom } : {}),
         ...(config.visualMap ? { visualMap: config.visualMap } : {}),
         ...(config.axisPointer ? { axisPointer: config.axisPointer } : {}),

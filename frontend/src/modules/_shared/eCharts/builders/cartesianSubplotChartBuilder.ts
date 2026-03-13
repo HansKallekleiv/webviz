@@ -1,5 +1,4 @@
 import type { EChartsOption } from "echarts";
-import type { BarSeriesOption, CustomSeriesOption, LineSeriesOption, ScatterSeriesOption } from "echarts/charts";
 
 import type { AxisDef } from "../layout/subplotAxes";
 import { buildSubplotAxes } from "../layout/subplotAxes";
@@ -7,9 +6,9 @@ import { computeSubplotGridLayout } from "../layout/subplotGridLayout";
 import type { ContainerSize, SubplotGroup } from "../types";
 
 import { composeChartOption } from "./composeChartOption";
-import type { ComposeChartConfig } from "./composeChartOption";
+import type { ChartSeriesOption, ComposeChartConfig } from "./composeChartOption";
 
-export type CartesianChartSeries = BarSeriesOption | CustomSeriesOption | LineSeriesOption | ScatterSeriesOption;
+export type CartesianChartSeries = ChartSeriesOption;
 
 export type CartesianSubplotBuildResult = {
     series: CartesianChartSeries[];

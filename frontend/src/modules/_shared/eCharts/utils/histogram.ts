@@ -1,6 +1,6 @@
-import { HistogramType } from "@modules/_shared/histogram";
-
 import type { DistributionTrace, PointStatistics } from "../types";
+import { HistogramType } from "../types";
+
 import { computePointStatistics } from "./statistics";
 
 export type HistogramBin = {

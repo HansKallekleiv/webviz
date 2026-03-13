@@ -1,8 +1,7 @@
 import type { DeserializeStateFunction, SerializeStateFunction } from "@framework/Module";
 import { setIfDefined } from "@framework/utils/atomUtils";
 import type { StatisticKey } from "@modules/_shared/eCharts";
-import { ALL_STATISTIC_KEYS } from "@modules/_shared/eCharts";
-import { HistogramType } from "@modules/_shared/histogram";
+import { ALL_STATISTIC_KEYS, HistogramType } from "@modules/_shared/eCharts";
 import { SchemaBuilder } from "@modules/_shared/jtd-schemas/SchemaBuilder";
 
 import { PlotType } from "../typesAndEnums";

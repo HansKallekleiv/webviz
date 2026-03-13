@@ -1,12 +1,22 @@
-import { HistogramType } from "@modules/_shared/histogram";
+import type {
+    CallbackDataParams,
+    CustomSeriesRenderItem,
+    CustomSeriesRenderItemAPI,
+    CustomSeriesRenderItemParams,
+    CustomSeriesRenderItemReturn,
+    LineSeriesOption,
+} from "echarts/types/dist/shared";
+
 import { formatNumber } from "@modules/_shared/utils/numberFormatting";
 
+import type { ChartSeriesOption } from "../builders/composeChartOption";
 import { formatCompactTooltip } from "../interaction/tooltipFormatters";
 import type { DistributionTrace, PointStatistics } from "../types";
+import { HistogramType } from "../types";
 import { computeHistogramLayout, computeHistogramTraceData } from "../utils/histogram";
 import { computePointStatistics } from "../utils/statistics";
 
-export type HistogramDisplayOptions = {
+export interface HistogramDisplayOptions {
     numBins?: number;
     showStatisticalMarkers?: boolean;
     showStatisticalLabels?: boolean;
@@ -16,13 +26,13 @@ export type HistogramDisplayOptions = {
     opacity?: number;
     borderColor?: string;
     borderWidth?: number;
-};
+}
 
 export function buildHistogramSeries(
     trace: DistributionTrace,
     options: HistogramDisplayOptions = {},
     axisIndex = 0,
-): any[] {
+): ChartSeriesOption[] {
     const {
         numBins = 15,
         showStatisticalMarkers = false,
@@ -43,7 +53,7 @@ export function buildHistogramSeries(
     const bars = histogramLayout.barsByTrace[0] ?? [];
     const maxPercentage = histogramLayout.yMax;
 
-    const series: any[] = [];
+    const series: ChartSeriesOption[] = [];
 
     series.push({
         type: "custom",
@@ -56,11 +66,14 @@ export function buildHistogramSeries(
         })),
         xAxisIndex: axisIndex,
         yAxisIndex: axisIndex,
-        renderItem(params: any, api: any) {
-            const startValue = api.value(0) as number;
-            const endValue = api.value(1) as number;
-            const yStart = api.value(2) as number;
-            const yEnd = api.value(3) as number;
+        renderItem: ((
+            _params: CustomSeriesRenderItemParams,
+            api: CustomSeriesRenderItemAPI,
+        ): CustomSeriesRenderItemReturn => {
+            const startValue = Number(api.value(0));
+            const endValue = Number(api.value(1));
+            const yStart = Number(api.value(2));
+            const yEnd = Number(api.value(3));
             const percentage = yEnd - yStart;
 
             const bottomLeft = api.coord([startValue, yStart]);
@@ -72,9 +85,9 @@ export function buildHistogramSeries(
                 height: Math.max(bottomLeft[1] - topRight[1], 0),
             };
 
-            const children: any[] = [
+            const children: CustomSeriesRenderItemReturn[] = [
                 {
-                    type: "rect",
+                    type: "rect" as const,
                     shape: rect,
                     style: {
                         fill: color,
@@ -87,26 +100,24 @@ export function buildHistogramSeries(
 
             if (showPercentageInBar && percentage > 0) {
                 children.push({
-                    type: "text",
+                    type: "text" as const,
                     style: {
                         text: `${percentage.toFixed(1)}%`,
                         x: rect.x + rect.width / 2,
                         y: rect.y - 4,
-                        textAlign: "center",
-                        textVerticalAlign: "bottom",
                         fontSize: 10,
                         fill: "#333",
                     },
-                });
+                } as CustomSeriesRenderItemReturn);
             }
 
             return {
-                type: "group",
-                children,
+                type: "group" as const,
+                children: children as NonNullable<CustomSeriesRenderItemReturn>[],
             };
-        },
+        }) as CustomSeriesRenderItem,
         tooltip: {
-            formatter: (params: any) => {
+            formatter: (params: CallbackDataParams) => {
                 const [startValue, endValue, yStart, yEnd] = params.value as [number, number, number, number];
                 const percentage = yEnd - yStart;
                 return formatCompactTooltip(trace.name, [
@@ -145,9 +156,12 @@ export function buildHistogramSeries(
             symbolSize: [1.5, 10],
             itemStyle: { color, opacity: 0.6 },
             tooltip: {
-                formatter: (params: any) => {
-                    const value = Array.isArray(params.value) ? params.value[0] : params.value;
-                    const realizationId = params.data?.realizationId ?? params.dataIndex;
+                formatter: (params: CallbackDataParams) => {
+                    const value = Array.isArray(params.value) ? Number(params.value[0]) : Number(params.value);
+                    const realizationId =
+                        params.data && typeof params.data === "object" && "realizationId" in params.data
+                            ? (params.data as { realizationId: number }).realizationId
+                            : params.dataIndex;
                     return formatCompactTooltip(trace.name, [
                         { label: "Value", value: formatNumber(value) },
                         { label: "Realization", value: String(realizationId) },
@@ -168,8 +182,8 @@ function createHistogramStatLines(
     color: string,
     axisIndex: number,
     showLabels = false,
-): any[] {
-    function makeLine(value: number, label: string, dash: string): any {
+): LineSeriesOption[] {
+    function makeLine(value: number, label: string, dash: "solid" | "dashed" | "dotted"): LineSeriesOption {
         return {
             type: "line",
             name: traceName,
@@ -185,10 +199,9 @@ function createHistogramStatLines(
             tooltip: {
                 formatter: formatCompactTooltip(traceName, [{ label, value: formatNumber(value), color }]),
             },
-            label: showLabels
+            endLabel: showLabels
                 ? {
                       show: true,
-                      position: "end",
                       formatter: `${label}: ${formatNumber(value)}`,
                       fontSize: 11,
                   }

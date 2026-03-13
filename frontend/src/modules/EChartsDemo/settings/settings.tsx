@@ -8,8 +8,7 @@ import { Dropdown } from "@lib/components/Dropdown";
 import { Label } from "@lib/components/Label";
 import { Slider } from "@lib/components/Slider";
 import type { StatisticKey } from "@modules/_shared/eCharts";
-import { ALL_STATISTIC_KEYS } from "@modules/_shared/eCharts";
-import { HistogramType } from "@modules/_shared/histogram";
+import { ALL_STATISTIC_KEYS, HistogramType } from "@modules/_shared/eCharts";
 
 import { PlotType, PLOT_TYPE_LABELS } from "../typesAndEnums";
 

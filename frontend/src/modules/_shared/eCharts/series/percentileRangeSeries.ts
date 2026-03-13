@@ -3,6 +3,7 @@ import type { CallbackDataParams } from "echarts/types/dist/shared";
 
 import { formatNumber } from "@modules/_shared/utils/numberFormatting";
 
+import type { SeriesBuildResult } from "../builders/composeChartOption";
 import { formatCompactTooltip } from "../interaction/tooltipFormatters";
 import type { DistributionTrace } from "../types";
 import { computePointStatistics } from "../utils/statistics";
@@ -20,10 +21,10 @@ export function buildPercentileRangeSeries(
     trace: DistributionTrace,
     options: PercentileRangeDisplayOptions = {},
     axisIndex = 0,
-): Array<CustomSeriesOption | ScatterSeriesOption> {
+): SeriesBuildResult {
     const { showRealizationPoints = false, yAxisPosition = 0, centerStatistic = "p50", showWhiskers = true } = options;
 
-    if (trace.values.length === 0) return [];
+    if (trace.values.length === 0) return { series: [], legendData: [] };
 
     const stats = computePointStatistics(trace.values);
     const centerValue = centerStatistic === "mean" ? stats.mean : stats.p50;
@@ -46,7 +47,7 @@ export function buildPercentileRangeSeries(
         series.push(createRealizationPointSeries(trace, yAxisPosition, axisIndex));
     }
 
-    return series;
+    return { series, legendData: [trace.name] };
 }
 
 function createPercentileRangeGlyphSeries(

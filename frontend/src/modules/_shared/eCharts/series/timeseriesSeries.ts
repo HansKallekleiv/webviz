@@ -1,19 +1,18 @@
 import type { LineSeriesOption } from "echarts/charts";
 
+import type { SeriesBuildResult } from "../builders/composeChartOption";
 import type { TimeseriesTrace } from "../types";
+import { makeRealizationSeriesId } from "../utils/seriesId";
 
-export function buildRealizationsSeries(
-    trace: TimeseriesTrace,
-    axisIndex = 0,
-): { series: LineSeriesOption[]; legendEntry: string | null } {
-    if (!trace.realizationValues) return { series: [], legendEntry: null };
+export function buildRealizationsSeries(trace: TimeseriesTrace, axisIndex = 0): SeriesBuildResult {
+    if (!trace.realizationValues) return { series: [], legendData: [] };
 
     const highlightGroupKey = trace.highlightGroupKey ?? trace.name;
 
     const series: LineSeriesOption[] = trace.realizationValues.map((realValues, r) => {
         const realId = trace.realizationIds?.[r] ?? r;
         return {
-            id: `${highlightGroupKey}_real_${realId}_${axisIndex}`,
+            id: makeRealizationSeriesId(highlightGroupKey, realId, axisIndex),
             name: trace.name,
             type: "line",
             data: realValues,
@@ -35,5 +34,5 @@ export function buildRealizationsSeries(
         };
     });
 
-    return { series, legendEntry: trace.name };
+    return { series, legendData: [trace.name] };
 }

@@ -1,5 +1,4 @@
 import type { EChartsOption } from "echarts";
-import type { CustomSeriesOption, LineSeriesOption } from "echarts/charts";
 
 import { timestampUtcMsToCompactIsoString } from "@framework/utils/timestampUtils";
 
@@ -14,17 +13,10 @@ import { buildFanchartSeries, buildRealizationsSeries, buildStatisticsSeries } f
 import type { ContainerSize, SubplotGroup, TimeseriesDisplayConfig, TimeseriesTrace } from "../types";
 
 import { composeChartOption } from "./composeChartOption";
-import type { ComposeChartConfig } from "./composeChartOption";
-
-export type TimeseriesChartResult = {
-    echartsOptions: EChartsOption;
-    categoryData: string[];
-};
-
-type TimeseriesChartSeries = LineSeriesOption | CustomSeriesOption;
+import type { ChartSeriesOption, ComposeChartConfig } from "./composeChartOption";
 
 type TimeseriesSeriesBuildResult = {
-    series: TimeseriesChartSeries[];
+    series: ChartSeriesOption[];
     legendData: string[];
 };
 
@@ -34,9 +26,9 @@ export function buildTimeseriesChart(
     yAxisLabel: string,
     activeTimestampUtcMs: number | null = null,
     containerSize?: ContainerSize,
-): TimeseriesChartResult {
+): EChartsOption {
     const categoryData = buildCategoryData(subplotGroups);
-    if (categoryData.length === 0) return { echartsOptions: {}, categoryData: [] };
+    if (categoryData.length === 0) return {};
 
     const { series, legendData } = buildTimeseriesSeries(subplotGroups, config);
 
@@ -46,13 +38,19 @@ export function buildTimeseriesChart(
 
     const layout = computeSubplotGridLayout(subplotGroups.length);
     const axes = buildTimeseriesAxes(layout, subplotGroups, categoryData, yAxisLabel, config);
-    const echartsOptions = composeChartOption(
+    return composeChartOption(
         layout,
         axes,
         buildTimeseriesComposeConfig(series, legendData, subplotGroups.length, config, containerSize),
     );
+}
 
-    return { echartsOptions, categoryData };
+/**
+ * Extract the category (date) strings from timeseries subplot groups.
+ * Useful for consumers that need the category data alongside the chart option.
+ */
+export function extractTimeseriesCategoryData(subplotGroups: SubplotGroup<TimeseriesTrace>[]): string[] {
+    return buildCategoryData(subplotGroups);
 }
 
 function buildCategoryData(subplotGroups: SubplotGroup<TimeseriesTrace>[]): string[] {
@@ -91,7 +89,7 @@ function buildRealtimeAxisPointer(config: TimeseriesDisplayConfig) {
 }
 
 function buildTimeseriesComposeConfig(
-    series: TimeseriesChartSeries[],
+    series: ChartSeriesOption[],
     legendData: string[],
     numSubplots: number,
     config: TimeseriesDisplayConfig,
@@ -177,7 +175,7 @@ function buildTimeseriesSeries(
     subplotGroups: SubplotGroup<TimeseriesTrace>[],
     config: TimeseriesDisplayConfig,
 ): TimeseriesSeriesBuildResult {
-    const series: TimeseriesChartSeries[] = [];
+    const series: ChartSeriesOption[] = [];
     const legendData: string[] = [];
     const seenLegend = new Set<string>();
 
@@ -187,12 +185,12 @@ function buildTimeseriesSeries(
             if (config.showRealizations && trace.realizationValues) {
                 const realizationResult = buildRealizationsSeries(trace, gridIdx);
                 series.push(...realizationResult.series);
-                addLegendEntry(legendData, seenLegend, realizationResult.legendEntry);
+                addLegendEntries(legendData, seenLegend, realizationResult.legendData);
             }
 
             if (config.showStatistics && trace.statistics) {
                 series.push(...buildStatisticsSeries(trace, config.selectedStatistics, gridIdx));
-                addLegendEntry(legendData, seenLegend, trace.name);
+                addLegendEntries(legendData, seenLegend, [trace.name]);
             }
 
             if (config.showFanchart && trace.statistics) {
@@ -204,9 +202,11 @@ function buildTimeseriesSeries(
     return { series, legendData };
 }
 
-function addLegendEntry(legendData: string[], seenLegend: Set<string>, legendEntry: string | null): void {
-    if (legendEntry && !seenLegend.has(legendEntry)) {
-        legendData.push(legendEntry);
-        seenLegend.add(legendEntry);
+function addLegendEntries(legendData: string[], seenLegend: Set<string>, entries: string[]): void {
+    for (const entry of entries) {
+        if (entry && !seenLegend.has(entry)) {
+            legendData.push(entry);
+            seenLegend.add(entry);
+        }
     }
 }

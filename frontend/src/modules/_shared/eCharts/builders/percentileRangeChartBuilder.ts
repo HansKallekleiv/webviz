@@ -52,12 +52,8 @@ function buildPercentileRangeSubplotSeries(
     const series: CartesianChartSeries[] = [];
 
     group.traces.forEach((trace, traceIndex) => {
-        series.push(
-            ...assignSeriesToAxis(
-                buildPercentileRangeSeries(trace, { ...options, yAxisPosition: traceIndex }, axisIndex),
-                axisIndex,
-            ),
-        );
+        const result = buildPercentileRangeSeries(trace, { ...options, yAxisPosition: traceIndex }, axisIndex);
+        series.push(...assignSeriesToAxis(result.series, axisIndex));
     });
 
     return series;

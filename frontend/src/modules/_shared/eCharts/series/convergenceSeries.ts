@@ -1,10 +1,12 @@
 import { formatRgb, parse } from "culori";
 import type { CustomSeriesOption, LineSeriesOption } from "echarts/charts";
 
-import { computeReservesP10, computeReservesP90 } from "@modules/_shared/utils/math/statistics";
 import { formatNumber } from "@modules/_shared/utils/numberFormatting";
 
 import type { DistributionTrace } from "../types";
+import type { ConvergencePoint } from "../utils/convergence";
+import { calcConvergence } from "../utils/convergence";
+import { makeConvergenceSeriesId } from "../utils/seriesId";
 
 export type ConvergenceChartSeries = LineSeriesOption | CustomSeriesOption;
 
@@ -65,7 +67,7 @@ function createConvergenceBandSeries(
     axisIndex: number,
 ): CustomSeriesOption {
     return {
-        id: `${CONVERGENCE_SERIES_ID_PREFIX}:${trace.name}:band:${axisIndex}`,
+        id: makeConvergenceSeriesId(trace.name, "band", axisIndex),
         type: "custom",
         name: trace.name,
         xAxisIndex: axisIndex,
@@ -119,7 +121,7 @@ function createConvergenceLineSeries(
     axisIndex: number,
 ): LineSeriesOption {
     return {
-        id: `${CONVERGENCE_SERIES_ID_PREFIX}:${trace.name}:${statKey}:${axisIndex}`,
+        id: makeConvergenceSeriesId(trace.name, statKey, axisIndex),
         type: "line",
         name: trace.name,
         xAxisIndex: axisIndex,
@@ -148,23 +150,4 @@ function buildConvergenceLineStyle(color: string, statKey: ConvergenceStatisticK
     }
 }
 
-type ConvergencePoint = { realization: number; mean: number; p10: number; p90: number };
 
-function calcConvergence(pairs: { realization: number; value: number }[]): ConvergencePoint[] {
-    const growing: number[] = [];
-    const result: ConvergencePoint[] = [];
-    let sum = 0;
-
-    for (const [i, pair] of pairs.entries()) {
-        growing.push(pair.value);
-        sum += pair.value;
-        result.push({
-            realization: pair.realization,
-            mean: sum / (i + 1),
-            p10: computeReservesP10(growing),
-            p90: computeReservesP90(growing),
-        });
-    }
-
-    return result;
-}

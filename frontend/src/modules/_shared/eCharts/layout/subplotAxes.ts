@@ -1,8 +1,10 @@
+import type { TitleOption, XAXisOption } from "echarts/types/dist/shared";
+
 import { formatNumber } from "@modules/_shared/utils/numberFormatting";
 
 import type { SubplotLayoutResult } from "./subplotGridLayout";
 
-export type AxisDef = {
+export interface AxisDef {
     type: "value" | "category";
     data?: (string | number)[];
     label?: string;
@@ -11,28 +13,30 @@ export type AxisDef = {
     scale?: boolean;
     splitLine?: boolean;
     splitArea?: boolean;
-    axisPointer?: any;
-};
+    axisPointer?: XAXisOption["axisPointer"];
+}
 
-export type SubplotAxisDef = {
+export interface SubplotAxisDef {
     xAxis: AxisDef;
     yAxis: AxisDef;
     title?: string;
-};
+}
 
-export type SubplotAxesResult = {
-    xAxes: any[];
-    yAxes: any[];
-    titles: any[];
-};
+type CartesianAxisOption = XAXisOption;
+
+export interface SubplotAxesResult {
+    xAxes: CartesianAxisOption[];
+    yAxes: CartesianAxisOption[];
+    titles: TitleOption[];
+}
 
 const VALUE_AXIS_FORMATTER = (v: number) => formatNumber(v);
 
 export function buildSubplotAxes(layout: SubplotLayoutResult, axisDefs: SubplotAxisDef[]): SubplotAxesResult {
     const isMultiGrid = layout.grids.length > 1;
-    const xAxes: any[] = [];
-    const yAxes: any[] = [];
-    const titles: any[] = [];
+    const xAxes: CartesianAxisOption[] = [];
+    const yAxes: CartesianAxisOption[] = [];
+    const titles: TitleOption[] = [];
 
     for (let i = 0; i < axisDefs.length; i++) {
         const def = axisDefs[i];
@@ -55,7 +59,7 @@ export function buildSubplotAxes(layout: SubplotLayoutResult, axisDefs: SubplotA
     return { xAxes, yAxes, titles };
 }
 
-function buildAxis(def: AxisDef, gridIndex: number, isMultiGrid: boolean, direction: "x" | "y"): any {
+function buildAxis(def: AxisDef, gridIndex: number, isMultiGrid: boolean, direction: "x" | "y"): XAXisOption {
     const isValue = def.type === "value";
     const defaultNameGap = direction === "x" ? 30 : 40;
 
@@ -82,5 +86,5 @@ function buildAxis(def: AxisDef, gridIndex: number, isMultiGrid: boolean, direct
             ...(isValue ? { formatter: VALUE_AXIS_FORMATTER } : {}),
         },
         axisTick: { show: true },
-    };
+    } as XAXisOption;
 }

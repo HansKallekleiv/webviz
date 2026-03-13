@@ -1,6 +1,10 @@
 import React from "react";
 
+import type { ECharts } from "echarts";
+import type { ECElementEvent } from "echarts/types/dist/shared";
 import type ReactECharts from "echarts-for-react";
+
+import { getHighlightGroupKey, getRealizationId, isRealizationSeries } from "../utils/seriesId";
 
 export function useHighlightOnHover(chartRef: React.RefObject<ReactECharts | null>, enabled: boolean) {
     const highlightedSeriesRef = React.useRef<string | null>(null);
@@ -21,7 +25,7 @@ export function useHighlightOnHover(chartRef: React.RefObject<ReactECharts | nul
     }, [enabled, chartRef]);
 
     const applyHighlight = React.useCallback(
-        (event: any) => {
+        (event: ECElementEvent) => {
             if (!enabled || !chartRef.current) return;
 
             cancelScheduledClear();
@@ -73,8 +77,8 @@ export function useHighlightOnHover(chartRef: React.RefObject<ReactECharts | nul
 }
 
 function getHighlightTarget(
-    instance: any,
-    event: any,
+    instance: ECharts,
+    event: ECElementEvent,
 ): {
     key: string;
     actions: Array<{ seriesIndex: number } | { seriesId: string } | { seriesName: string }>;
@@ -103,7 +107,7 @@ function getHighlightTarget(
     return null;
 }
 
-function resolveHoveredSeriesId(instance: any, event: any): string | null {
+function resolveHoveredSeriesId(instance: ECharts, event: ECElementEvent): string | null {
     if (typeof event?.seriesId === "string") {
         return event.seriesId;
     }
@@ -121,39 +125,29 @@ function resolveHoveredSeriesId(instance: any, event: any): string | null {
     return typeof hoveredSeries?.id === "string" ? hoveredSeries.id : null;
 }
 
-function findLinkedRealizationSeries(instance: any, hoveredSeriesId: string): Array<{ seriesIndex: number }> {
-    const hoveredRealization = parseRealizationSeriesId(hoveredSeriesId);
-    if (!hoveredRealization) return [];
+function findLinkedRealizationSeries(instance: ECharts, hoveredSeriesId: string): Array<{ seriesIndex: number }> {
+    if (!isRealizationSeries(hoveredSeriesId)) return [];
+
+    const groupKey = getHighlightGroupKey(hoveredSeriesId);
+    const realId = getRealizationId(hoveredSeriesId);
+    if (!groupKey || realId == null) return [];
 
     const chartSeries = instance.getOption()?.series;
     if (!Array.isArray(chartSeries)) return [];
 
     const actions: Array<{ seriesIndex: number }> = [];
 
-    chartSeries.forEach((seriesOption: any, seriesIndex: number) => {
+    chartSeries.forEach((seriesOption: { id?: unknown }, seriesIndex: number) => {
         const seriesId = typeof seriesOption?.id === "string" ? seriesOption.id : null;
-        if (!seriesId) return;
+        if (!seriesId || !isRealizationSeries(seriesId)) return;
 
-        const candidate = parseRealizationSeriesId(seriesId);
-        if (!candidate) return;
+        const candidateGroupKey = getHighlightGroupKey(seriesId);
+        const candidateRealId = getRealizationId(seriesId);
 
-        if (
-            candidate.highlightGroupKey === hoveredRealization.highlightGroupKey &&
-            candidate.realizationId === hoveredRealization.realizationId
-        ) {
+        if (candidateGroupKey === groupKey && candidateRealId === realId) {
             actions.push({ seriesIndex });
         }
     });
 
     return actions;
-}
-
-function parseRealizationSeriesId(seriesId: string): { highlightGroupKey: string; realizationId: string } | null {
-    const match = seriesId.match(/^(.*)_real_(\d+)_\d+$/);
-    if (!match) return null;
-
-    return {
-        highlightGroupKey: match[1],
-        realizationId: match[2],
-    };
 }

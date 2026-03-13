@@ -1,9 +1,6 @@
 import type { EChartsOption } from "echarts";
-import type { CallbackDataParams } from "echarts/types/dist/shared";
 
-import { formatNumber } from "@modules/_shared/utils/numberFormatting";
-
-import { formatCompactTooltip } from "../interaction/tooltipFormatters";
+import { formatBarTooltip } from "../interaction/tooltipFormatters";
 import { buildBarSeries } from "../series/barSeries";
 import type { BuildBarSeriesOptions } from "../series/barSeries";
 import type { BarTrace, ContainerSize, SubplotGroup } from "../types";
@@ -44,7 +41,7 @@ function buildBarSubplot(
         const result = buildBarSeries(trace, options);
         if (categoryData.length === 0) categoryData = result.categoryData;
         series.push(...assignSeriesToAxis(result.series, axisIndex));
-        legendData.push(result.legendEntry);
+        legendData.push(...result.legendData);
     }
 
     return {
@@ -54,34 +51,4 @@ function buildBarSubplot(
         yAxis: { type: "value", label: yAxisLabel },
         title: group.title,
     };
-}
-
-type BarTooltipEntry = CallbackDataParams & {
-    axisValue?: string | number;
-    axisValueLabel?: string | number;
-};
-
-function formatBarTooltip(params: CallbackDataParams | CallbackDataParams[]): string {
-    const entries = (Array.isArray(params) ? params : [params]).filter(
-        (entry): entry is BarTooltipEntry => entry.seriesType === "bar",
-    );
-    if (entries.length === 0) return "";
-
-    const headerValue = entries[0].axisValueLabel ?? entries[0].axisValue ?? entries[0].name ?? "";
-    return formatCompactTooltip(
-        String(headerValue),
-        entries.map((entry) => ({
-            label: entry.seriesName ?? "",
-            value: formatNumber(extractBarTooltipValue(entry.value)),
-            color: typeof entry.color === "string" ? entry.color : undefined,
-        })),
-    );
-}
-
-function extractBarTooltipValue(value: unknown): number {
-    if (Array.isArray(value)) {
-        return Number(value[value.length - 1] ?? value[1] ?? value[0] ?? 0);
-    }
-
-    return Number(value ?? 0);
 }

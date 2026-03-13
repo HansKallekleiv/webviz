@@ -9,6 +9,7 @@ import type {
     BarTrace,
     ContainerSize,
     DistributionTrace,
+    HistogramType,
     SubplotGroup,
     TimeseriesDisplayConfig,
 } from "@modules/_shared/eCharts";
@@ -23,7 +24,6 @@ import {
     computeSubplotGridLayout,
     useHighlightOnHover,
 } from "@modules/_shared/eCharts";
-import type { HistogramType } from "@modules/_shared/histogram";
 
 import type { Interfaces } from "./interfaces";
 import { PlotType } from "./typesAndEnums";
@@ -165,7 +165,7 @@ function buildTimeseries(
         showFanchart,
         selectedStatistics: selectedStatistics as TimeseriesDisplayConfig["selectedStatistics"],
     };
-    return buildTimeseriesChart(groups, config, "Value", null, containerSize).echartsOptions;
+    return buildTimeseriesChart(groups, config, "Value", null, containerSize);
 }
 
 function buildHistogramDemoChart(

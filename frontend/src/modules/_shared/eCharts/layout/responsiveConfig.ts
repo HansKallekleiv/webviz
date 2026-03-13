@@ -5,11 +5,11 @@ export const MIN_WIDTH_FOR_SLIDERS = 400;
 export const MIN_HEIGHT_FOR_TOOLBOX = 200;
 export const MIN_HEIGHT_FOR_LEGEND = 250;
 
-export type ResponsiveFeatures = {
+export interface ResponsiveFeatures {
     showSliders: boolean;
     showToolbox: boolean;
     showLegend: boolean;
-};
+}
 
 export function getResponsiveFeatures(containerSize?: ContainerSize): ResponsiveFeatures {
     return {

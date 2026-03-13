@@ -1,13 +1,7 @@
 import type { EChartsOption } from "echarts";
 
-import { formatNumber } from "@modules/_shared/utils/numberFormatting";
-
-import { formatCompactTooltip } from "../interaction/tooltipFormatters";
-import {
-    buildConvergenceSeries,
-    formatConvergenceStatLabel,
-    getConvergenceSeriesStatKey,
-} from "../series/convergenceSeries";
+import { formatConvergenceTooltip } from "../interaction/tooltipFormatters";
+import { buildConvergenceSeries } from "../series/convergenceSeries";
 import type { ContainerSize, DistributionTrace, SubplotGroup } from "../types";
 
 import { assignSeriesToAxis, buildCartesianSubplotChart } from "./cartesianSubplotChartBuilder";
@@ -56,49 +50,4 @@ function buildConvergenceSubplotSeries(
     }
 
     return series;
-}
-
-function formatConvergenceTooltip(params: unknown): string {
-    if (!Array.isArray(params) || params.length === 0) return "";
-
-    const entries = params.filter(isConvergenceTooltipEntry);
-    if (entries.length === 0) return "";
-
-    const headerValue = entries[0].axisValueLabel ?? entries[0].axisValue;
-    const rows = [] as Array<{ label: string; value: string; color?: string }>;
-
-    for (const entry of entries) {
-        const statKey = getConvergenceSeriesStatKey(entry.seriesId);
-        if (!statKey) continue;
-
-        const value = extractConvergenceTooltipValue(entry.value);
-        rows.push({
-            label: `${entry.seriesName} (${formatConvergenceStatLabel(statKey)})`,
-            value: formatNumber(value),
-            color: entry.color,
-        });
-    }
-
-    return formatCompactTooltip(`Realization: ${headerValue}`, rows);
-}
-
-type ConvergenceTooltipEntry = {
-    axisValue?: string | number;
-    axisValueLabel?: string | number;
-    seriesId?: string;
-    seriesName?: string;
-    color?: string;
-    value?: unknown;
-};
-
-function isConvergenceTooltipEntry(value: unknown): value is ConvergenceTooltipEntry {
-    return Boolean(value && typeof value === "object");
-}
-
-function extractConvergenceTooltipValue(value: unknown): number {
-    if (Array.isArray(value)) {
-        return Number(value[1] ?? value[0] ?? 0);
-    }
-
-    return Number(value ?? 0);
 }

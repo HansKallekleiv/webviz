@@ -1,10 +1,10 @@
-export type SubplotLayoutConfig = {
+export interface SubplotLayoutConfig {
     marginLeftPct?: number;
     marginRightPct?: number;
     bottomSpacePct?: number;
     topSpacePct?: number;
     maxCols?: number;
-};
+}
 
 export const DEFAULT_LAYOUT_CONFIG: Required<SubplotLayoutConfig> = {
     marginLeftPct: 2,
@@ -14,29 +14,29 @@ export const DEFAULT_LAYOUT_CONFIG: Required<SubplotLayoutConfig> = {
     maxCols: 4,
 };
 
-export type GridEntry = {
+export interface GridEntry {
     top: string;
     left: string;
     width: string;
     height: string;
     containLabel: boolean;
-};
+}
 
-export type SubplotLayoutResult = {
+export interface SubplotLayoutResult {
     grids: GridEntry[];
     cells: SubplotCell[];
     numCols: number;
     numRows: number;
-};
+}
 
-export type SubplotCell = {
+export interface SubplotCell {
     gridIndex: number;
     leftPct: number;
     topPct: number;
     widthPct: number;
     heightPct: number;
     titleTopPct: number;
-};
+}
 
 export function computeSubplotGridLayout(numSubplots: number, config?: SubplotLayoutConfig): SubplotLayoutResult {
     const cfg = { ...DEFAULT_LAYOUT_CONFIG, ...config };

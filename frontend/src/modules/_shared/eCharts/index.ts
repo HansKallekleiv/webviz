@@ -13,7 +13,7 @@ export type {
     BarDisplayConfig,
     ContainerSize,
 } from "./types";
-export { ALL_STATISTIC_KEYS } from "./types";
+export { ALL_STATISTIC_KEYS, HistogramType } from "./types";
 
 // Layout
 export { computeSubplotGridLayout, DEFAULT_LAYOUT_CONFIG, buildSubplotAxes, getResponsiveFeatures } from "./layout";
@@ -51,6 +51,7 @@ export type {
 // Chart builders (compose series + layout into final EChartsOption)
 export {
     buildTimeseriesChart,
+    extractTimeseriesCategoryData,
     buildHeatmapChart,
     buildBarChart,
     buildDistributionChart,
@@ -59,7 +60,7 @@ export {
     composeChartOption,
 } from "./builders";
 export { buildHistogramChart } from "./builders/histogramChartBuilder";
-export type { TimeseriesChartResult, ComposeChartConfig } from "./builders";
+export type { ComposeChartConfig, ChartSeriesOption, SeriesBuildResult } from "./builders";
 
 // Interaction helpers
 export {
@@ -70,7 +71,8 @@ export {
 } from "./interaction";
 
 // Hooks
-export { useHighlightOnHover, useClickToTimestamp } from "./hooks";
+export { useHighlightOnHover, useClickToTimestamp, useTimeseriesInteractions } from "./hooks";
+export type { TimeseriesInteractionConfig, TimeseriesInteractionResult } from "./hooks";
 
 // Statistics utilities
 export {
