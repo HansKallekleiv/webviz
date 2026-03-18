@@ -2,6 +2,7 @@ import { TGrid3DColoringMode } from "@webviz/subsurface-viewer";
 import { Grid3DLayer } from "@webviz/subsurface-viewer/dist/layers";
 
 import type { IntersectionRealizationGridSettings } from "@modules/_shared/DataProviderFramework/dataProviders/implementations/IntersectionRealizationGridProvider";
+import type { IntersectionRealizationGridStoredData } from "@modules/_shared/DataProviderFramework/dataProviders/implementations/IntersectionRealizationGridProvider";
 import { Setting } from "@modules/_shared/DataProviderFramework/settings/settingsDefinitions";
 import { makeColorMapFunctionFromColorScale } from "@modules/_shared/DataProviderFramework/visualization/utils/colors";
 import type { TransformerArgs } from "@modules/_shared/DataProviderFramework/visualization/VisualizationAssembler";
@@ -9,6 +10,7 @@ import type {
     FenceMeshSection_trans,
     PolylineIntersection_trans,
 } from "@modules/_shared/Intersection/gridIntersectionTransform";
+import { makeGridPropertyColorScale } from "@modules/_shared/utils/gridPropertyMetadata";
 
 interface PolyDataVtk {
     points: Float32Array;
@@ -83,16 +85,23 @@ export function makeIntersectionRealizationGridLayer({
     name,
     getData,
     getSetting,
-}: TransformerArgs<IntersectionRealizationGridSettings, PolylineIntersection_trans>): Grid3DLayer | null {
+    getStoredData,
+}: TransformerArgs<
+    IntersectionRealizationGridSettings,
+    PolylineIntersection_trans,
+    IntersectionRealizationGridStoredData
+>): Grid3DLayer | null {
     const data = getData();
     const colorScaleSpec = getSetting(Setting.COLOR_SCALE);
     const showGridLines = getSetting(Setting.SHOW_GRID_LINES);
     const opacity = getSetting(Setting.OPACITY_PERCENT) ?? 100;
+    const selectedGridPropertyInfo = getStoredData("selectedGridPropertyInfo");
 
-    if (!data) {
+    if (!data || !colorScaleSpec) {
         return null;
     }
     const polyData = buildVtkStylePolyDataFromFenceSections(data.fenceMeshSections);
+    const adjustedColorScale = makeGridPropertyColorScale(colorScaleSpec.colorScale, selectedGridPropertyInfo);
 
     const grid3dIntersectionLayer = new Grid3DLayer({
         id,
@@ -100,15 +109,21 @@ export function makeIntersectionRealizationGridLayer({
         pointsData: polyData.points,
         polysData: polyData.polys,
         propertiesData: polyData.props,
-        colorMapName: "Continuous",
+        colorMapName: selectedGridPropertyInfo?.is_discrete ? "Discrete" : "Continuous",
         colorMapRange: [data.min_grid_prop_value, data.max_grid_prop_value],
         colorMapClampColor: true,
         coloringMode: TGrid3DColoringMode.Property,
-        colorMapFunction: makeColorMapFunctionFromColorScale(colorScaleSpec, {
+        colorMapFunction: makeColorMapFunctionFromColorScale(
+            {
+                colorScale: adjustedColorScale,
+                areBoundariesUserDefined: colorScaleSpec.areBoundariesUserDefined,
+            },
+            {
             valueMin: data.min_grid_prop_value,
             valueMax: data.max_grid_prop_value,
             denormalize: true,
-        }),
+            },
+        ),
         ZIncreasingDownwards: false,
         gridLines: showGridLines ?? false,
         material: { ambient: 0.4, diffuse: 0.7, shininess: 8, specularColor: [25, 25, 25] },

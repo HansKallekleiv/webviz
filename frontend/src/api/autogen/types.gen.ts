@@ -605,6 +605,22 @@ export type GraphUserPhoto_api = {
 };
 
 /**
+ * Grid3dCodename
+ *
+ * Named discrete code for a 3D grid property
+ */
+export type Grid3dCodename_api = {
+    /**
+     * Code
+     */
+    code: number;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
  * Grid3dDimensions
  *
  * Specification of a 3D grid dimensions
@@ -712,6 +728,14 @@ export type Grid3dPropertyInfo_api = {
      * Property Name
      */
     property_name: string;
+    /**
+     * Is Discrete
+     */
+    is_discrete: boolean;
+    /**
+     * Codenames
+     */
+    codenames?: Array<Grid3dCodename_api> | null;
     /**
      * Iso Date Or Interval
      */

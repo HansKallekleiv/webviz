@@ -610,6 +610,7 @@ export {
     GFR_api,
     type GraphUser_api,
     type GraphUserPhoto_api,
+    type Grid3dCodename_api,
     type Grid3dDimensions_api,
     type Grid3dGeometry_api,
     type Grid3dInfo_api,

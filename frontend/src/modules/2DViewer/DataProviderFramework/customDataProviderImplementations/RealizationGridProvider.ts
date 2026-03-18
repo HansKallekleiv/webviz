@@ -12,6 +12,10 @@ import type { MakeSettingTypesMap } from "@modules/_shared/DataProviderFramework
 import { Setting } from "@modules/_shared/DataProviderFramework/settings/settingsDefinitions";
 import type { RealizationGridData } from "@modules/_shared/DataProviderFramework/visualization/utils/types";
 import {
+    findSelectedGridPropertyInfo,
+    type SelectedGridPropertyInfoStoredData,
+} from "@modules/_shared/utils/gridPropertyMetadata";
+import {
     transformGridMappedProperty,
     transformGridSurface,
     type GridMappedProperty_trans,
@@ -32,7 +36,7 @@ const realizationGridSettings = [
 export type RealizationGridSettings = typeof realizationGridSettings;
 type SettingsWithTypes = MakeSettingTypesMap<RealizationGridSettings>;
 
-type StoredData = {
+type StoredData = SelectedGridPropertyInfoStoredData & {
     availableGridDimensions: {
         i: number;
         j: number;
@@ -293,6 +297,17 @@ export class RealizationGridProvider
                 j: gridDimensions.j_count,
                 k: gridDimensions.k_count,
             };
+        });
+
+        storedDataUpdater("selectedGridPropertyInfo", ({ getLocalSetting, getHelperDependency }) => {
+            const data = getHelperDependency(realizationGridDataDep);
+
+            return findSelectedGridPropertyInfo(
+                data,
+                getLocalSetting(Setting.GRID_NAME),
+                getLocalSetting(Setting.ATTRIBUTE),
+                getLocalSetting(Setting.TIME_OR_INTERVAL),
+            );
         });
     }
 }

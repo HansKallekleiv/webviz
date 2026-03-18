@@ -8,6 +8,10 @@ import { Setting } from "@modules/_shared/DataProviderFramework/settings/setting
 import type { PolylineIntersection_trans } from "@modules/_shared/Intersection/gridIntersectionTransform";
 import { transformPolylineIntersection } from "@modules/_shared/Intersection/gridIntersectionTransform";
 import type { PolylineWithSectionLengths } from "@modules/_shared/Intersection/intersectionPolylineTypes";
+import {
+    findSelectedGridPropertyInfo,
+    type SelectedGridPropertyInfoStoredData,
+} from "@modules/_shared/utils/gridPropertyMetadata";
 
 import type {
     CustomDataProviderImplementation,
@@ -41,7 +45,7 @@ const intersectionRealizationGridSettings = [
 export type IntersectionRealizationGridSettings = typeof intersectionRealizationGridSettings;
 type SettingsWithTypes = MakeSettingTypesMap<IntersectionRealizationGridSettings>;
 
-export type IntersectionRealizationGridStoredData = {
+export type IntersectionRealizationGridStoredData = SelectedGridPropertyInfoStoredData & {
     polylineWithSectionLengths: PolylineWithSectionLengths;
 };
 
@@ -293,6 +297,17 @@ export class IntersectionRealizationGridProvider implements CustomDataProviderIm
             }
 
             return intersectionPolylineWithSectionLengths;
+        });
+
+        storedDataUpdater("selectedGridPropertyInfo", ({ getLocalSetting, getHelperDependency }) => {
+            const data = getHelperDependency(realizationGridDataDep);
+
+            return findSelectedGridPropertyInfo(
+                data,
+                getLocalSetting(Setting.GRID_NAME),
+                getLocalSetting(Setting.ATTRIBUTE),
+                getLocalSetting(Setting.TIME_OR_INTERVAL),
+            );
         });
     }
 

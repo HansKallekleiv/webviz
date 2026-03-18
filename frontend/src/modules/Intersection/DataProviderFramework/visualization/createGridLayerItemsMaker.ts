@@ -10,6 +10,7 @@ import type {
     TransformerArgs,
 } from "@modules/_shared/DataProviderFramework/visualization/VisualizationAssembler";
 import { createTransformedPolylineIntersectionResult } from "@modules/_shared/Intersection/gridIntersectionTransform";
+import { makeGridPropertyColorScale } from "@modules/_shared/utils/gridPropertyMetadata";
 
 import { createGridColorScaleValues } from "../utils/colorScaleUtils";
 import { createValidExtensionLength } from "../utils/extensionLengthUtils";
@@ -34,6 +35,7 @@ export function createGridLayerItemsMaker({
     const useCustomColorScaleBoundaries = getSetting(Setting.COLOR_SCALE)?.areBoundariesUserDefined ?? false;
     const showGridLines = getSetting(Setting.SHOW_GRID_LINES);
     const selectedAttribute = getSetting(Setting.ATTRIBUTE);
+    const selectedGridPropertyInfo = getStoredData("selectedGridPropertyInfo");
     const sourcePolylineWithSectionLengths = getStoredData("polylineWithSectionLengths");
     const valueRange = getDataValueRange();
 
@@ -62,7 +64,7 @@ export function createGridLayerItemsMaker({
         sourcePolylineWithSectionLengths.actualSectionLengths,
     );
 
-    const adjustedColorScale = colorScale.clone();
+    const adjustedColorScale = makeGridPropertyColorScale(colorScale, selectedGridPropertyInfo);
     if (!useCustomColorScaleBoundaries) {
         const { min, max, mid } = createGridColorScaleValues(valueRange);
         adjustedColorScale.setRangeAndMidPoint(min, max, mid);

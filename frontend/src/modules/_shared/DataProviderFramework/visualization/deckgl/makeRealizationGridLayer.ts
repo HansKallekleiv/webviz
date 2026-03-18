@@ -4,6 +4,10 @@ import { ColorPalette } from "@lib/utils/ColorPalette";
 import { ColorScale, ColorScaleGradientType, ColorScaleType } from "@lib/utils/ColorScale";
 import { Setting } from "@modules/_shared/DataProviderFramework/settings/settingsDefinitions";
 import type { TransformerArgs } from "@modules/_shared/DataProviderFramework/visualization/VisualizationAssembler";
+import {
+    makeGridPropertyColorScale,
+    type SelectedGridPropertyInfoStoredData,
+} from "@modules/_shared/utils/gridPropertyMetadata";
 
 import { makeColorMapFunctionFromColorScale } from "../utils/colors";
 import type { RealizationGridData } from "../utils/types";
@@ -12,21 +16,22 @@ import type { RealizationGridData } from "../utils/types";
 const realizationGridSettings = [Setting.SHOW_GRID_LINES, Setting.COLOR_SCALE, Setting.OPACITY_PERCENT] as const;
 type RealizationGridSettings = typeof realizationGridSettings;
 
-export function makeRealizationGridLayer(
-    args: TransformerArgs<RealizationGridSettings, RealizationGridData>,
+export function makeRealizationGridLayer<TStoredData extends SelectedGridPropertyInfoStoredData>(
+    args: TransformerArgs<RealizationGridSettings, RealizationGridData, TStoredData>,
 ): Grid3DLayer | null {
-    const { id, getData, getSetting, isLoading } = args;
+    const { id, getData, getSetting, getStoredData, isLoading } = args;
     const data = getData();
     let colorScaleSpec = getSetting(Setting.COLOR_SCALE);
     const showGridLines = getSetting(Setting.SHOW_GRID_LINES) ?? false;
     const opacityPercent = getSetting(Setting.OPACITY_PERCENT) ?? 100;
+    const selectedGridPropertyInfo = getStoredData("selectedGridPropertyInfo");
 
     if (!data || !colorScaleSpec) {
         return null;
     }
 
     colorScaleSpec = {
-        colorScale: colorScaleSpec.colorScale,
+        colorScale: makeGridPropertyColorScale(colorScaleSpec.colorScale, selectedGridPropertyInfo),
         areBoundariesUserDefined: colorScaleSpec.areBoundariesUserDefined,
     };
 
@@ -58,7 +63,7 @@ export function makeRealizationGridLayer(
         opacity: opacityPercent / 100,
         material: { ambient: 0.4, diffuse: 0.7, shininess: 8, specularColor: [25, 25, 25] },
         pickable: true,
-        colorMapName: "Physics",
+        colorMapName: selectedGridPropertyInfo?.is_discrete ? "Discrete" : "Physics",
         colorMapClampColor: true,
         colorMapRange: [gridParameterData.min_grid_prop_value, gridParameterData.max_grid_prop_value],
         colorMapFunction: makeColorMapFunctionFromColorScale(colorScaleSpec, {

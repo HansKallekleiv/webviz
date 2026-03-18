@@ -45,10 +45,19 @@ class Grid3dDimensions(BaseModel):
     subgrids: List[Grid3dZone]
 
 
+class Grid3dCodename(BaseModel):
+    """Named discrete code for a 3D grid property"""
+
+    code: int
+    name: str
+
+
 class Grid3dPropertyInfo(BaseModel):
     """Metadata for a 3D grid property"""
 
     property_name: str
+    is_discrete: bool
+    codenames: Optional[List[Grid3dCodename]] = None
     iso_date_or_interval: Optional[str] = None
 
 

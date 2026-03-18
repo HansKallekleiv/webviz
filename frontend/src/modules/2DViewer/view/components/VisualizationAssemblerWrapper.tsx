@@ -32,7 +32,10 @@ import {
     DataProviderManagerTopic,
     type DataProviderManager,
 } from "@modules/_shared/DataProviderFramework/framework/DataProviderManager/DataProviderManager";
-import { makeColorScaleAnnotation } from "@modules/_shared/DataProviderFramework/visualization/annotations/makeColorScaleAnnotation";
+import {
+    makeColorScaleAnnotation,
+    makeRealizationGridColorScaleAnnotation,
+} from "@modules/_shared/DataProviderFramework/visualization/annotations/makeColorScaleAnnotation";
 import { makeDepthColorScaleAnnotation } from "@modules/_shared/DataProviderFramework/visualization/annotations/makeDepthColorScaleAnnotation";
 import { makeSeismicColorScaleAnnotation } from "@modules/_shared/DataProviderFramework/visualization/annotations/makeSeismicColorScaleAnnotation";
 import { makePolygonDataBoundingBox } from "@modules/_shared/DataProviderFramework/visualization/boundingBoxes/makePolygonDataBoundingBox";
@@ -132,7 +135,7 @@ VISUALIZATION_ASSEMBLER.registerDataProviderTransformers(
     {
         transformToVisualization: makeRealizationGridLayer,
         transformToBoundingBox: makeRealizationGridBoundingBox,
-        transformToAnnotations: makeColorScaleAnnotation,
+        transformToAnnotations: makeRealizationGridColorScaleAnnotation,
     },
 );
 VISUALIZATION_ASSEMBLER.registerDataProviderTransformers(

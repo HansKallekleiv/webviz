@@ -1,12 +1,19 @@
 import type { ColorScaleOptions } from "@lib/utils/ColorScale";
 import { ColorScale, ColorScaleGradientType } from "@lib/utils/ColorScale";
 
+export type ColorScaleMarkerLabel = {
+    value: number;
+    label: string;
+};
+
 export class ColorScaleWithName extends ColorScale {
     private _name: string;
+    private _markerLabels: ColorScaleMarkerLabel[] | null;
 
-    constructor(options: ColorScaleOptions & { name: string }) {
+    constructor(options: ColorScaleOptions & { name: string; markerLabels?: ColorScaleMarkerLabel[] | null }) {
         super(options);
         this._name = options.name;
+        this._markerLabels = options.markerLabels ? options.markerLabels.map((label) => ({ ...label })) : null;
     }
 
     setName(name: string) {
@@ -17,6 +24,14 @@ export class ColorScaleWithName extends ColorScale {
         return this._name;
     }
 
+    setMarkerLabels(markerLabels: ColorScaleMarkerLabel[] | null) {
+        this._markerLabels = markerLabels ? markerLabels.map((label) => ({ ...label })) : null;
+    }
+
+    getMarkerLabels(): ColorScaleMarkerLabel[] | null {
+        return this._markerLabels ? this._markerLabels.map((label) => ({ ...label })) : null;
+    }
+
     static fromColorScale(colorScale: ColorScale, name: string): ColorScaleWithName {
         const newColorScale = new ColorScaleWithName({
             type: colorScale.getType(),
@@ -24,6 +39,7 @@ export class ColorScaleWithName extends ColorScale {
             gradientType: colorScale.getGradientType(),
             steps: colorScale.getNumSteps(),
             name,
+            markerLabels: colorScale instanceof ColorScaleWithName ? colorScale.getMarkerLabels() : null,
         });
 
         if (colorScale.getGradientType() === ColorScaleGradientType.Diverging) {
@@ -42,6 +58,7 @@ export class ColorScaleWithName extends ColorScale {
             gradientType: this.getGradientType(),
             steps: this.getNumSteps(),
             name: this._name,
+            markerLabels: this._markerLabels,
         });
 
         if (this.getGradientType() === ColorScaleGradientType.Diverging) {

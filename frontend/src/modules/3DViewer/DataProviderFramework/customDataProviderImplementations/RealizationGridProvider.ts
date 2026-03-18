@@ -11,6 +11,10 @@ import type { MakeSettingTypesMap } from "@modules/_shared/DataProviderFramework
 import { Setting } from "@modules/_shared/DataProviderFramework/settings/settingsDefinitions";
 import type { RealizationGridData } from "@modules/_shared/DataProviderFramework/visualization/utils/types";
 import {
+    findSelectedGridPropertyInfo,
+    type SelectedGridPropertyInfoStoredData,
+} from "@modules/_shared/utils/gridPropertyMetadata";
+import {
     transformGridMappedProperty,
     transformGridSurface,
     type GridMappedProperty_trans,
@@ -30,9 +34,10 @@ const realizationGridSettings = [
 ] as const;
 export type RealizationGridSettings = typeof realizationGridSettings;
 type SettingsWithTypes = MakeSettingTypesMap<RealizationGridSettings>;
+export type RealizationGridStoredData = SelectedGridPropertyInfoStoredData;
 
 export class RealizationGridProvider
-    implements CustomDataProviderImplementation<RealizationGridSettings, RealizationGridData>
+    implements CustomDataProviderImplementation<RealizationGridSettings, RealizationGridData, RealizationGridStoredData>
 {
     settings = realizationGridSettings;
 
@@ -69,7 +74,7 @@ export class RealizationGridProvider
 
     makeValueRange({
         getData,
-    }: DataProviderAccessors<RealizationGridSettings, RealizationGridData>): [number, number] | null {
+    }: DataProviderAccessors<RealizationGridSettings, RealizationGridData, RealizationGridStoredData>): [number, number] | null {
         const data = getData();
         if (!data) {
             return null;
@@ -78,7 +83,10 @@ export class RealizationGridProvider
         return [data.gridParameterData.min_grid_prop_value, data.gridParameterData.max_grid_prop_value];
     }
 
-    fetchData({ getSetting, fetchQuery }: FetchDataParams<RealizationGridSettings, RealizationGridData>): Promise<{
+    fetchData({
+        getSetting,
+        fetchQuery,
+    }: FetchDataParams<RealizationGridSettings, RealizationGridData, RealizationGridStoredData>): Promise<{
         gridSurfaceData: GridSurface_trans;
         gridParameterData: GridMappedProperty_trans;
     }> {
@@ -142,7 +150,7 @@ export class RealizationGridProvider
 
     areCurrentSettingsValid({
         getSetting,
-    }: DataProviderAccessors<RealizationGridSettings, RealizationGridData>): boolean {
+    }: DataProviderAccessors<RealizationGridSettings, RealizationGridData, RealizationGridStoredData>): boolean {
         return (
             getSetting(Setting.ENSEMBLE) !== null &&
             getSetting(Setting.REALIZATION) !== null &&
@@ -156,8 +164,9 @@ export class RealizationGridProvider
     defineDependencies({
         helperDependency,
         valueConstraintsUpdater,
+        storedDataUpdater,
         queryClient,
-    }: DefineDependenciesArgs<RealizationGridSettings>) {
+    }: DefineDependenciesArgs<RealizationGridSettings, RealizationGridStoredData>) {
         valueConstraintsUpdater(Setting.ENSEMBLE, ({ getGlobalSetting }) => {
             const fieldIdentifier = getGlobalSetting("fieldId");
             const ensembles = getGlobalSetting("ensembles");
@@ -278,6 +287,17 @@ export class RealizationGridProvider
             ];
 
             return availableTimeOrIntervals;
+        });
+
+        storedDataUpdater("selectedGridPropertyInfo", ({ getLocalSetting, getHelperDependency }) => {
+            const data = getHelperDependency(realizationGridDataDep);
+
+            return findSelectedGridPropertyInfo(
+                data,
+                getLocalSetting(Setting.GRID_NAME),
+                getLocalSetting(Setting.ATTRIBUTE),
+                getLocalSetting(Setting.TIME_OR_INTERVAL),
+            );
         });
     }
 }

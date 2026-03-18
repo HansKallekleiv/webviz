@@ -1,17 +1,21 @@
 import logging
-from typing import List, Optional
 import asyncio
+from typing import Any, List, Optional, TypeVar
 
-from pydantic import BaseModel
-from fmu.sumo.explorer import TimeFilter, TimeType
+from pydantic import BaseModel, ValidationError
 from fmu.sumo.explorer.explorer import SumoClient, SearchContext
 from fmu.sumo.explorer.objects import CPGrid
+
+# The underlying scheme of metadata is in fmu.datamodels
+from fmu.datamodels.fmu_results.data import BoundingBox3D, PropertyData
+from fmu.datamodels.fmu_results.specification import CPGridPropertySpecification, CPGridSpecification
 
 from webviz_core_utils.timestamp_utils import iso_str_to_date_str
 from webviz_services.service_exceptions import InvalidDataError, Service
 from .sumo_client_factory import create_sumo_client
 
 LOGGER = logging.getLogger(__name__)
+ModelT = TypeVar("ModelT", bound=BaseModel)
 
 
 class Grid3dBoundingBox(BaseModel):
@@ -42,10 +46,19 @@ class Grid3dDimensions(BaseModel):
     subgrids: List[Grid3dZone]
 
 
+class Grid3dCodename(BaseModel):
+    """Named discrete code for a 3D grid property"""
+
+    code: int
+    name: str
+
+
 class Grid3dPropertyInfo(BaseModel):
     """Metadata for a 3D grid property"""
 
     property_name: str
+    is_discrete: bool
+    codenames: Optional[List[Grid3dCodename]] = None
     iso_date_or_interval: Optional[str] = None
 
 
@@ -103,32 +116,26 @@ async def _get_grid_model_meta_async(sumo_grid3d_search_context: SearchContext, 
         raise InvalidDataError(f"Did not get expected CPGrid object type for {grid_uuid=}", Service.SUMO)
 
     grid_metadata = sumo_grid_object.metadata
+    grid_data = grid_metadata.get("data")
+    if not isinstance(grid_data, dict):
+        raise InvalidDataError(f"Grid metadata for {grid_uuid=} did not contain a valid data block", Service.SUMO)
 
-    bbox = Grid3dBoundingBox(
-        xmin=grid_metadata["data"]["bbox"]["xmin"],
-        ymin=grid_metadata["data"]["bbox"]["ymin"],
-        zmin=grid_metadata["data"]["bbox"]["zmin"],
-        xmax=grid_metadata["data"]["bbox"]["xmax"],
-        ymax=grid_metadata["data"]["bbox"]["ymax"],
-        zmax=grid_metadata["data"]["bbox"]["zmax"],
-    )
-    if grid_metadata.get("data").get("spec").get("zonation"):
-        subgrids = [
-            Grid3dZone(name=zone["name"], start_layer=zone["min_layer_idx"], end_layer=zone["max_layer_idx"])
-            for zone in grid_metadata["data"]["spec"]["zonation"]
-        ]
-    else:
-        subgrids = []
+    bbox_model = _validate_fmu_model(BoundingBox3D, grid_data.get("bbox"), f"grid bounding box for {grid_uuid=}")
+    grid_spec = _validate_fmu_model(CPGridSpecification, grid_data.get("spec"), f"grid specification for {grid_uuid=}")
 
+    bbox = Grid3dBoundingBox.model_validate(bbox_model.model_dump())
     dimensions = Grid3dDimensions(
-        i_count=grid_metadata["data"]["spec"]["ncol"],
-        j_count=grid_metadata["data"]["spec"]["nrow"],
-        k_count=grid_metadata["data"]["spec"]["nlay"],
-        subgrids=subgrids,
+        i_count=grid_spec.ncol,
+        j_count=grid_spec.nrow,
+        k_count=grid_spec.nlay,
+        subgrids=[
+            Grid3dZone(name=zone.name, start_layer=zone.min_layer_idx, end_layer=zone.max_layer_idx)
+            for zone in (grid_spec.zonation or [])
+        ],
     )
     property_info_arr = await _get_grid_properties_info_async(sumo_grid_object)
     grid3d_info = Grid3dInfo(
-        grid_name=grid_metadata["data"]["name"],
+        grid_name=grid_data["name"],
         bbox=bbox,
         dimensions=dimensions,
         property_info_arr=property_info_arr,
@@ -142,44 +149,62 @@ async def _get_grid_properties_info_async(cpgrid: CPGrid) -> List[Grid3dProperty
     Get grid properties metadata for a given CPGrid object.
     This is a helper function to extract property metadata from a CPGrid instance.
     """
-
-    no_time_context = cpgrid.grid_properties.filter(time=TimeFilter(time_type=TimeType.NONE))
-    timestamp_context = cpgrid.grid_properties.filter(time=TimeFilter(time_type=TimeType.TIMESTAMP))
-    interval_context = cpgrid.grid_properties.filter(time=TimeFilter(time_type=TimeType.INTERVAL))
-
-    async with asyncio.TaskGroup() as tg:
-        no_time_property_names_task = tg.create_task(no_time_context.names_async)
-        timestamp_property_names_task = tg.create_task(timestamp_context.names_async)
-        timestamp_property_timestamps_task = tg.create_task(timestamp_context.timestamps_async)
-        interval_property_names_task = tg.create_task(interval_context.names_async)
-        interval_property_intervals_task = tg.create_task(interval_context.intervals_async)
-
-    no_time_property_names = no_time_property_names_task.result()
-    timestamp_property_names = timestamp_property_names_task.result()
-    timestamp_property_timestamps = timestamp_property_timestamps_task.result()
-    interval_property_names = interval_property_names_task.result()
-    interval_property_intervals = interval_property_intervals_task.result()
-
     property_info_arr: List[Grid3dPropertyInfo] = []
 
-    for property_name in no_time_property_names:
-        property_info_arr.append(Grid3dPropertyInfo(property_name=property_name, iso_date_or_interval=None))
-    for property_name in timestamp_property_names:
-        for timestamp in timestamp_property_timestamps:
-            property_info_arr.append(
-                Grid3dPropertyInfo(
-                    property_name=property_name,
-                    iso_date_or_interval=iso_str_to_date_str(timestamp),
-                )
-            )
-    for property_name in interval_property_names:
+    async for grid_property in cpgrid.grid_properties:
+        property_info_arr.append(_create_grid_property_info(grid_property.metadata))
 
-        for interval in interval_property_intervals:
-            property_info_arr.append(
-                Grid3dPropertyInfo(
-                    property_name=property_name,
-                    iso_date_or_interval=f"{iso_str_to_date_str(interval[0])}/{iso_str_to_date_str(interval[1])}",
-                )
-            )
+    property_info_arr.sort(key=lambda item: (item.property_name, item.iso_date_or_interval or ""))
 
     return property_info_arr
+
+
+def _validate_fmu_model(model_cls: type[ModelT], raw_data: Any, context: str) -> ModelT:
+    try:
+        return model_cls.model_validate(raw_data)
+    except ValidationError as err:
+        raise InvalidDataError(f"Invalid {context}: {err}", Service.SUMO) from err
+
+
+def _create_grid_property_info(property_metadata: Any) -> Grid3dPropertyInfo:
+    if not isinstance(property_metadata, dict):
+        raise InvalidDataError("Grid property metadata did not have the expected structure", Service.SUMO)
+
+    property_data_raw = property_metadata.get("data")
+    property_data = _validate_fmu_model(PropertyData, property_data_raw, "grid property data")
+
+    property_spec: Optional[CPGridPropertySpecification] = None
+    if isinstance(property_data_raw, dict) and property_data_raw.get("spec") is not None:
+        property_spec = _validate_fmu_model(
+            CPGridPropertySpecification,
+            property_data_raw.get("spec"),
+            f"grid property specification for {property_data.name}",
+        )
+
+    is_discrete = bool(property_data.property and property_data.property.is_discrete)
+
+    return Grid3dPropertyInfo(
+        property_name=property_data.name,
+        is_discrete=is_discrete,
+        codenames=_create_codenames(property_spec.codenames) if is_discrete and property_spec else None,
+        iso_date_or_interval=_make_iso_date_or_interval(property_data),
+    )
+
+
+def _create_codenames(codenames: Optional[dict[int, str]]) -> Optional[List[Grid3dCodename]]:
+    if not codenames:
+        return None
+
+    return [Grid3dCodename(code=code, name=name) for code, name in sorted(codenames.items())]
+
+
+def _make_iso_date_or_interval(property_data: PropertyData) -> Optional[str]:
+    if property_data.time is None:
+        return None
+
+    t0 = iso_str_to_date_str(property_data.time.t0.value.isoformat())
+    if property_data.time.t1 is None:
+        return t0
+
+    t1 = iso_str_to_date_str(property_data.time.t1.value.isoformat())
+    return f"{t0}/{t1}"
