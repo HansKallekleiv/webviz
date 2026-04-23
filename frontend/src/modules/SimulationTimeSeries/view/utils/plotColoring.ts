@@ -1,6 +1,5 @@
 import type { VectorHexColorMap, VectorSpec } from "@modules/SimulationTimeSeries/typesAndEnums";
-
-import { SubplotOwner } from "./PlotBuilder";
+import { SubplotOwner } from "@modules/SimulationTimeSeries/typesAndEnums";
 
 export function getHexColorFromOwner(
     owner: SubplotOwner,

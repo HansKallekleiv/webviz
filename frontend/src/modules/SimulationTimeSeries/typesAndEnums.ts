@@ -140,6 +140,11 @@ export enum SubplotLimitDirection {
     ROWS = "rows",
 }
 
+export enum SubplotOwner {
+    VECTOR = "Vector",
+    ENSEMBLE = "Ensemble",
+}
+
 export const SubplotLimitDirectionEnumToStringMapping = {
     [SubplotLimitDirection.NONE]: "None",
     [SubplotLimitDirection.COLUMNS]: "Columns",

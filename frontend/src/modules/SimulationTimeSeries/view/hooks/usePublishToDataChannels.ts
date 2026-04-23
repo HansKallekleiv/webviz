@@ -6,11 +6,10 @@ import type { ChannelContentDefinition } from "@framework/types/dataChannnel";
 import { ChannelIds } from "@modules/SimulationTimeSeries/channelDefs";
 import { makeVectorGroupDataGenerator } from "@modules/SimulationTimeSeries/dataGenerators";
 import type { Interfaces } from "@modules/SimulationTimeSeries/interfaces";
-import type { VectorHexColorMap, VectorSpec } from "@modules/SimulationTimeSeries/typesAndEnums";
+import type { VectorHexColorMap, VectorSpec , SubplotOwner } from "@modules/SimulationTimeSeries/typesAndEnums";
 
 import { loadedVectorSpecificationsAndRealizationDataAtom, queryIsFetchingAtom } from "../atoms/derivedAtoms";
 import { activeTimestampUtcMsAtom } from "../atoms/persistableFixableAtoms";
-import type { SubplotOwner } from "../utils/PlotBuilder";
 import { getHexColorFromOwner } from "../utils/plotColoring";
 
 import { useMakeEnsembleDisplayNameFunc } from "./useMakeEnsembleDisplayNameFunc";

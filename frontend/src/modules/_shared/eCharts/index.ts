@@ -10,6 +10,7 @@ export type {
     StatisticKey,
     SubplotGroup,
     TimeseriesDisplayConfig,
+    TimeseriesStatistics,
     TimeseriesSubplotOverlays,
     TimeseriesTrace,
     BaseChartOptions,
@@ -44,7 +45,13 @@ export { buildTimeseriesInteractionSeries } from "./charts/timeseries";
 export type { HoveredSeriesInfo } from "./interaction";
 
 // Hooks
-export { useChartZoomSync, useTimestampSelection, useSeriesInteraction } from "./hooks";
+export {
+    useActiveTimestampMarker,
+    useChartZoomSync,
+    useClickToTimestamp,
+    useSeriesInteraction,
+    useTimestampSelection,
+} from "./hooks";
 
 // Utilities
 export { computeTimeseriesStatistics } from "./utils";

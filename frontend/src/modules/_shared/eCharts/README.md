@@ -79,8 +79,10 @@ The families expose additional typed options on top of `BaseChartOptions`. The m
 | `useChartZoomSync` | Syncs persisted `ChartZoomState` with ECharts `datazoom` events. |
 | `useSeriesInteraction` | Nearest-series highlight + tooltip for timeseries and scatter. |
 | `useTimestampSelection` | Convenience: bundles click-to-timestamp + markLine with internal state. |
+| `useClickToTimestamp` | Lower-level: attaches the click handler; takes external value + setter. |
+| `useActiveTimestampMarker` | Lower-level: imperatively applies the markLine for a given timestamp. |
 
-`useTimestampSelection` is the public hook for the common case where the module owns the timestamp. The lower-level primitives `useClickToTimestamp` and `useActiveTimestampMarker` exist inside the module internals but are not exported from the public `@modules/_shared/eCharts` barrel.
+`useTimestampSelection` is the high-level hook for the common case where the chart owns the timestamp. When the timestamp must live in a module-level atom (for persistence or cross-module sync), use the lower-level primitives `useClickToTimestamp` and `useActiveTimestampMarker` directly with the external value + setter.
 
 ## Consuming the module
 
@@ -159,17 +161,17 @@ Why not just use native ECharts features?
 
 Target modules for replacing Plotly with this shared ECharts module.
 
-### SimulationTimeSeries — ready now
+### SimulationTimeSeries — migrated
 
-Near 1:1 feature match. Members, fan chart, statistics lines, click-to-timestamp, zoom persistence, multi-subplot with shared x-axis, cross-subplot hover, and per-trace step-line shapes (`linear` / `hv` / `vh`) are all supported.
+Members, fan chart, statistics lines, click-to-timestamp, zoom persistence, multi-subplot with shared x-axis, per-trace step-line shapes (`linear` / `hv` / `vh`), parameter-colored realizations (per-member colors), historical lines, and observation markers with error bars are all in place.
 
-Remaining enhancement before a colorbar-complete migration:
+Follow-up enhancement:
 
 | Feature | Effort | Notes |
 |---|---|---|
 | Parameter-colored members with colorbar | Medium | `memberColors` already supports per-member coloring. Missing piece is a `visualMap` colorbar legend for continuous parameter scales. |
-
-Observation markers with error bars are already covered by `PointAnnotationTrace`. Historical lines are covered by `ReferenceLineTrace`.
+| Hovered-series readout | Low | Wire `useSeriesInteraction` + `buildTimeseriesInteractionSeries` to display the hovered realization/statistic name, similar to the `TimeseriesRecipe`. |
+| Honor `SubplotLimitDirection` (rows/cols) | Low | Thread `layoutConfig.maxCols` (and a `maxRows` extension) through `buildTimeseriesChart` so the module's grid limit setting takes effect again. |
 
 ### InplaceVolumesNew — ready
 
