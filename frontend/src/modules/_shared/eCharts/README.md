@@ -163,14 +163,13 @@ Target modules for replacing Plotly with this shared ECharts module.
 
 ### SimulationTimeSeries — migrated
 
-Members, fan chart, statistics lines, click-to-timestamp, zoom persistence, multi-subplot with shared x-axis, per-trace step-line shapes (`linear` / `hv` / `vh`), parameter-colored realizations (per-member colors), historical lines, and observation markers with error bars are all in place.
+Members, fan chart, statistics lines, click-to-timestamp, zoom persistence, multi-subplot with shared x-axis, per-trace step-line shapes (`linear` / `hv` / `vh`), parameter-colored realizations (per-member colors), historical lines, observation markers with error bars, and a hovered-series readout are all in place.
 
 Follow-up enhancement:
 
 | Feature | Effort | Notes |
 |---|---|---|
 | Parameter-colored members with colorbar | Medium | `memberColors` already supports per-member coloring. Missing piece is a `visualMap` colorbar legend for continuous parameter scales. |
-| Hovered-series readout | Low | Wire `useSeriesInteraction` + `buildTimeseriesInteractionSeries` to display the hovered realization/statistic name, similar to the `TimeseriesRecipe`. |
 | Honor `SubplotLimitDirection` (rows/cols) | Low | Thread `layoutConfig.maxCols` (and a `maxRows` extension) through `buildTimeseriesChart` so the module's grid limit setting takes effect again. |
 
 ### InplaceVolumesNew — ready

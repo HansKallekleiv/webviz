@@ -12,12 +12,14 @@ import { useColorSet, useContinuousColorScale } from "@framework/WorkbenchSettin
 import { Button } from "@lib/components/Button";
 import { ColorScaleGradientType } from "@lib/utils/ColorScale";
 import { ContentError, ContentWarning } from "@modules/_shared/components/ContentMessage";
-import type { ChartZoomState } from "@modules/_shared/eCharts";
+import type { HoveredSeriesInfo , ChartZoomState } from "@modules/_shared/eCharts";
 import {
+    buildTimeseriesInteractionSeries,
     Chart,
     useActiveTimestampMarker,
     useChartZoomSync,
     useClickToTimestamp,
+    useSeriesInteraction,
 } from "@modules/_shared/eCharts";
 
 import type { Interfaces } from "../interfaces";
@@ -113,7 +115,15 @@ export const View = ({ viewContext, workbenchSettings }: ModuleViewProps<Interfa
     const invalidResampleFrequency = isInvalidStatisticsResampleFrequency(resampleFrequency, visualizationMode);
 
     const echartsOptions = React.useMemo(() => {
-        if (invalidResampleFrequency) return { option: {}, timestamps: [] as number[] };
+        if (invalidResampleFrequency) {
+            return {
+                option: {},
+                timestamps: [] as number[],
+                subplotGroups: [],
+                subplotOverlays: [],
+                displayConfig: null,
+            };
+        }
         return buildEChartOption({
             subplotOwner,
             selectedVectorSpecifications: vectorSpecifications,
@@ -162,6 +172,42 @@ export const View = ({ viewContext, workbenchSettings }: ModuleViewProps<Interfa
     );
     useActiveTimestampMarker(chartRef, activeTimestampUtcMs ?? null, echartsOptions.option);
 
+    const [hoveredSeriesLabel, setHoveredSeriesLabel] = React.useState<string | null>(null);
+
+    const interactionSeries = React.useMemo(() => {
+        if (!echartsOptions.displayConfig || echartsOptions.subplotGroups.length === 0) return null;
+        return buildTimeseriesInteractionSeries(echartsOptions.subplotGroups, {
+            displayConfig: echartsOptions.displayConfig,
+            subplotOverlays: echartsOptions.subplotOverlays,
+        });
+    }, [echartsOptions.displayConfig, echartsOptions.subplotGroups, echartsOptions.subplotOverlays]);
+
+    const formatSeriesLabel = React.useCallback((info: HoveredSeriesInfo): string => {
+        switch (info.kind) {
+            case "member":
+                return `${info.seriesName ?? "Series"} · Realization ${info.memberId}`;
+            case "statistic":
+                return `${info.seriesName ?? "Series"} · ${info.statisticLabel}`;
+            case "reference-line":
+                return info.seriesName ?? "History";
+            case "point-annotation":
+                return info.seriesName ?? "Observation";
+        }
+    }, []);
+
+    const handleHoveredSeriesChange = React.useCallback(
+        (info: HoveredSeriesInfo | null) => {
+            setHoveredSeriesLabel(info ? formatSeriesLabel(info) : null);
+        },
+        [formatSeriesLabel],
+    );
+
+    const seriesEvents = useSeriesInteraction(chartRef, Boolean(interactionSeries), echartsOptions.option, {
+        formatSeriesLabel,
+        onHoveredSeriesChange: handleHoveredSeriesChange,
+        interactionSeries: interactionSeries ?? { matchingSeriesIndicesByKey: new Map(), resolutionMode: "timeseries", seriesByAxisIndex: new Map() },
+    });
+
     const hasQueryErrors = hasRealizationsQueryError || hasStatisticsQueryError;
     const hasNoChart = vectorSpecifications.length === 0;
 
@@ -180,6 +226,7 @@ export const View = ({ viewContext, workbenchSettings }: ModuleViewProps<Interfa
                 chartRef={chartRef}
                 option={echartsOptions.option}
                 onDataZoom={handleDataZoom}
+                onEvents={seriesEvents}
             />
         );
     })();
@@ -187,18 +234,26 @@ export const View = ({ viewContext, workbenchSettings }: ModuleViewProps<Interfa
     return (
         <div className="w-full h-full overflow-hidden relative">
             {!hasNoChart && !resampleFrequencyWarningMessage && !hasQueryErrors && (
-                <div className="absolute top-2 right-14 z-10 flex gap-2">
-                    <Button
-                        size="small"
-                        variant="outlined"
-                        title="Download CSV"
-                        onClick={assembleCsvAndDownload}
-                        disabled={isAnyQueryLoading}
-                        startIcon={<Download fontSize="small" />}
-                    >
-                        CSV
-                    </Button>
-                </div>
+                <>
+                    <div className="absolute top-2 left-2 z-10 flex gap-4 p-2 bg-white/80 backdrop-blur border rounded shadow-sm text-xs min-h-[1.5em]">
+                        <div>
+                            <span className="font-bold">Hover: </span>
+                            {hoveredSeriesLabel ?? "—"}
+                        </div>
+                    </div>
+                    <div className="absolute top-2 right-14 z-10 flex gap-2">
+                        <Button
+                            size="small"
+                            variant="outlined"
+                            title="Download CSV"
+                            onClick={assembleCsvAndDownload}
+                            disabled={isAnyQueryLoading}
+                            startIcon={<Download fontSize="small" />}
+                        >
+                            CSV
+                        </Button>
+                    </div>
+                </>
             )}
             {viewContent}
         </div>

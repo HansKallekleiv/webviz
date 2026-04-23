@@ -78,6 +78,9 @@ export interface BuildEChartOptionArgs {
 export interface BuildEChartOptionResult {
     option: EChartsOption;
     timestamps: number[];
+    subplotGroups: SubplotGroup<TimeseriesTrace>[];
+    subplotOverlays: TimeseriesSubplotOverlays[];
+    displayConfig: TimeseriesDisplayConfig;
 }
 
 export function buildEChartOption(args: BuildEChartOptionArgs): BuildEChartOptionResult {
@@ -93,7 +96,13 @@ export function buildEChartOption(args: BuildEChartOptionArgs): BuildEChartOptio
 
     const numSubplots = subplotOwner === SubplotOwner.VECTOR ? uniqueVectorNames.length : uniqueEnsembleIdents.length;
     if (numSubplots === 0) {
-        return { option: {}, timestamps: [] };
+        return {
+            option: {},
+            timestamps: [],
+            subplotGroups: [],
+            subplotOverlays: [],
+            displayConfig: makeDisplayConfig(args.visualizationMode, args.statisticsSelection),
+        };
     }
 
     const vectorUnitMap = new Map<string, { unit: string; derivedVectorInfo?: DerivedVectorInfo_api | null }>();
@@ -235,7 +244,7 @@ export function buildEChartOption(args: BuildEChartOptionArgs): BuildEChartOptio
         zoomable: true,
     });
 
-    return { option, timestamps };
+    return { option, timestamps, subplotGroups, subplotOverlays, displayConfig };
 }
 
 // ───────────────────────────────────────────────────────────────────────────
