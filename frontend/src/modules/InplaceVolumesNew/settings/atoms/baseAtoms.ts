@@ -2,8 +2,8 @@ import { atom } from "jotai";
 
 import { HistogramType } from "@modules/_shared/histogram";
 import { IndexValueCriteria } from "@modules/_shared/InplaceVolumes/TableDefinitionsAccessor";
+import { BarSortBy } from "@modules/_shared/InplaceVolumes/plotOptions";
 import { PlotType, type InplaceVolumesPlotOptions } from "@modules/InplaceVolumesNew/typesAndEnums";
-import { BarSortBy } from "@modules/InplaceVolumesNew/view/utils/plotly/bar";
 
 export const selectedPlotTypeAtom = atom<PlotType>(PlotType.HISTOGRAM);
 

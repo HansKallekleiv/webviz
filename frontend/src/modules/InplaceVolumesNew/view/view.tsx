@@ -10,6 +10,7 @@ import { useColorSet } from "@framework/WorkbenchSettings";
 import { PendingWrapper } from "@lib/components/PendingWrapper";
 import { Table as TableComponent } from "@lib/components/Table";
 import { useElementBoundingRect } from "@lib/hooks/useElementBoundingRect";
+import { useChartZoomSync, type ChartZoomState } from "@modules/_shared/eCharts";
 
 import type { Interfaces } from "../interfaces";
 
@@ -19,6 +20,8 @@ import { useMakeViewStatusWriterMessages } from "./hooks/useMakeViewStatusWriter
 import { useBuildPlotAndTable } from "./hooks/usePlotAndTableBuilder";
 import { usePublishToDataChannels } from "./hooks/usePublishToDataChannels";
 import { makeStatisticsTableColumns } from "./utils/makeStatisticsTableColumns";
+
+const INITIAL_ZOOM: ChartZoomState = { x: { start: 0, end: 100 }, y: { start: 0, end: 100 } };
 
 export function View(props: ModuleViewProps<Interfaces>): React.ReactNode {
     const ensembleSet = useEnsembleSet(props.workbenchSession);
@@ -35,6 +38,8 @@ export function View(props: ModuleViewProps<Interfaces>): React.ReactNode {
     const aggregatedTableDataQueries = useAtomValue(aggregatedTableDataQueriesAtom);
     const areSelectedTablesComparable = useAtomValue(areSelectedTablesComparableAtom);
     const showStatisticsTable = props.viewContext.useSettingsToViewInterfaceValue("showTable");
+    const [viewState, setViewState] = React.useState<ChartZoomState>(INITIAL_ZOOM);
+    const { appliedZoomState, handleDataZoom } = useChartZoomSync(viewState, setViewState);
 
     statusWriter.setLoading(aggregatedTableDataQueries.isFetching);
     useMakeViewStatusWriterMessages(statusWriter);
@@ -45,11 +50,11 @@ export function View(props: ModuleViewProps<Interfaces>): React.ReactNode {
         props.viewContext,
         ensembleSet,
         colorSet,
-        divBoundingRect.width,
-        divBoundingRect.height * plotHeightFraction,
         hoveredRegion?.regionName ?? null,
         hoveredZone?.zoneName ?? null,
         hoveredFacies?.faciesName ?? null,
+        appliedZoomState,
+        handleDataZoom,
     );
 
     const table = plotAndTableData?.table;

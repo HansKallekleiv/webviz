@@ -1,3 +1,5 @@
+import React from "react";
+
 import { useAtomValue } from "jotai";
 
 import type { EnsembleSet } from "@framework/EnsembleSet";
@@ -5,6 +7,7 @@ import type { ViewContext } from "@framework/ModuleContext";
 import type { ColorSet } from "@lib/utils/ColorSet";
 import type { Table } from "@modules/_shared/InplaceVolumes/Table";
 import { makeTableFromApiData } from "@modules/_shared/InplaceVolumes/tableUtils";
+import { Chart, type ChartZoomState } from "@modules/_shared/eCharts";
 import type { Interfaces } from "@modules/InplaceVolumesNew/interfaces";
 import { PlotType, type InplaceVolumesPlotOptions } from "@modules/InplaceVolumesNew/typesAndEnums";
 
@@ -12,20 +15,18 @@ import { colorByAtom, resultNameAtom, plotTypeAtom, selectorColumnAtom, subplotB
 import { aggregatedTableDataQueriesAtom } from "../atoms/queryAtoms";
 import { makeInplaceVolumesPlotTitle } from "../utils/createTitle";
 import { GroupedTableData } from "../utils/GroupedTableData";
-import { PlotBuilder } from "../utils/PlotBuilder";
-import { makePlotData, type MakePlotDataOptions } from "../utils/plotComponentUtils";
-import { configurePlotlyLayoutAxisByPlotType } from "../utils/plotlyLayoutAxisOptions";
+import { buildInplaceVolumesChartOption } from "../utils/buildEChartOption";
 import { buildStatisticsTableData, type StatisticsTableData } from "../utils/TableBuilder";
 
 export function useBuildPlotAndTable(
     viewContext: ViewContext<Interfaces>,
     ensembleSet: EnsembleSet,
     colorSet: ColorSet,
-    width: number,
-    height: number,
     hoveredRegion: string | null,
     hoveredZone: string | null,
     hoveredFacies: string | null,
+    appliedZoomState: ChartZoomState | undefined,
+    handleDataZoom: (params: unknown) => void,
 ): { plots: React.ReactNode; table: Table; statisticsTableData: StatisticsTableData } | null {
     const aggregatedTableDataQueries = useAtomValue(aggregatedTableDataQueriesAtom);
     const plotType = useAtomValue(plotTypeAtom);
@@ -76,50 +77,30 @@ export function useBuildPlotAndTable(
         groupedData.filterConstantEntries(resultName);
     }
 
-    const plotDataOptions: MakePlotDataOptions = {
-        plotType,
-        firstResultName: resultName ?? "",
-        secondResultNameOrSelectorName: barSelectorColumn ?? "",
-        histogramBins,
-        barSortBy,
-        showStatisticalMarkers,
-        showRealizationPoints,
-        showPercentageInBar: showPercentageInHistogram,
-        showStatisticalLabels,
-    };
-
-    const plotBuilder = new PlotBuilder(groupedData, makePlotData(plotDataOptions));
-
-    // Configure plot-type-specific axis options
-    const barSelectorLength = barSelectorColumn
-        ? (table.getColumn(barSelectorColumn)?.getUniqueValues().length ?? 0)
-        : 0;
-    configurePlotlyLayoutAxisByPlotType(plotBuilder, {
+    const hoveredItem = hoveredRegion ?? hoveredZone ?? hoveredFacies;
+    const chartOption = buildInplaceVolumesChartOption({
+        groupedData,
         plotType,
         resultName,
-        barSelectorColumn,
+        selectorColumn: barSelectorColumn,
         colorBy,
-        histogramType,
-        barSelectorLength,
+        plotOptions: {
+            histogramType,
+            histogramBins,
+            barSortBy,
+            showStatisticalMarkers,
+            showRealizationPoints,
+            sharedXAxis,
+            sharedYAxis,
+            hideConstants,
+            showPercentageInHistogram,
+            showStatisticalLabels,
+        },
+        highlightedSubplotKeys: hoveredItem ? [hoveredItem] : [],
+        zoomState: appliedZoomState,
     });
 
-    // Set highlighted subplots based on hover state
-    const hoveredItem = hoveredRegion ?? hoveredZone ?? hoveredFacies;
-    if (hoveredItem) {
-        plotBuilder.setHighlightedSubPlots([hoveredItem]);
-    }
-
-    const horizontalSpacing = 80 / width;
-    const verticalSpacing = 60 / height;
-
-    const plots = plotBuilder.build(height, width, {
-        horizontalSpacing,
-        verticalSpacing,
-        showGrid: true,
-        sharedXAxes: sharedXAxis ? "all" : false,
-        sharedYAxes: sharedYAxis ? "all" : false,
-        margin: { t: 20, b: 50, l: 50, r: 20 },
-    });
+    const plots = React.createElement(Chart, { option: chartOption, onDataZoom: handleDataZoom });
 
     // Build statistics table data using the same grouped data
     const statisticsTableData = buildStatisticsTableData(groupedData, resultName);

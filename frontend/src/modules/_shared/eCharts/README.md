@@ -171,9 +171,9 @@ Small additions needed before migration:
 
 Observation markers with error bars are already covered by `PointAnnotationTrace`. Historical lines are covered by `ReferenceLineTrace`.
 
-### InplaceVolumesNew — ready
+### InplaceVolumesNew — migrated
 
-Histogram (all modes), bar, convergence, and density can migrate now. Box plot use case is covered by the percentile range chart. Violin (on roadmap) is a nice-to-have, not a blocker.
+`InplaceVolumesNew` now renders through this shared ECharts layer. Histogram (all modes), density, percentile range (used in place of the old box plot), bar, and convergence are all on the shared builders.
 
 ### ParameterDistributions — ready, same virtualization pattern
 

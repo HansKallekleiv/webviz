@@ -17,11 +17,11 @@ import { HistogramType } from "@modules/_shared/histogram";
 import { useMakePersistableFixableAtomAnnotations } from "@modules/_shared/hooks/useMakePersistableFixableAtomAnnotations";
 import { usePropagateAllApiErrorsToStatusWriter } from "@modules/_shared/hooks/usePropagateApiErrorToStatusWriter";
 import { IndexValueCriteria } from "@modules/_shared/InplaceVolumes/TableDefinitionsAccessor";
+import { BarSortBy } from "@modules/_shared/InplaceVolumes/plotOptions";
 import { createHoverTextForVolume } from "@modules/_shared/InplaceVolumes/volumeStringUtils";
 
 import type { Interfaces } from "../interfaces";
 import { PlotType, plotTypeToStringMapping, type InplaceVolumesPlotOptions } from "../typesAndEnums";
-import { BarSortBy } from "../view/utils/plotly/bar";
 
 import {
     plotOptionsAtom,
@@ -191,17 +191,14 @@ export function Settings(props: ModuleSettingsProps<Interfaces>): React.ReactNod
                 />
                 <Checkbox label="Shared x axis" checked={plotOptions.sharedXAxis} onChange={handleSharedXAxisChange} />
                 <Checkbox label="Shared y axis" checked={plotOptions.sharedYAxis} onChange={handleSharedYAxisChange} />
-                {selectedPlotType === PlotType.HISTOGRAM ||
-                selectedPlotType === PlotType.BAR ||
-                selectedPlotType === PlotType.BOX ||
-                selectedPlotType === PlotType.DISTRIBUTION ? (
+                {selectedPlotType === PlotType.HISTOGRAM || selectedPlotType === PlotType.BAR ? (
                     <Checkbox
                         label="Show statistical markers"
                         checked={plotOptions.showStatisticalMarkers}
                         onChange={handleShowStatisticalMarkersChange}
                     />
                 ) : null}
-                {(selectedPlotType === PlotType.HISTOGRAM || selectedPlotType === PlotType.DISTRIBUTION) && (
+                {selectedPlotType === PlotType.HISTOGRAM && (
                     <Checkbox
                         label="Show statistical marker labels"
                         checked={plotOptions.showStatisticalLabels}
