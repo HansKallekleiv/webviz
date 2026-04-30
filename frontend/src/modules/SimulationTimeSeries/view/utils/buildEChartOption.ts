@@ -29,11 +29,18 @@ import { simulationUnitReformat, simulationVectorDescription } from "@modules/_s
 
 import type {
     StatisticsSelection,
+    SubplotLimitDirection as SubplotLimitDirectionType,
     VectorHexColorMap,
     VectorSpec,
     VectorSpecWithData,
 } from "../../typesAndEnums";
-import { FanchartStatisticOption, FrequencyEnumToStringMapping, SubplotOwner, VisualizationMode } from "../../typesAndEnums";
+import {
+    FanchartStatisticOption,
+    FrequencyEnumToStringMapping,
+    SubplotLimitDirection,
+    SubplotOwner,
+    VisualizationMode,
+} from "../../typesAndEnums";
 import { createDerivedVectorDescription } from "../../utils/vectorDescriptionUtils";
 
 import { scaleHexColorLightness } from "./colorUtils";
@@ -71,6 +78,10 @@ export interface BuildEChartOptionArgs {
     showObservations: boolean;
     colorByParameter: boolean;
     resampleFrequency: Frequency_api | null;
+    subplotLimitation: {
+        direction: SubplotLimitDirectionType;
+        maxDirectionElements: number;
+    };
     makeEnsembleDisplayName: (ensembleIdent: RegularEnsembleIdent | DeltaEnsembleIdent) => string;
     baseOptions: BaseChartOptions;
 }
@@ -239,6 +250,7 @@ export function buildEChartOption(args: BuildEChartOptionArgs): BuildEChartOptio
         ...args.baseOptions,
         subplotOverlays,
         displayConfig,
+        layoutConfig: makeSubplotLayoutConfig(args.subplotLimitation),
         yAxisLabel,
         memberLabel: "Realization",
         zoomable: true,
@@ -253,6 +265,19 @@ export function buildEChartOption(args: BuildEChartOptionArgs): BuildEChartOptio
 
 function isSelected(spec: VectorSpec, selected: VectorSpec[]): boolean {
     return selected.some((sel) => sel.vectorName === spec.vectorName);
+}
+
+function makeSubplotLayoutConfig(subplotLimitation: BuildEChartOptionArgs["subplotLimitation"]): BaseChartOptions["layoutConfig"] {
+    const maxDirectionElements = Math.max(1, Math.floor(subplotLimitation.maxDirectionElements));
+
+    switch (subplotLimitation.direction) {
+        case SubplotLimitDirection.ROWS:
+            return { limitDirection: "rows", maxDirectionElements };
+        case SubplotLimitDirection.COLUMNS:
+            return { limitDirection: "columns", maxDirectionElements };
+        case SubplotLimitDirection.NONE:
+            return { limitDirection: "auto", autoLayoutDirection: "rows" };
+    }
 }
 
 function makeDisplayConfig(

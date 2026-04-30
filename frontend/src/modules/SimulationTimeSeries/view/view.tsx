@@ -2,7 +2,7 @@ import React from "react";
 
 import { Download } from "@mui/icons-material";
 import type ReactECharts from "echarts-for-react";
-import { useAtomValue, useSetAtom } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 
 import type { DeltaEnsemble } from "@framework/DeltaEnsemble";
 import type { ModuleViewProps } from "@framework/Module";
@@ -12,7 +12,7 @@ import { useColorSet, useContinuousColorScale } from "@framework/WorkbenchSettin
 import { Button } from "@lib/components/Button";
 import { ColorScaleGradientType } from "@lib/utils/ColorScale";
 import { ContentError, ContentWarning } from "@modules/_shared/components/ContentMessage";
-import type { HoveredSeriesInfo , ChartZoomState } from "@modules/_shared/eCharts";
+import type { HoveredSeriesInfo } from "@modules/_shared/eCharts";
 import {
     buildTimeseriesInteractionSeries,
     Chart,
@@ -27,7 +27,7 @@ import type { VectorHexColorMap } from "../typesAndEnums";
 import { GroupBy, SubplotOwner } from "../typesAndEnums";
 import { isInvalidStatisticsResampleFrequency } from "../utils/resamplingFrequencyUtils";
 
-import { resampleFrequencyAtom } from "./atoms/baseAtoms";
+import { chartZoomAtom, resampleFrequencyAtom } from "./atoms/baseAtoms";
 import {
     loadedRegularEnsembleVectorSpecificationsAndHistoricalDataAtom,
     loadedVectorSpecificationsAndObservationDataAtom,
@@ -60,6 +60,7 @@ export const View = ({ viewContext, workbenchSettings }: ModuleViewProps<Interfa
     const showObservations = viewContext.useSettingsToViewInterfaceValue("showObservations");
     const showHistorical = viewContext.useSettingsToViewInterfaceValue("showHistorical");
     const statisticsSelection = viewContext.useSettingsToViewInterfaceValue("statisticsSelection");
+    const subplotLimitation = viewContext.useSettingsToViewInterfaceValue("subplotLimitation");
 
     const hasRealizationsQueryError = useAtomValue(realizationsQueryHasErrorAtom);
     const hasStatisticsQueryError = useAtomValue(statisticsQueryHasErrorAtom);
@@ -73,8 +74,8 @@ export const View = ({ viewContext, workbenchSettings }: ModuleViewProps<Interfa
     const activeTimestampUtcMs = useAtomValue(activeTimestampUtcMsAtom).value;
     const setActiveTimestampUtcMs = useSetAtom(activeTimestampUtcMsAtom);
 
-    const [zoomState, setZoomState] = React.useState<ChartZoomState>({});
-    const { appliedZoomState, handleDataZoom } = useChartZoomSync(zoomState, setZoomState);
+    const [zoomState, setZoomState] = useAtom(chartZoomAtom);
+    const { appliedZoomState, handleDataZoom, handleRestore } = useChartZoomSync(zoomState, setZoomState);
 
     const colorSet = useColorSet(workbenchSettings);
     const parameterColorScale = useContinuousColorScale(workbenchSettings, {
@@ -139,6 +140,7 @@ export const View = ({ viewContext, workbenchSettings }: ModuleViewProps<Interfa
             showObservations,
             colorByParameter,
             resampleFrequency,
+            subplotLimitation,
             makeEnsembleDisplayName,
             baseOptions: { zoomState: appliedZoomState },
         });
@@ -159,6 +161,7 @@ export const View = ({ viewContext, workbenchSettings }: ModuleViewProps<Interfa
         showObservations,
         colorByParameter,
         resampleFrequency,
+        subplotLimitation,
         makeEnsembleDisplayName,
         appliedZoomState,
     ]);
@@ -226,6 +229,7 @@ export const View = ({ viewContext, workbenchSettings }: ModuleViewProps<Interfa
                 chartRef={chartRef}
                 option={echartsOptions.option}
                 onDataZoom={handleDataZoom}
+                onRestore={handleRestore}
                 onEvents={seriesEvents}
             />
         );

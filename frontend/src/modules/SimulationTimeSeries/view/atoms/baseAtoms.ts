@@ -1,8 +1,11 @@
 import { atom } from "jotai";
 
 import { Frequency_api } from "@api";
+import type { ChartZoomState } from "@modules/_shared/eCharts";
 import type { VectorSpec } from "@modules/SimulationTimeSeries/typesAndEnums";
 import { VisualizationMode } from "@modules/SimulationTimeSeries/typesAndEnums";
+
+export const chartZoomAtom = atom<ChartZoomState>({});
 
 export const vectorSpecificationsAtom = atom<VectorSpec[]>([]);
 export const resampleFrequencyAtom = atom<Frequency_api | null>(Frequency_api.MONTHLY);
