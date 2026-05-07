@@ -1,65 +1,24 @@
-import type { Feature } from "geojson";
-
-import type { WellboreTrajectory_api } from "@api";
-import { AdjustedWellsLayer } from "@modules/_shared/customDeckGlLayers/AdjustedWellsLayer";
-import { makeDrilledWellTrajectoriesBoundingBox } from "@modules/_shared/DataProviderFramework/visualization/deckgl/boundingBoxes/makeDrilledWellTrajectoriesBoundingBox";
+import type {
+    DrilledWellboreTrajectoriesData,
+    DrilledWellboreTrajectoriesSettings,
+    DrilledWellboreTrajectoriesStoredData,
+} from "@modules/_shared/DataProviderFramework/dataProviders/implementations/DrilledWellboreTrajectoriesProvider";
+import { makeRichDrilledWellTrajectoriesLayer } from "@modules/_shared/DataProviderFramework/visualization/deckgl/makeRichDrilledWellTrajectoriesLayer";
 import type { TransformerArgs } from "@modules/_shared/DataProviderFramework/visualization/VisualizationAssembler";
-import { wellTrajectoryToGeojson } from "@modules/_shared/utils/wellbore";
 
 export function makeDrilledWellTrajectoriesLayer(
-    args: TransformerArgs<any, WellboreTrajectory_api[], any>,
-): AdjustedWellsLayer | null {
-    const { id, getData, name } = args;
-
-    const fieldWellboreTrajectoriesData = getData();
-
-    if (!fieldWellboreTrajectoriesData) {
-        return null;
-    }
-
-    const wellLayerDataFeatures = fieldWellboreTrajectoriesData.map((well) => wellTrajectoryToGeojson(well));
-
-    function getLineStyleWidth(object: Feature): number {
-        if (object.properties && "lineWidth" in object.properties) {
-            return object.properties.lineWidth as number;
-        }
-        return 2;
-    }
-
-    function getWellHeadStyleWidth(object: Feature): number {
-        if (object.properties && "wellHeadSize" in object.properties) {
-            return object.properties.wellHeadSize as number;
-        }
-        return 1;
-    }
-
-    function getColor(object: Feature): [number, number, number, number] {
-        if (object.properties && "color" in object.properties) {
-            return object.properties.color as [number, number, number, number];
-        }
-        return [50, 50, 50, 100];
-    }
-
-    const boundingBox = makeDrilledWellTrajectoriesBoundingBox(args);
-
-    if (!boundingBox) {
-        return null;
-    }
-
-    const wellsLayer = new AdjustedWellsLayer({
-        id,
-        data: {
-            type: "FeatureCollection",
-            features: wellLayerDataFeatures,
-        },
-        name,
-        refine: false,
-        lineStyle: { width: getLineStyleWidth, color: getColor },
-        wellHeadStyle: { size: getWellHeadStyleWidth, color: getColor },
-        pickable: true,
-        wellNameVisible: true,
-        ZIncreasingDownwards: true,
+    args: TransformerArgs<
+        DrilledWellboreTrajectoriesSettings,
+        DrilledWellboreTrajectoriesData,
+        DrilledWellboreTrajectoriesStoredData
+    >,
+) {
+    return makeRichDrilledWellTrajectoriesLayer(args, {
+        positionFormat: "XYZ",
+        depthTest: true,
+        outline: false,
+        lineWidthScale: 1.5,
+        defaultColor: [170, 170, 170, 220],
+        showScreenTrajectoryAsDash: false,
     });
-
-    return wellsLayer;
 }

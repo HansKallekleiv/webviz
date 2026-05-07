@@ -58,6 +58,7 @@ SettingRegistry.registerSetting(Setting.SCALE, "Scale", DropdownStringSetting, {
 SettingRegistry.registerSetting(Setting.PLOT_VARIANT, "Plot variant", DropdownStringSetting);
 SettingRegistry.registerSetting(Setting.LOG_CURVE, "Log curve", LogCurveSetting);
 SettingRegistry.registerSetting(Setting.SHOW_LABELS, "Show labels", BooleanSetting);
+SettingRegistry.registerSetting(Setting.SHOW_WELLBORE_COMPLETIONS, "Show completions/perforations", BooleanSetting);
 SettingRegistry.registerSetting(Setting.LABEL_ROTATION, "Label rotation", StaticRotationSetting);
 SettingRegistry.registerSetting(Setting.SHOW_LINES, "Show lines", BooleanSetting);
 

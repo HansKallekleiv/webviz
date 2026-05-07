@@ -1,24 +1,37 @@
-import { GeoJsonLayer, ScatterplotLayer } from "@deck.gl/layers";
+import { ScatterplotLayer } from "@deck.gl/layers";
 import { GL } from "@luma.gl/constants";
 import type { Point3D } from "@webviz/subsurface-viewer";
 
-import type { WellboreTrajectory_api } from "@api";
 import { HoverTopic } from "@framework/HoverService";
+import { DEFAULT_WELLS_LAYER_PROPS } from "@modules/_shared/constants/wellsLayer";
+import { AdjustedWellsLayer } from "@modules/_shared/customDeckGlLayers/AdjustedWellsLayer";
+import type {
+    DrilledWellboreTrajectoriesData,
+    DrilledWellboreTrajectoriesSettings,
+    DrilledWellboreTrajectoriesStoredData,
+} from "@modules/_shared/DataProviderFramework/dataProviders/implementations/DrilledWellboreTrajectoriesProvider";
+import {
+    makeDrilledWellTrajectoryFilterProps,
+    wellDataToGeoJson,
+} from "@modules/_shared/DataProviderFramework/visualization/deckgl/makeRichDrilledWellTrajectoriesLayer";
 import type {
     HoverVisualizationFunctions,
     TransformerArgs,
     VisualizationTarget,
 } from "@modules/_shared/DataProviderFramework/visualization/VisualizationAssembler";
-import type { ExtendedWellFeature } from "@modules/_shared/types/geojson";
-import { getInterpolatedPositionAtMd, wellTrajectoryToGeojson } from "@modules/_shared/utils/wellbore";
+import { getInterpolatedPositionAtMd } from "@modules/_shared/utils/wellbore";
 
-function findWellboreTrajectory(uuid: string | null | undefined, trajectories: WellboreTrajectory_api[]) {
+function findWellboreTrajectory(uuid: string | null | undefined, trajectories: DrilledWellboreTrajectoriesData) {
     if (!uuid) return undefined;
     return trajectories.find(({ wellboreUuid }) => wellboreUuid === uuid);
 }
 
 export function makeDrilledWellTrajectoriesHoverVisualizationFunctions(
-    args: TransformerArgs<any, WellboreTrajectory_api[], any>,
+    args: TransformerArgs<
+        DrilledWellboreTrajectoriesSettings,
+        DrilledWellboreTrajectoriesData,
+        DrilledWellboreTrajectoriesStoredData
+    >,
 ): HoverVisualizationFunctions<VisualizationTarget.DECK_GL> {
     const { id, getData } = args;
 
@@ -30,29 +43,33 @@ export function makeDrilledWellTrajectoriesHoverVisualizationFunctions(
 
     return {
         [HoverTopic.WELLBORE]: (wellboreUuid) => {
-            const trajectoryData: ExtendedWellFeature[] = [];
             const wellboreTrajectory = findWellboreTrajectory(wellboreUuid, wellboreTrajectories);
-
-            if (wellboreTrajectory) {
-                trajectoryData.push(wellTrajectoryToGeojson(wellboreTrajectory, { invertZAxis: true }));
-            }
+            const trajectoryData = wellboreTrajectory ? wellDataToGeoJson([wellboreTrajectory]) : null;
 
             return [
-                new GeoJsonLayer({
+                new AdjustedWellsLayer({
+                    ...DEFAULT_WELLS_LAYER_PROPS,
+                    ...makeDrilledWellTrajectoryFilterProps(args),
                     id: `${id}-hovered-well`,
-                    data: {
+                    data: trajectoryData ?? {
                         type: "FeatureCollection",
-                        features: trajectoryData,
+                        features: [],
                     },
-                    getLineWidth: 5,
-                    lineWidthMinPixels: 5,
-                    lineBillboard: true,
-                    getLineColor: [255, 0, 0],
-
+                    positionFormat: "XY",
+                    lineWidthScale: 4,
+                    outline: false,
+                    lineStyle: {
+                        ...DEFAULT_WELLS_LAYER_PROPS.lineStyle,
+                        color: [255, 0, 0, 255],
+                    },
+                    wellHeadStyle: {
+                        ...DEFAULT_WELLS_LAYER_PROPS.wellHeadStyle,
+                        color: [255, 0, 0, 255],
+                    },
                     pickable: false,
-                    visible: trajectoryData.length > 0,
+                    depthTest: false,
+                    visible: trajectoryData !== null,
                     autoHighlight: false,
-                    parameters: { [GL.DEPTH_TEST]: false },
                 }),
             ];
         },

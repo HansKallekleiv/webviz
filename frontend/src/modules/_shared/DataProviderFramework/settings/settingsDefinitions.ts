@@ -19,6 +19,7 @@ import type { SensitivityNameCasePair } from "./implementations/SensitivitySetti
 export enum Setting {
     // Assorted styling visual settings
     SHOW_LABELS = "showLabels",
+    SHOW_WELLBORE_COMPLETIONS = "showWellboreCompletions",
     LABEL_ROTATION = "labelRotation",
     SHOW_LINES = "showLines",
     TRACK_WIDTH = "trackWidth",
@@ -99,6 +100,11 @@ enum InjectionPhase {
 export type SettingTypeDefinitions = {
     // Boolean settings (BOOLEAN category) - no valueConstraints
     [Setting.SHOW_LABELS]: {
+        internalValue: boolean;
+        externalValue: boolean;
+        valueConstraints: null;
+    };
+    [Setting.SHOW_WELLBORE_COMPLETIONS]: {
         internalValue: boolean;
         externalValue: boolean;
         valueConstraints: null;

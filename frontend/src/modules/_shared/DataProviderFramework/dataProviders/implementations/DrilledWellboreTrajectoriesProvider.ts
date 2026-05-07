@@ -52,6 +52,7 @@ const drilledWellboreTrajectoriesSettings = [
     Setting.FLOW_FILTER_TYPE,
     Setting.TIME_INTERVAL,
     Setting.FLOW_FILTER,
+    Setting.SHOW_WELLBORE_COMPLETIONS,
 ] as const;
 export type DrilledWellboreTrajectoriesSettings = typeof drilledWellboreTrajectoriesSettings;
 type SettingsWithTypes = MakeSettingTypesMap<DrilledWellboreTrajectoriesSettings>;
@@ -72,17 +73,21 @@ export type DrilledWellboreTrajectoriesStoredData = {
     injectionData: WellInjectionData_api[];
 };
 
-export class DrilledWellboreTrajectoriesProvider
-    implements
-    CustomDataProviderImplementation<
-        DrilledWellboreTrajectoriesSettings,
-        DrilledWellboreTrajectoriesData,
-        DrilledWellboreTrajectoriesStoredData
-    > {
+export class DrilledWellboreTrajectoriesProvider implements CustomDataProviderImplementation<
+    DrilledWellboreTrajectoriesSettings,
+    DrilledWellboreTrajectoriesData,
+    DrilledWellboreTrajectoriesStoredData
+> {
     settings = drilledWellboreTrajectoriesSettings;
 
     getDefaultName() {
         return "Well Trajectories (Official)";
+    }
+
+    getDefaultSettingsValues(): Partial<SettingsWithTypes> {
+        return {
+            [Setting.SHOW_WELLBORE_COMPLETIONS]: false,
+        };
     }
 
     areCurrentSettingsValid({
@@ -402,16 +407,17 @@ export class DrilledWellboreTrajectoriesProvider
             return [globalMin, globalMax, 1];
         });
 
-        settingAttributesUpdater(Setting.WELLBORE_DEPTH_FILTER_ATTRIBUTE, ({ getHelperDependency, getLocalSetting }) => {
-            const filterType = getLocalSetting(Setting.WELLBORE_DEPTH_FILTER_TYPE);
-            const data = getHelperDependency(realizationSurfaceMetadataDep);
-            return {
-                enabled: data?.surfaces.length
-                    ? true
-                    : { enabled: false, reason: "No surfaces available" },
-                visible: filterType === "surface_based",
-            };
-        });
+        settingAttributesUpdater(
+            Setting.WELLBORE_DEPTH_FILTER_ATTRIBUTE,
+            ({ getHelperDependency, getLocalSetting }) => {
+                const filterType = getLocalSetting(Setting.WELLBORE_DEPTH_FILTER_TYPE);
+                const data = getHelperDependency(realizationSurfaceMetadataDep);
+                return {
+                    enabled: data?.surfaces.length ? true : { enabled: false, reason: "No surfaces available" },
+                    visible: filterType === "surface_based",
+                };
+            },
+        );
 
         valueConstraintsUpdater(Setting.WELLBORE_DEPTH_FILTER_ATTRIBUTE, ({ getHelperDependency }) => {
             const data = getHelperDependency(realizationSurfaceMetadataDep);
@@ -433,17 +439,18 @@ export class DrilledWellboreTrajectoriesProvider
             return availableAttributes;
         });
 
-        settingAttributesUpdater(Setting.WELLBORE_DEPTH_FORMATION_FILTER, ({ getHelperDependency, getLocalSetting }) => {
-            const filterType = getLocalSetting(Setting.WELLBORE_DEPTH_FILTER_TYPE);
+        settingAttributesUpdater(
+            Setting.WELLBORE_DEPTH_FORMATION_FILTER,
+            ({ getHelperDependency, getLocalSetting }) => {
+                const filterType = getLocalSetting(Setting.WELLBORE_DEPTH_FILTER_TYPE);
 
-            const data = getHelperDependency(realizationSurfaceMetadataDep);
-            return {
-                enabled: data?.surfaces.length
-                    ? true
-                    : { enabled: false, reason: "No surfaces available" },
-                visible: filterType === "surface_based",
-            };
-        });
+                const data = getHelperDependency(realizationSurfaceMetadataDep);
+                return {
+                    enabled: data?.surfaces.length ? true : { enabled: false, reason: "No surfaces available" },
+                    visible: filterType === "surface_based",
+                };
+            },
+        );
 
         valueConstraintsUpdater(
             Setting.WELLBORE_DEPTH_FORMATION_FILTER,

@@ -2,6 +2,7 @@ import type { FilterContext, GetPickingInfoParams, LayersList, UpdateParameters 
 import { Layer } from "@deck.gl/core";
 import type { GeoJsonLayerProps } from "@deck.gl/layers";
 import { GeoJsonLayer } from "@deck.gl/layers";
+import { GL } from "@luma.gl/constants";
 import type { BoundingBox3D } from "@webviz/subsurface-viewer";
 import { WellsLayer } from "@webviz/subsurface-viewer/dist/layers";
 import type { WellsPickInfo } from "@webviz/subsurface-viewer/dist/layers/wells/types";
@@ -75,6 +76,15 @@ export class AdjustedWellsLayer extends WellsLayer {
                 lineWidthMaxPixels: 5,
                 autoHighlight: true,
                 onHover: () => {},
+                parameters: {
+                    ...colorsLayer.props.parameters,
+                    [GL.DEPTH_TEST]: this.props.depthTest,
+                },
+                updateTriggers: {
+                    ...colorsLayer.props.updateTriggers,
+                    getLineColor: [this.props.lineStyle, this.props.data],
+                    getFillColor: [this.props.wellHeadStyle, this.props.data],
+                },
             } as GeoJsonLayerProps),
         );
 
