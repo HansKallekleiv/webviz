@@ -1,4 +1,3 @@
-import { isDevMode } from "@lib/utils/devMode";
 import { UnsubscribeFunctionsManagerDelegate } from "@lib/utils/UnsubscribeFunctionsManagerDelegate";
 
 import { GroupDelegate } from "../../delegates/GroupDelegate";
@@ -10,7 +9,7 @@ import type {
     CustomGroupImplementationWithSettings,
 } from "../../interfacesAndTypes/customGroupImplementation";
 import { includesSettings } from "../../interfacesAndTypes/customGroupImplementation";
-import type { DefineBasicDependenciesArgs } from "../../interfacesAndTypes/customSettingsHandler";
+import type { SetupBasicBindingsContext } from "../../interfacesAndTypes/customSettingsHandler";
 import type { ItemGroup } from "../../interfacesAndTypes/entities";
 import type { SerializedGroup, SerializedSettingsState } from "../../interfacesAndTypes/serialization";
 import { SerializedType } from "../../interfacesAndTypes/serialization";
@@ -20,20 +19,12 @@ import { DataProviderManagerTopic, type DataProviderManager } from "../DataProvi
 import type { SettingManager } from "../SettingManager/SettingManager";
 import { makeSettings } from "../utils/makeSettings";
 
+// Using a unique brand to identify Group objects, since instanceof checks won't work due to potential multiple versions of the module.
+// Using Symbol.for to ensure that even if there are multiple versions of the module, they will all reference the same symbol for the brand.
+const GROUP_BRAND = Symbol.for("dpf/group");
+
 export function isGroup(obj: any): obj is Group {
-    if (!isDevMode()) {
-        return obj instanceof Group;
-    }
-
-    if (typeof obj !== "object" || obj === null) {
-        return false;
-    }
-
-    if (obj.constructor.name !== "Group") {
-        return false;
-    }
-
-    return Boolean(obj.getGroupType) && Boolean(obj.getGroupDelegate);
+    return typeof obj === "object" && obj !== null && GROUP_BRAND in obj;
 }
 
 export type GroupParams<
@@ -54,6 +45,8 @@ export class Group<
     TSettingKey extends SettingsKeysFromTuple<TSettings> = SettingsKeysFromTuple<TSettings>,
 > implements ItemGroup
 {
+    private readonly [GROUP_BRAND] = true;
+
     private _itemDelegate: ItemDelegate;
     private _groupDelegate: GroupDelegate;
     private _type: GroupType;
@@ -75,8 +68,8 @@ export class Group<
                     customGroupImplementation.settings as unknown as TSettings,
                     customGroupImplementation.getDefaultSettingsValues?.() ?? {},
                 ),
-                customGroupImplementation.defineDependencies as unknown as
-                    | ((args: DefineBasicDependenciesArgs<TSettings, TSettingTypes>) => void)
+                customGroupImplementation.setupBindings as unknown as
+                    | ((args: SetupBasicBindingsContext<TSettings, TSettingTypes>) => void)
                     | undefined,
             );
             this._unsubscribeFunctionsManagerDelegate.registerUnsubscribeFunction(
@@ -146,7 +139,10 @@ export class Group<
         this._itemDelegate.deserializeState(serialized);
         this._groupDelegate.setColor(serialized.color);
         this._groupDelegate.deserializeChildren(serialized.children);
-        this._sharedSettingsDelegate?.deserializeSettings(serialized.settings);
+        const reportError = (errorMsg: string) => {
+            this.getItemDelegate().reportDeserializationError(errorMsg);
+        };
+        this._sharedSettingsDelegate?.deserializeSettings(serialized.settings, reportError);
     }
 
     beforeDestroy(): void {

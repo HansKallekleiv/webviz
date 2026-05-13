@@ -41,7 +41,6 @@ from .._shared.long_running_operations import LroInProgressResp, LroFailureResp,
 
 from . import converters, schemas, task_helpers
 
-
 LOGGER = logging.getLogger(__name__)
 
 router = APIRouter()

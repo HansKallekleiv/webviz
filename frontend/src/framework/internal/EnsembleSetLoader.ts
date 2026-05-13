@@ -11,11 +11,11 @@ import { SensitivityType_api, getEnsembleDetailsOptions, getParametersAndSensiti
 import { DeltaEnsemble } from "@framework/DeltaEnsemble";
 import { DeltaEnsembleIdent } from "@framework/DeltaEnsembleIdent";
 import { EnsembleFingerprintStore } from "@framework/EnsembleFingerprintStore";
+import type { FipRegionMapping } from "@framework/EnsembleFipRegionsMapping";
 import { tanstackDebugTimeOverride } from "@framework/utils/debug";
 import { createDeltaEnsembleDisplayName, createRegularEnsembleDisplayName } from "@framework/utils/ensembleUiHelpers";
 import { calcFnv1aHash } from "@lib/utils/hashUtils";
 
-import type { FipMapping } from "../EnsembleFipRegions";
 import type { ContinuousParameter, DiscreteParameter, Parameter } from "../EnsembleParameters";
 import { ParameterType } from "../EnsembleParameters";
 import type { Sensitivity, SensitivityCase } from "../EnsembleSensitivities";
@@ -135,10 +135,11 @@ export async function loadMetadataFromBackendAndCreateEnsembleSet(
 
         const parameterArray = buildParameterArrFromApiResponse(ensembleApiData.parameters);
         const sensitivityArray = buildSensitivityArrFromApiResponse(ensembleApiData.sensitivities);
-        const fipMappingArray = buildFipMappingArrFromApiResponse(ensembleApiData.ensembleDetails.fipRegions);
+        const fipRegionsMappingArray = buildFipRegionsMappingArrFromApiResponse(ensembleApiData.ensembleDetails.fipRegions);
         outEnsembleArray.push(
             new RegularEnsemble(
-                ensembleApiData.ensembleDetails.fieldIdentifier,
+                ensembleApiData.ensembleDetails.assetName,
+                ensembleApiData.ensembleDetails.fieldIdentifiers,
                 ensembleApiData.ensembleDetails.caseUuid,
                 ensembleApiData.ensembleDetails.caseName,
                 ensembleApiData.ensembleDetails.name,
@@ -146,7 +147,7 @@ export async function loadMetadataFromBackendAndCreateEnsembleSet(
                 ensembleApiData.ensembleDetails.realizations,
                 parameterArray,
                 sensitivityArray,
-                fipMappingArray,
+                fipRegionsMappingArray,
                 ensembleSetting.color,
                 ensembleSetting.customName,
             ),
@@ -158,7 +159,7 @@ export async function loadMetadataFromBackendAndCreateEnsembleSet(
     const outDeltaEnsembleArray: DeltaEnsemble[] = [];
     const emptyParameterArray: Parameter[] = [];
     const nullSensitivityArray = null;
-    const emptyFipMappingArray: FipMapping[] = [];
+    const emptyFipRegionsMappingArray: FipRegionMapping[] = [];
     const emptyColor = "";
     for (const deltaEnsembleSetting of userDeltaEnsembleSettings) {
         const comparisonEnsembleIdentString = deltaEnsembleSetting.comparisonEnsembleIdent.toString();
@@ -209,34 +210,36 @@ export async function loadMetadataFromBackendAndCreateEnsembleSet(
         const comparisonEnsemble = existingComparisonEnsemble
             ? existingComparisonEnsemble
             : new RegularEnsemble(
-                  comparisonEnsembleApiData.ensembleDetails.fieldIdentifier,
-                  comparisonEnsembleApiData.ensembleDetails.caseUuid,
-                  comparisonEnsembleApiData.ensembleDetails.caseName,
-                  comparisonEnsembleApiData.ensembleDetails.name,
-                  comparisonEnsembleApiData.ensembleDetails.stratigraphicColumnIdentifier,
-                  comparisonEnsembleApiData.ensembleDetails.realizations,
-                  emptyParameterArray,
-                  nullSensitivityArray,
-                  emptyFipMappingArray,
-                  emptyColor,
-                  comparisonEnsembleCustomName,
-              );
+                comparisonEnsembleApiData.ensembleDetails.assetName,
+                comparisonEnsembleApiData.ensembleDetails.fieldIdentifiers,
+                comparisonEnsembleApiData.ensembleDetails.caseUuid,
+                comparisonEnsembleApiData.ensembleDetails.caseName,
+                comparisonEnsembleApiData.ensembleDetails.name,
+                comparisonEnsembleApiData.ensembleDetails.stratigraphicColumnIdentifier,
+                comparisonEnsembleApiData.ensembleDetails.realizations,
+                emptyParameterArray,
+                nullSensitivityArray,
+                emptyFipRegionsMappingArray,
+                emptyColor,
+                comparisonEnsembleCustomName,
+            );
 
         const referenceEnsemble = existingReferenceEnsemble
             ? existingReferenceEnsemble
             : new RegularEnsemble(
-                  referenceEnsembleApiData.ensembleDetails.fieldIdentifier,
-                  referenceEnsembleApiData.ensembleDetails.caseUuid,
-                  referenceEnsembleApiData.ensembleDetails.caseName,
-                  referenceEnsembleApiData.ensembleDetails.name,
-                  comparisonEnsembleApiData.ensembleDetails.stratigraphicColumnIdentifier,
-                  referenceEnsembleApiData.ensembleDetails.realizations,
-                  emptyParameterArray,
-                  nullSensitivityArray,
-                  emptyFipMappingArray,
-                  emptyColor,
-                  referenceEnsembleCustomName,
-              );
+                comparisonEnsembleApiData.ensembleDetails.assetName,
+                comparisonEnsembleApiData.ensembleDetails.fieldIdentifiers,
+                referenceEnsembleApiData.ensembleDetails.caseUuid,
+                referenceEnsembleApiData.ensembleDetails.caseName,
+                referenceEnsembleApiData.ensembleDetails.name,
+                comparisonEnsembleApiData.ensembleDetails.stratigraphicColumnIdentifier,
+                referenceEnsembleApiData.ensembleDetails.realizations,
+                emptyParameterArray,
+                nullSensitivityArray,
+                emptyFipRegionsMappingArray,
+                emptyColor,
+                referenceEnsembleCustomName,
+            );
 
         outDeltaEnsembleArray.push(
             new DeltaEnsemble(
@@ -447,7 +450,7 @@ function buildParameterArrFromApiResponse(apiParameterArray: EnsembleParameter_a
     return retParameterArray;
 }
 
-function buildFipMappingArrFromApiResponse(apiFipRegionArray: FipRegion_api[]): FipMapping[] {
+function buildFipRegionsMappingArrFromApiResponse(apiFipRegionArray: FipRegion_api[]): FipRegionMapping[] {
     return apiFipRegionArray.map((apiItem) => ({
         fipNumber: apiItem.fipNumber,
         zone: apiItem.zone,

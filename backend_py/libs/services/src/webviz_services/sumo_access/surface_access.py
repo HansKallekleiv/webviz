@@ -35,7 +35,6 @@ from ._sumo_task_utils import (
     poll_sumo_task_until_done_async,
 )
 
-
 LOGGER = logging.getLogger(__name__)
 
 

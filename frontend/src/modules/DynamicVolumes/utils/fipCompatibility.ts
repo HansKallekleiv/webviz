@@ -1,12 +1,12 @@
-import type { EnsembleFipRegions } from "@framework/EnsembleFipRegions";
+import type { EnsembleFipRegionsMapping } from "@framework/EnsembleFipRegionsMapping";
 
 /**
  * Check whether two FIP region mappings are compatible.
  * Compatible means every fip number maps to the same zone/region in both.
  */
-export function areFipMappingsCompatible(a: EnsembleFipRegions, b: EnsembleFipRegions): boolean {
-    const aArr = a.getFipMappingArr();
-    const bArr = b.getFipMappingArr();
+export function areFipMappingsCompatible(a: EnsembleFipRegionsMapping, b: EnsembleFipRegionsMapping): boolean {
+    const aArr = a.getFipRegionsMappingArr();
+    const bArr = b.getFipRegionsMappingArr();
     if (aArr.length !== bArr.length) return false;
 
     for (const entry of aArr) {

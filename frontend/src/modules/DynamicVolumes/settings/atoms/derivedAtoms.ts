@@ -1,6 +1,6 @@
 import { atom } from "jotai";
 
-import type { EnsembleFipRegions } from "@framework/EnsembleFipRegions";
+import type { EnsembleFipRegionsMapping } from "@framework/EnsembleFipRegionsMapping";
 import { EnsembleSetAtom } from "@framework/GlobalAtoms";
 
 import { RegionSelectionMode } from "../../typesAndEnums";
@@ -59,20 +59,20 @@ export const regionalVectorsInfoAtom = atom<RegionalVectorsInfo>((get) => {
 
 
 /**
- * The shared EnsembleFipRegions when all selected ensembles have compatible
- * FIP region mappings.  Returns null when any ensemble is missing FIP data
+ * The shared EnsembleFipRegionsMapping when all selected ensembles have compatible
+ * FIP region mappings. Returns null when any ensemble is missing FIP data
  * or when ensembles have mismatching mappings.
  */
-export const ensembleFipRegionsAtom = atom<EnsembleFipRegions | null>((get) => {
+export const ensembleFipRegionsAtom = atom<EnsembleFipRegionsMapping | null>((get) => {
     const ensembleSet = get(EnsembleSetAtom);
     const selectedIdents = get(selectedEnsembleIdentsAtom).value ?? [];
     if (selectedIdents.length === 0) return null;
 
-    let reference: EnsembleFipRegions | null = null;
+    let reference: EnsembleFipRegionsMapping | null = null;
     for (const ident of selectedIdents) {
         const ensemble = ensembleSet.findEnsemble(ident);
-        const fipRegions = ensemble?.getFipRegions?.() ?? null;
-        if (!fipRegions) return null; // missing in one ensemble → not available
+        const fipRegions = ensemble?.getFipRegionsMapping() ?? null;
+        if (!fipRegions || fipRegions.getFipRegionsMappingArr().length === 0) return null; // missing in one ensemble → not available
         if (reference === null) {
             reference = fipRegions;
         } else if (!areFipMappingsCompatible(reference, fipRegions)) {
@@ -96,14 +96,14 @@ export const fipRegionsDisabledReasonAtom = atom<string | null>((get) => {
     const selectedIdents = get(selectedEnsembleIdentsAtom).value ?? [];
     if (selectedIdents.length === 0) return "No ensembles selected";
 
-    let reference: EnsembleFipRegions | null = null;
+    let reference: EnsembleFipRegionsMapping | null = null;
     const missing: string[] = [];
     let hasMismatch = false;
 
     for (const ident of selectedIdents) {
         const ensemble = ensembleSet.findEnsemble(ident);
-        const fipRegions = ensemble?.getFipRegions?.() ?? null;
-        if (!fipRegions) {
+        const fipRegions = ensemble?.getFipRegionsMapping() ?? null;
+        if (!fipRegions || fipRegions.getFipRegionsMappingArr().length === 0) {
             missing.push(ident.getEnsembleName());
             continue;
         }

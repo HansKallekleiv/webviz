@@ -1,6 +1,6 @@
 import { isEqual } from "lodash";
 
-import type { EnsembleFipRegions } from "@framework/EnsembleFipRegions";
+import type { EnsembleFipRegionsMapping } from "@framework/EnsembleFipRegionsMapping";
 import { EnsembleSetAtom } from "@framework/GlobalAtoms";
 import type { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
 import { persistableFixableAtom } from "@framework/utils/atomUtils";
@@ -148,16 +148,16 @@ function precomputeRegionalVectorsInfo({ get }: { get: (atom: any) => any }): Re
  * Get the validated cross-ensemble FIP regions (null when missing or incompatible).
  * Replicates the check in ensembleFipRegionsAtom to avoid circular imports.
  */
-function getValidatedFipRegions({ get }: { get: (atom: any) => any }): EnsembleFipRegions | null {
+function getValidatedFipRegions({ get }: { get: (atom: any) => any }): EnsembleFipRegionsMapping | null {
     const ensembleSet = get(EnsembleSetAtom);
     const selectedIdents: RegularEnsembleIdent[] = get(selectedEnsembleIdentsAtom).value ?? [];
     if (selectedIdents.length === 0) return null;
 
-    let reference: EnsembleFipRegions | null = null;
+    let reference: EnsembleFipRegionsMapping | null = null;
     for (const ident of selectedIdents) {
         const ensemble = ensembleSet.findEnsemble(ident);
-        const fipRegions = ensemble?.getFipRegions?.() ?? null;
-        if (!fipRegions) return null;
+        const fipRegions = ensemble?.getFipRegionsMapping() ?? null;
+        if (!fipRegions || fipRegions.getFipRegionsMappingArr().length === 0) return null;
         if (reference === null) {
             reference = fipRegions;
         } else if (!areFipMappingsCompatible(reference, fipRegions)) {
