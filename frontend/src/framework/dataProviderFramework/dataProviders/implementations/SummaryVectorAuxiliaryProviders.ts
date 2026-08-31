@@ -24,6 +24,9 @@ import { VisualizationKind } from "../visualizationKinds";
 const historySettings = [Setting.ENSEMBLE, Setting.VECTOR_NAME, Setting.VECTOR_RESAMPLING_FREQUENCY] as const;
 const observationSettings = [Setting.ENSEMBLE, Setting.VECTOR_NAME] as const;
 
+export type SummaryVectorHistorySettings = typeof historySettings;
+export type SummaryVectorObservationSettings = typeof observationSettings;
+
 export type SummaryVectorHistoryData = {
     ensemble: RegularEnsembleIdent;
     vectorName: string;

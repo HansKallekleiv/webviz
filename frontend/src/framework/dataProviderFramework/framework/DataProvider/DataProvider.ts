@@ -12,6 +12,7 @@ import { ScopedQueryController } from "@lib/utils/ScopedQueryController";
 import { UnsubscribeFunctionsManagerDelegate } from "@lib/utils/UnsubscribeFunctionsManagerDelegate";
 
 import { DEFAULT_SUPPORTED_ENSEMBLE_KINDS } from "../../dataProviders/ensembleKinds";
+import type { VisualizationKind } from "../../dataProviders/visualizationKinds";
 import { ItemDelegate } from "../../delegates/ItemDelegate";
 import {
     SettingsContextDelegate,
@@ -300,6 +301,10 @@ export class DataProvider<
 
     getType(): string {
         return this._type;
+    }
+
+    getCompatibleVisualizationKinds(): readonly VisualizationKind[] | undefined {
+        return this._customDataProviderImpl.compatibleVisualizationKinds;
     }
 
     getItemDelegate() {

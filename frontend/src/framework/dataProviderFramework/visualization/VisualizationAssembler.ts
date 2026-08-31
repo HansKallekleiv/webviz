@@ -108,7 +108,7 @@ export type VisualizationGroup<
     numDataProviders: number;
     accumulatedData: TAccumulatedData;
     hoverVisualizationFunctions: HoverVisualizationFunctions<TTarget>;
-    customProps: TCustomGroupProps[TGroupType];
+    customProps: TGroupType extends keyof TCustomGroupProps ? TCustomGroupProps[TGroupType] : never;
 };
 
 export type GroupPropsCollectorArgs<
@@ -125,8 +125,11 @@ export interface GroupCustomPropsCollector<
     TGroupKey extends keyof TCustomGroupProps,
     TCustomGroupProps extends CustomGroupPropsMap = Record<string, never>,
     TSettingKey extends SettingsKeysFromTuple<TSettings> = SettingsKeysFromTuple<TSettings>,
+    TAccumulatedData extends Record<string, any> = Record<string, never>,
 > {
-    (args: GroupPropsCollectorArgs<TSettings, TSettingKey>): TCustomGroupProps[TGroupKey];
+    (
+        args: GroupPropsCollectorArgs<TSettings, TSettingKey> & { accumulatedData: TAccumulatedData },
+    ): TCustomGroupProps[TGroupKey];
 }
 
 export type Annotation = ColorScaleWithId; // Add more possible annotation types here, e.g. ColorSets etc.
@@ -250,7 +253,7 @@ export class VisualizationAssembler<
 
     private _groupCustomPropsCollectors: Map<
         keyof TCustomGroupProps,
-        GroupCustomPropsCollector<any, any, TCustomGroupProps>
+        GroupCustomPropsCollector<any, any, TCustomGroupProps, any, TAccumulatedData>
     > = new Map();
 
     // Keyed by the DataProvider instance itself (not its ID string) so that entries for destroyed data
@@ -287,7 +290,7 @@ export class VisualizationAssembler<
         groupCtor: {
             new (...params: any[]): CustomGroupImplementation | CustomGroupImplementationWithSettings<TSettings>;
         },
-        collector: GroupCustomPropsCollector<TSettings, TGroupType, TCustomGroupProps>,
+        collector: GroupCustomPropsCollector<TSettings, TGroupType, TCustomGroupProps, any, TAccumulatedData>,
     ): void {
         if (this._dataProviderTransformers.has(groupCtor.name)) {
             throw new Error(`Data collector function for group ${groupCtor.name} already registered`);
@@ -476,7 +479,12 @@ export class VisualizationAssembler<
             numDataProviders,
             accumulatedData,
             hoverVisualizationFunctions,
-            customProps: {} as TCustomGroupProps,
+            customProps: {} as VisualizationGroup<
+                TTarget,
+                TCustomGroupProps,
+                TAccumulatedData,
+                GroupType
+            >["customProps"],
         };
     }
 
@@ -542,13 +550,15 @@ export class VisualizationAssembler<
             numDataProviders: product.numDataProviders,
             accumulatedData: product.accumulatedData,
             hoverVisualizationFunctions: product.hoverVisualizationFunctions,
-            customProps:
+            customProps: (
                 func?.({
                     id: group.getItemDelegate().getId(),
                     name: group.getItemDelegate().getName(),
                     getSetting: <TKey extends TSettingKey>(setting: TKey) =>
                         group.getSharedSettingsDelegate()?.getWrappedSettings()[setting].getValue() ?? null,
-                }) ?? ({} as TCustomGroupProps),
+                    accumulatedData: product.accumulatedData,
+                }) ?? {}
+            ) as VisualizationGroup<TTarget, TCustomGroupProps, TAccumulatedData, GroupType>["customProps"],
         };
     }
 

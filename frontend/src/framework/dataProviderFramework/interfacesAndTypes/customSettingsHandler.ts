@@ -5,6 +5,7 @@ import type { WorkbenchSession } from "@framework/WorkbenchSession";
 import type { WorkbenchSettings } from "@framework/WorkbenchSettings";
 
 import type { Accessors, Dependency, NonPending, NoUpdate, Read, UnwrapRead } from "../delegates/_utils/Dependency";
+import type { DataProvider } from "../framework/DataProvider/DataProvider";
 import type { Settings, SettingTypeDefinitions } from "../settings/settingsDefinitions";
 
 import type { NullableStoredData, StoredData } from "./sharedTypes";
@@ -117,6 +118,8 @@ export interface SetupBasicBindingsContext<
     makeSharedResult: <T, TReads extends Record<string, Read<any>> = Record<string, never>>(
         args: ResolverSpec<T, TSettings, TSettingTypes, TKey, TReads> & { debugName: string },
     ) => SharedResult<T, TSettings, TSettingTypes, TKey, TReads>;
+
+    getDescendantDataProviders: () => readonly DataProvider<any, any>[];
 
     workbenchSession: WorkbenchSession;
     workbenchSettings: WorkbenchSettings;

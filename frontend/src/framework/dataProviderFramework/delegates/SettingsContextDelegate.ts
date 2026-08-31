@@ -565,6 +565,8 @@ export class SettingsContextDelegate<
 
             makeSharedResult,
 
+            getDescendantDataProviders: () => [],
+
             workbenchSession: this.getDataProviderManager().getWorkbenchSession(),
             workbenchSettings: this.getDataProviderManager().getWorkbenchSettings(),
             queryClient: this.getDataProviderManager().getQueryClient(),

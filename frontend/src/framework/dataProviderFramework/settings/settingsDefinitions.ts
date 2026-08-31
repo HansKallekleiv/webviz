@@ -13,6 +13,9 @@ import type { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
 import type { ProductionPhase, InjectionPhase } from "@framework/types/wellbore";
 import type { ColorSet } from "@lib/utils/ColorSet";
 
+import type { VisualizationKind } from "../dataProviders/visualizationKinds";
+import type { PlotDimension } from "../visualization/plotTypes";
+
 import type { IntersectionSettingOption, IntersectionSettingValue } from "./implementations/IntersectionSetting";
 import type { PolygonVisualizationSpec } from "./implementations/PolygonVisualizationSetting";
 import type { Representation } from "./implementations/RepresentationSetting";
@@ -81,6 +84,9 @@ export enum Setting {
     REPRESENTATION = "representation",
     FLOW_FILTER_TYPE = "flowFilterType",
     FLOW_FILTER = "flowFilter",
+    VISUALIZATION_KIND = "visualizationKind",
+    SUBPLOT_BY = "subplotBy",
+    COLOR_BY = "colorBy",
 }
 
 /**
@@ -269,6 +275,21 @@ export type SettingTypeDefinitions = {
         internalValue: Representation | null;
         externalValue: Representation | null;
         valueConstraints: Representation[];
+    };
+    [Setting.VISUALIZATION_KIND]: {
+        internalValue: VisualizationKind | null;
+        externalValue: VisualizationKind | null;
+        valueConstraints: VisualizationKind[];
+    };
+    [Setting.SUBPLOT_BY]: {
+        internalValue: PlotDimension | null;
+        externalValue: PlotDimension | null;
+        valueConstraints: PlotDimension[];
+    };
+    [Setting.COLOR_BY]: {
+        internalValue: PlotDimension | null;
+        externalValue: PlotDimension | null;
+        valueConstraints: PlotDimension[];
     };
     [Setting.PLOT_VARIANT]: {
         internalValue: TemplatePlotType | null;

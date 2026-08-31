@@ -2,13 +2,17 @@ import { StatisticFunction_api } from "@api";
 import { SummaryVectorRepresentation } from "@framework/domain/DataAddress";
 import { getColumnValue, type RealizationTable } from "@framework/domain/RealizationTable";
 
+import type { InplaceVolumesSettings } from "../dataProviders/implementations/InplaceVolumesProvider";
 import type {
     SummaryVectorHistoryData,
+    SummaryVectorHistorySettings,
     SummaryVectorObservationData,
+    SummaryVectorObservationSettings,
 } from "../dataProviders/implementations/SummaryVectorAuxiliaryProviders";
-import type { SummaryVectorData } from "../dataProviders/implementations/SummaryVectorProvider";
+import type { SummaryVectorData, SummaryVectorSettings } from "../dataProviders/implementations/SummaryVectorProvider";
 
 import type { SeriesPointIdentity, SeriesRole, SeriesVisualization } from "./plotTypes";
+import type { TransformerArgs } from "./VisualizationAssembler";
 
 export const PlotSeriesGroupKey = {
     ENSEMBLE: "ensemble",
@@ -18,6 +22,34 @@ export const PlotSeriesGroupKey = {
     STATISTIC: "statistic",
     VECTOR: "vector",
 } as const;
+
+export function transformSummaryVectorToPlot(
+    args: TransformerArgs<SummaryVectorSettings, SummaryVectorData>,
+): SeriesVisualization[] {
+    const data = args.getData();
+    return data ? makeSummaryVectorSeries(data, args.id) : [];
+}
+
+export function transformSummaryVectorHistoryToPlot(
+    args: TransformerArgs<SummaryVectorHistorySettings, SummaryVectorHistoryData>,
+): SeriesVisualization[] {
+    const data = args.getData();
+    return data ? makeSummaryVectorHistorySeries(data, args.id) : [];
+}
+
+export function transformSummaryVectorObservationToPlot(
+    args: TransformerArgs<SummaryVectorObservationSettings, SummaryVectorObservationData>,
+): SeriesVisualization[] {
+    const data = args.getData();
+    return data ? makeSummaryVectorObservationSeries(data, args.id) : [];
+}
+
+export function transformInplaceVolumesToPlot(
+    args: TransformerArgs<InplaceVolumesSettings, RealizationTable>,
+): SeriesVisualization[] {
+    const data = args.getData();
+    return data ? makeInplaceVolumesSeries(data, args.id) : [];
+}
 
 export function makeSummaryVectorSeries(data: SummaryVectorData, providerId: string): SeriesVisualization[] {
     const commonKeys = {

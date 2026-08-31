@@ -1,6 +1,13 @@
 import { describe, expect, test } from "vitest";
 
 import { Frequency_api, StatisticFunction_api } from "@api";
+import { VisualizationKind } from "@framework/dataProviderFramework/dataProviders/visualizationKinds";
+import { getCompatibleVisualizationKinds } from "@framework/dataProviderFramework/groups/implementations/PlotView";
+import {
+    allocatePlotColors,
+    collectPlotGroup,
+    makePlotFacets,
+} from "@framework/dataProviderFramework/visualization/plotCollector";
 import {
     makeInplaceVolumesSeries,
     makeSummaryVectorHistorySeries,
@@ -8,6 +15,7 @@ import {
     makeSummaryVectorSeries,
     PlotSeriesGroupKey,
 } from "@framework/dataProviderFramework/visualization/plotTransformers";
+import { PlotDimension, type SeriesVisualization } from "@framework/dataProviderFramework/visualization/plotTypes";
 import { VisualizationTarget } from "@framework/dataProviderFramework/visualization/VisualizationAssembler";
 import { DataKind, SummaryVectorRepresentation, type InplaceVolumesAddress } from "@framework/domain/DataAddress";
 import type { RealizationTable } from "@framework/domain/RealizationTable";
@@ -134,5 +142,74 @@ describe("plot visualization contract", () => {
         ]);
         expect(series[1].groupKeys).not.toHaveProperty("SENSITIVITY_NAME");
         expect(series[1].identity?.[0]?.indexValues?.SENSITIVITY_NAME).toBeNull();
+    });
+
+    test("intersects visualization kinds across providers", () => {
+        const provider = (kinds: readonly VisualizationKind[]) =>
+            ({ getCompatibleVisualizationKinds: () => kinds }) as never;
+
+        expect(
+            getCompatibleVisualizationKinds([
+                provider([VisualizationKind.TIME_SERIES, VisualizationKind.BAR]),
+                provider([VisualizationKind.BAR, VisualizationKind.TABLE]),
+            ]),
+        ).toEqual([VisualizationKind.BAR]);
+        expect(
+            getCompatibleVisualizationKinds([
+                provider([VisualizationKind.TIME_SERIES]),
+                provider([VisualizationKind.HISTOGRAM]),
+            ]),
+        ).toEqual([]);
+    });
+
+    test("allocates stable colors from sorted domains and honors ensemble colors", () => {
+        const makeSeries = (ensembleName: string): SeriesVisualization => ({
+            groupKeys: { ensemble: ensembleName, provider: `provider-${ensembleName}` },
+            role: "primary",
+            points: { x: [], y: [] },
+        });
+        const firstOrder = [makeSeries("B"), makeSeries("A")];
+        const secondOrder = [...firstOrder].reverse();
+
+        expect(allocatePlotColors(firstOrder, PlotDimension.PROVIDER, ["red", "blue"])).toEqual(
+            allocatePlotColors(secondOrder, PlotDimension.PROVIDER, ["red", "blue"]),
+        );
+        expect(allocatePlotColors(firstOrder, PlotDimension.ENSEMBLE, ["red"], { A: "green" })).toEqual([
+            { key: "A", color: "green" },
+            { key: "B", color: "red" },
+        ]);
+    });
+
+    test("builds deterministic facets and grouped volume statistics", () => {
+        const series: SeriesVisualization[] = [
+            { groupKeys: { ZONE: "B" }, role: "primary", points: { x: [1], y: [20] } },
+            { groupKeys: { ZONE: "A" }, role: "primary", points: { x: [1], y: [10] } },
+        ];
+        const address: InplaceVolumesAddress = {
+            kind: DataKind.INPLACE_VOLUMES,
+            ensemble,
+            gridName: "grid",
+            resultName: "STOIIP",
+            filters: { zone: [], region: [], facies: [], license: [] },
+        };
+        const table: RealizationTable = {
+            keyColumns: { realization: new Int32Array([1, 2]) },
+            indexColumns: { ZONE: ["A", "B"] },
+            valueColumns: [{ name: "STOIIP", unit: "Sm3", values: new Float64Array([10, 20]) }],
+            origin: { ensemble, address },
+        };
+
+        expect(makePlotFacets(series, PlotDimension.ZONE).map((facet) => facet.key)).toEqual(["A", "B"]);
+        const product = collectPlotGroup(
+            { series, realizationTables: [table] },
+            {
+                visualizationKind: VisualizationKind.HISTOGRAM,
+                colorBy: PlotDimension.ZONE,
+                subplotBy: PlotDimension.ZONE,
+                categoricalPalette: ["red", "blue"],
+            },
+        );
+        expect(product.legendKeys).toEqual(["A", "B"]);
+        expect(product.statisticsTables[0].groups.map((group) => group.valueStatistics.STOIIP.mean)).toEqual([10, 20]);
     });
 });

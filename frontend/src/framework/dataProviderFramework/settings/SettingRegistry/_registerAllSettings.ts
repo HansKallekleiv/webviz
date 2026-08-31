@@ -17,6 +17,7 @@ import { InputNumberSetting } from "../implementations/InputNumberSetting";
 import { IntersectionSetting } from "../implementations/IntersectionSetting";
 import { LogCurveSetting } from "../implementations/LogCurveSetting";
 import { NumberRangeDropdownSetting } from "../implementations/NumberRangeDropdownSetting";
+import { PlotDimensionSetting } from "../implementations/PlotDimensionSetting";
 import { PolygonVisualizationSetting } from "../implementations/PolygonVisualizationSetting";
 import { RadioGroupSetting } from "../implementations/RadioGroupSetting";
 import { RepresentationSetting } from "../implementations/RepresentationSetting";
@@ -31,6 +32,7 @@ import { StaticRotationSetting } from "../implementations/StaticRotationSetting"
 import { StatisticFunctionSetting } from "../implementations/StatisticFunctionSetting";
 import { TimeOrIntervalSetting } from "../implementations/TimeOrIntervalSetting";
 import { VectorResamplingFrequencySetting } from "../implementations/VectorResamplingFrequencySetting";
+import { VisualizationKindSetting } from "../implementations/VisualizationKindSetting";
 import { WellboreDepthFilterAttributeSetting } from "../implementations/WellboreDepthFilterAttributeSetting";
 import { WellboreDepthFilterSetting } from "../implementations/WellboreDepthFilterSetting";
 import { Setting } from "../settingsDefinitions";
@@ -169,6 +171,9 @@ SettingRegistry.registerSetting(Setting.TIME_INTERVAL, "Time Interval", TimeOrIn
 
 SettingRegistry.registerSetting(Setting.WELLBORE_PICKS, "Wellbore Picks", DrilledWellborePicksSetting);
 SettingRegistry.registerSetting(Setting.REPRESENTATION, "Representation", RepresentationSetting);
+SettingRegistry.registerSetting(Setting.VISUALIZATION_KIND, "Visualization", VisualizationKindSetting);
+SettingRegistry.registerSetting(Setting.SUBPLOT_BY, "Subplot by", PlotDimensionSetting);
+SettingRegistry.registerSetting(Setting.COLOR_BY, "Color by", PlotDimensionSetting);
 SettingRegistry.registerSetting(Setting.WELLBORE_DEPTH_FILTER_TYPE, "Depth Filter", RadioGroupSetting, {
     customConstructorParameters: [
         {

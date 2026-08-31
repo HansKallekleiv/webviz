@@ -2,6 +2,7 @@ import { StatusMessageStoreTopic, type StatusMessage } from "@framework/types/st
 import { PublishSubscribeDelegate, type PublishSubscribe } from "@lib/utils/PublishSubscribeDelegate";
 import { UnsubscribeFunctionsManagerDelegate } from "@lib/utils/UnsubscribeFunctionsManagerDelegate";
 
+import { isDataProvider } from "../framework/DataProvider/DataProvider";
 import { DataProviderManagerTopic, type GlobalSettings } from "../framework/DataProviderManager/DataProviderManager";
 import { ExternalSettingController } from "../framework/ExternalSettingController/ExternalSettingController";
 import { SettingTopic, type SettingManager } from "../framework/SettingManager/SettingManager";
@@ -11,7 +12,7 @@ import type {
     SetupBasicBindingsContext,
     SharedResult,
 } from "../interfacesAndTypes/customSettingsHandler";
-import type { Item } from "../interfacesAndTypes/entities";
+import { instanceofItemGroup, type Item } from "../interfacesAndTypes/entities";
 import type { SerializedSettingsState } from "../interfacesAndTypes/serialization";
 import type { MakeSettingTypesMap, SettingsKeysFromTuple } from "../interfacesAndTypes/utils";
 import { SettingRegistry } from "../settings/SettingRegistry";
@@ -379,6 +380,11 @@ export class SharedSettingsDelegate<
             }),
 
             makeSharedResult,
+
+            getDescendantDataProviders: () =>
+                instanceofItemGroup(this._parentItem)
+                    ? this._parentItem.getGroupDelegate().getDescendantItems(isDataProvider).filter(isDataProvider)
+                    : [],
 
             workbenchSession: dataProviderManager.getWorkbenchSession(),
             workbenchSettings: dataProviderManager.getWorkbenchSettings(),
