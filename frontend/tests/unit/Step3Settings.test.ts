@@ -95,4 +95,52 @@ describe("Step 3 settings", () => {
         });
         provider.beforeDestroy();
     });
+
+    test("clears setting loading when async constraints resolve", async () => {
+        let resolveUpdatedConstraints: (values: string[]) => void = () => undefined;
+        const updatedConstraintsPromise = new Promise<string[]>((resolve) => {
+            resolveUpdatedConstraints = resolve;
+        });
+        let resolutionCount = 0;
+        const settings = [Setting.ENSEMBLE, Setting.VECTOR_NAME] as const;
+        const implementation: CustomDataProviderImplementation<typeof settings, null> = {
+            settings,
+            getDefaultName: () => "Async constraints provider",
+            setupBindings({ setting }) {
+                setting(Setting.VECTOR_NAME).bindValueConstraints({
+                    read: (read) => ({ ensemble: read.localSetting(Setting.ENSEMBLE) }),
+                    resolve: async () => (++resolutionCount === 1 ? ["FOPT"] : updatedConstraintsPromise),
+                });
+            },
+            async fetchData() {
+                return null;
+            },
+        };
+        const manager = {
+            getPublishSubscribeDelegate: () => new PublishSubscribeDelegate(),
+            getGlobalSetting: () => null,
+            getWorkbenchSession: () => ({}),
+            getWorkbenchSettings: () => ({}),
+            getQueryClient: () => ({}),
+            getGroupDelegate: () => null,
+            publishTopic: () => undefined,
+        } as unknown as DataProviderManager;
+        const provider = new DataProvider({
+            type: "async-constraints-provider",
+            dataProviderManager: manager,
+            customDataProviderImplementation: implementation,
+        });
+        const setting = provider.getSettingsContextDelegate().getSettings()[Setting.VECTOR_NAME];
+        const ensembleSetting = provider.getSettingsContextDelegate().getSettings()[Setting.ENSEMBLE];
+
+        ensembleSetting.setValue(new RegularEnsembleIdent(FIRST_UUID, "first"));
+        await vi.waitFor(() => expect(setting.getValueConstraints()).toEqual(["FOPT"]));
+        ensembleSetting.setValue(new RegularEnsembleIdent(SECOND_UUID, "second"));
+        await vi.waitFor(() => expect(setting.isLoading()).toBe(true));
+        resolveUpdatedConstraints(["FOPT", "FGPT"]);
+        await vi.waitFor(() => expect(setting.isLoading()).toBe(false));
+        expect(setting.getValueConstraints()).toEqual(["FOPT", "FGPT"]);
+
+        provider.beforeDestroy();
+    });
 });

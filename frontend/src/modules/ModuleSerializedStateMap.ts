@@ -5,6 +5,7 @@ import type { SerializedSettings as M_2DViewerSettings } from "@modules/2DViewer
 import type { SerializedView as M_2DViewerView } from "@modules/2DViewer/view/persistence";
 import type { SerializedSettings as M_3DViewerSettings } from "@modules/3DViewer/settings/persistence";
 import type { SerializedView as M_3DViewerView } from "@modules/3DViewer/view/persistence";
+import type { SerializedSettings as DistributionChartSettings } from "@modules/DistributionChart/settings/persistence";
 import type { SerializedSettings as DistributionPlotSettings } from "@modules/DistributionPlot/settings/persistence";
 import type { SerializedSettings as FlowNetworkSettings } from "@modules/FlowNetwork/settings/persistence";
 import type { SerializedSettings as InplaceVolumesComparisonSettings } from "@modules/InplaceVolumesComparison/settings/persistence";
@@ -26,6 +27,7 @@ import type { SerializedSettings as SimulationTimeSeriesSettings } from "@module
 import type { SerializedView as SimulationTimeSeriesView } from "@modules/SimulationTimeSeries/view/persistence";
 import type { SerializedSettings as SimulationTimeSeriesSensitivitySettings } from "@modules/SimulationTimeSeriesSensitivity/settings/persistence";
 import type { SerializedView as SimulationTimeSeriesSensitivityView } from "@modules/SimulationTimeSeriesSensitivity/view/persistence";
+import type { SerializedSettings as TimeSeriesChartSettings } from "@modules/TimeSeriesChart/settings/persistence";
 import type { SerializedSettings as VfpSettings } from "@modules/Vfp/settings/persistence";
 import type { SerializedSettings as WellCompletionsSettings } from "@modules/WellCompletions/settings/persistence";
 import type { SerializedSettings as WellLogViewerSettings } from "@modules/WellLogViewer/settings/persistence";
@@ -38,6 +40,10 @@ export type ModuleSerializedStateMap = {
   "3DViewer": {
     settings?: Partial<M_3DViewerSettings>,
     view?: Partial<M_3DViewerView>,
+  },
+  "DistributionChart": {
+    settings?: Partial<DistributionChartSettings>,
+    view?: never,
   },
   "DistributionPlot": {
     settings?: Partial<DistributionPlotSettings>,
@@ -110,6 +116,10 @@ export type ModuleSerializedStateMap = {
   "SimulationTimeSeriesSensitivity": {
     settings?: Partial<SimulationTimeSeriesSensitivitySettings>,
     view?: Partial<SimulationTimeSeriesSensitivityView>,
+  },
+  "TimeSeriesChart": {
+    settings?: Partial<TimeSeriesChartSettings>,
+    view?: never,
   },
   "Vfp": {
     settings?: Partial<VfpSettings>,

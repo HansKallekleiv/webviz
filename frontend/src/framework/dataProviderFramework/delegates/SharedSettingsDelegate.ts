@@ -317,9 +317,7 @@ export class SharedSettingsDelegate<
             });
 
             dependency.subscribeLoading((loading: boolean) => {
-                if (loading) {
-                    internalSetting.setLoading(loading);
-                }
+                internalSetting.setLoading(loading);
             });
 
             this.subscribeToDependencyStatusMessages(dependency);

@@ -3,7 +3,7 @@ import { isDevMode } from "@lib/utils/devMode";
 
 import "./2DViewer/registerModule";
 import "./3DViewer/registerModule";
-import "./ChartViewer/registerModule";
+import "./DistributionChart/registerModule";
 import "./DistributionPlot/registerModule";
 import "./FlowNetwork/registerModule";
 import "./InplaceVolumesComparison/registerModule";
@@ -23,6 +23,7 @@ import "./SimulationTimeSeries/registerModule";
 import "./SimulationTimeSeriesSensitivity/registerModule";
 import "./SensitivityPlot/registerModule";
 import "./TemplateModule/registerModule";
+import "./TimeSeriesChart/registerModule";
 import "./Vfp/registerModule";
 import "./WellCompletions/registerModule";
 import "./WellLogViewer/registerModule";

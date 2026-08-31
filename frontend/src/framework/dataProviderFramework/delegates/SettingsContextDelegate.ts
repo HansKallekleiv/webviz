@@ -456,9 +456,7 @@ export class SettingsContextDelegate<
             });
 
             dependency.subscribeLoading((loading: boolean) => {
-                if (loading) {
-                    this._settings[settingKey].setLoading(loading);
-                }
+                this._settings[settingKey].setLoading(loading);
                 this.handleSettingChanged();
             });
 

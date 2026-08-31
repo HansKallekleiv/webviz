@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useAtom } from "jotai";
@@ -6,12 +6,16 @@ import { useAtom } from "jotai";
 import { usePersistedDataProviderManager } from "@framework/dataProviderFramework/hooks/usePersistedDataProviderManager";
 import type { ModuleSettingsProps } from "@framework/Module";
 
-import { applyChartViewerPreset, ChartViewerPreset } from "../presets";
+import type { ChartViewerMode } from "../config";
 
 import { dataProviderManagerAtom, dataProviderStateAtom } from "./atoms";
 import { DataProviderManagerWrapper } from "./DataProviderManagerWrapper";
 
-export function Settings(props: ModuleSettingsProps<any>): React.ReactNode {
+export type SettingsProps = ModuleSettingsProps<any> & {
+    mode: ChartViewerMode;
+};
+
+export function Settings(props: SettingsProps): React.ReactNode {
     const queryClient = useQueryClient();
     const [dataProviderManager, setDataProviderManager] = useAtom(dataProviderManagerAtom);
     const [dataProviderState, setDataProviderState] = useAtom(dataProviderStateAtom);
@@ -25,16 +29,6 @@ export function Settings(props: ModuleSettingsProps<any>): React.ReactNode {
         queryClient,
     });
 
-    React.useEffect(
-        function initializeNewModule() {
-            if (!dataProviderManager || dataProviderState || dataProviderManager.getGroupDelegate().getChildren().length) {
-                return;
-            }
-            applyChartViewerPreset(dataProviderManager, ChartViewerPreset.TIME_SERIES);
-        },
-        [dataProviderManager, dataProviderState],
-    );
-
     if (!dataProviderManager) return null;
 
     return (
@@ -42,7 +36,7 @@ export function Settings(props: ModuleSettingsProps<any>): React.ReactNode {
             <DataProviderManagerWrapper
                 dataProviderManager={dataProviderManager}
                 workbenchSettings={props.workbenchSettings}
-                onApplyPreset={(preset) => applyChartViewerPreset(dataProviderManager, preset)}
+                mode={props.mode}
             />
         </div>
     );

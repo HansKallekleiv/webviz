@@ -4,6 +4,7 @@ import { ORDERED_VOLUME_DEFINITIONS } from "@assets/volumeDefinitions";
 
 import {
     postGetAggregatedPerRealizationInplaceTableDataOptions,
+    type InplaceVolumesTableDefinition_api,
     type InplaceVolumesTableDataPerFluidSelection_api,
 } from "@api";
 import { DataKind, type InplaceVolumesAddress } from "@framework/domain/DataAddress";
@@ -29,8 +30,13 @@ const inplaceVolumesSettings = [
 
 export type InplaceVolumesSettings = typeof inplaceVolumesSettings;
 type SettingsWithTypes = MakeSettingTypesMap<InplaceVolumesSettings>;
+export type InplaceVolumesStoredData = {
+    tableDefinitions: readonly InplaceVolumesTableDefinition_api[];
+};
 
-export class InplaceVolumesProvider implements CustomDataProviderImplementation<InplaceVolumesSettings, RealizationTable> {
+export class InplaceVolumesProvider
+    implements CustomDataProviderImplementation<InplaceVolumesSettings, RealizationTable, InplaceVolumesStoredData>
+{
     settings = inplaceVolumesSettings;
     compatibleVisualizationKinds = [
         VisualizationKind.HISTOGRAM,
@@ -48,12 +54,12 @@ export class InplaceVolumesProvider implements CustomDataProviderImplementation<
         return !isEqual(previous, next);
     }
 
-    makeValueRange({ getData }: DataProviderAccessors<InplaceVolumesSettings, RealizationTable>) {
+    makeValueRange({ getData }: DataProviderAccessors<InplaceVolumesSettings, RealizationTable, InplaceVolumesStoredData>) {
         const values = getData()?.valueColumns.flatMap((column) => [...column.values]);
         return values?.length ? ([Math.min(...values), Math.max(...values)] as const) : null;
     }
 
-    areCurrentSettingsValid({ getSetting }: DataProviderAccessors<InplaceVolumesSettings, RealizationTable>): boolean {
+    areCurrentSettingsValid({ getSetting }: DataProviderAccessors<InplaceVolumesSettings, RealizationTable, InplaceVolumesStoredData>): boolean {
         return Boolean(
             getSetting(Setting.ENSEMBLE) &&
                 getSetting(Setting.REALIZATIONS)?.length &&
@@ -63,7 +69,7 @@ export class InplaceVolumesProvider implements CustomDataProviderImplementation<
         );
     }
 
-    setupBindings(context: SetupBindingsContext<InplaceVolumesSettings>): void {
+    setupBindings(context: SetupBindingsContext<InplaceVolumesSettings, InplaceVolumesStoredData>): void {
         const { setting } = context;
         setting(Setting.ENSEMBLE).bindValueConstraints({
             read: (read) => ({ fieldId: read.globalSetting("fieldId"), ensembles: read.globalSetting("ensembles") }),
@@ -82,6 +88,10 @@ export class InplaceVolumesProvider implements CustomDataProviderImplementation<
         const catalogue = makeInplaceVolumesTableDefinitionsSharedResult(context, (read) =>
             read.localSetting(Setting.ENSEMBLE),
         );
+        context.storedData("tableDefinitions").bindValue({
+            read: (read) => ({ catalogue: read.sharedResult(catalogue) }),
+            resolve: ({ catalogue }) => catalogue?.tableDefinitions ?? null,
+        });
         setting(Setting.GRID_NAME).bindValueConstraints({
             read: (read) => ({ catalogue: read.sharedResult(catalogue) }),
             resolve: ({ catalogue }) => catalogue?.tableDefinitions.map((item) => item.tableName) ?? [],
@@ -115,7 +125,7 @@ export class InplaceVolumesProvider implements CustomDataProviderImplementation<
         }
     }
 
-    async fetchData({ getSetting, getSettingValueConstraints, getWorkbenchSession, fetchQuery }: FetchDataParams<InplaceVolumesSettings, RealizationTable>) {
+    async fetchData({ getSetting, getSettingValueConstraints, getStoredData, getWorkbenchSession, fetchQuery }: FetchDataParams<InplaceVolumesSettings, RealizationTable, InplaceVolumesStoredData>) {
         const ensemble = getSetting(Setting.ENSEMBLE);
         const gridName = getSetting(Setting.GRID_NAME);
         const resultName = getSetting(Setting.INPLACE_RESULT);
@@ -140,6 +150,12 @@ export class InplaceVolumesProvider implements CustomDataProviderImplementation<
                 ? [{ indexColumn: setting.toUpperCase(), values }]
                 : [];
         });
+        const fluidValues = getStoredData("tableDefinitions")
+            ?.find((item) => item.tableName === gridName)
+            ?.indicesWithValues.find((item) => item.indexColumn === "FLUID")?.values;
+        if (fluidValues?.length) {
+            indicesWithValues.push({ indexColumn: "FLUID", values: fluidValues });
+        }
         const realizations = getSetting(Setting.REALIZATIONS);
         const response = await fetchQuery(
             postGetAggregatedPerRealizationInplaceTableDataOptions({

@@ -5,7 +5,7 @@ import {
     SERIALIZED_SETTINGS_SCHEMA,
     serializeSettings,
     type SerializedSettings,
-} from "./settings/persistence";
+} from "./settings/settingsSerialization";
 
 export type SerializedState = {
     settings: SerializedSettings;

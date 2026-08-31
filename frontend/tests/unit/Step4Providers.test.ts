@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import * as Api from "@api";
-import { makeRealizationTable } from "@framework/dataProviderFramework/dataProviders/implementations/InplaceVolumesProvider";
+import {
+    InplaceVolumesProvider,
+    makeRealizationTable,
+} from "@framework/dataProviderFramework/dataProviders/implementations/InplaceVolumesProvider";
 import { SummaryVectorProvider } from "@framework/dataProviderFramework/dataProviders/implementations/SummaryVectorProvider";
 import { VisualizationKind } from "@framework/dataProviderFramework/dataProviders/visualizationKinds";
 import { Representation } from "@framework/dataProviderFramework/settings/implementations/RepresentationSetting";
@@ -22,6 +25,9 @@ vi.mock("@api", async (importOriginal) => {
         })),
         getRealizationsVectorDataOptions: vi.fn((options) => ({ queryKey: ["regular-realizations", options] })),
         getStatisticalVectorDataOptions: vi.fn((options) => ({ queryKey: ["regular-statistics", options] })),
+        postGetAggregatedPerRealizationInplaceTableDataOptions: vi.fn((options) => ({
+            queryKey: ["inplace-realizations", options],
+        })),
     };
 });
 
@@ -100,6 +106,45 @@ describe("SummaryVectorProvider", () => {
         await expect(provider.fetchData(makeParams(delta) as never)).rejects.toThrow(
             "Delta vector data requires a resampling frequency",
         );
+    });
+});
+
+describe("InplaceVolumesProvider", () => {
+    test("includes all catalogue fluid values in the request", async () => {
+        const ensemble = new RegularEnsembleIdent(FIRST_UUID, "first");
+        const provider = new InplaceVolumesProvider();
+        const fetchQuery = vi.fn().mockResolvedValue({ tableDataPerFluidSelection: [] });
+        const settings = new Map<Setting, unknown>([
+            [Setting.ENSEMBLE, ensemble],
+            [Setting.REALIZATIONS, [1, 2]],
+            [Setting.GRID_NAME, "grid"],
+            [Setting.INPLACE_RESULT, "STOIIP"],
+            [Setting.ZONE, []],
+            [Setting.REGION, []],
+            [Setting.FACIES, []],
+            [Setting.LICENSE, []],
+        ]);
+
+        await provider.fetchData({
+            getSetting: (setting: Setting) => settings.get(setting),
+            getSettingValueConstraints: () => [],
+            getStoredData: () => [
+                {
+                    tableName: "grid",
+                    resultNames: ["STOIIP"],
+                    indicesWithValues: [{ indexColumn: "FLUID", values: ["gas", "oil", "water"] }],
+                },
+            ],
+            getWorkbenchSession: () => ({
+                getEnsembleSet: () => ({ getEnsemble: () => ({ getSensitivities: () => null }) }),
+            }),
+            fetchQuery,
+        } as never);
+
+        expect(fetchQuery.mock.calls[0][0].queryKey[1].body.indices_with_values).toContainEqual({
+            indexColumn: "FLUID",
+            values: ["gas", "oil", "water"],
+        });
     });
 });
 

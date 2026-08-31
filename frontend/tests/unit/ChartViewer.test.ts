@@ -3,12 +3,9 @@ import { describe, expect, test } from "vitest";
 
 import { DataProviderType } from "@framework/dataProviderFramework/dataProviders/dataProviderTypes";
 import { VisualizationKind } from "@framework/dataProviderFramework/dataProviders/visualizationKinds";
-import { DataProvider } from "@framework/dataProviderFramework/framework/DataProvider/DataProvider";
 import { DataProviderManager } from "@framework/dataProviderFramework/framework/DataProviderManager/DataProviderManager";
-import { Group } from "@framework/dataProviderFramework/framework/Group/Group";
-import { SharedSetting } from "@framework/dataProviderFramework/framework/SharedSetting/SharedSetting";
+import { GroupRegistry } from "@framework/dataProviderFramework/groups/GroupRegistry";
 import { GroupType } from "@framework/dataProviderFramework/groups/groupTypes";
-import type { PlotViewSettings } from "@framework/dataProviderFramework/groups/implementations/PlotView";
 import { Setting } from "@framework/dataProviderFramework/settings/settingsDefinitions";
 import { makePlotVisualizationAssembler } from "@framework/dataProviderFramework/visualization/plotAssembler";
 import { PlotDimension } from "@framework/dataProviderFramework/visualization/plotTypes";
@@ -16,12 +13,12 @@ import type { RegularEnsemble } from "@framework/RegularEnsemble";
 import type { WorkbenchSession } from "@framework/WorkbenchSession";
 import type { WorkbenchSettings } from "@framework/WorkbenchSettings";
 import { PublishSubscribeDelegate } from "@lib/utils/PublishSubscribeDelegate";
-import { applyChartViewerPreset, ChartViewerPreset } from "@modules/ChartViewer/presets";
+import { ChartViewerMode, PROVIDER_ACTIONS, SETTING_ACTIONS } from "@modules/_shared/ChartViewer/config";
 import {
     collectPlotGroups,
     makePlotChannelContents,
     type PlotVisualizationGroup,
-} from "@modules/ChartViewer/view/plotChannelContents";
+} from "@modules/_shared/ChartViewer/view/plotChannelContents";
 
 function makeManager(): DataProviderManager {
     const sessionDelegate = new PublishSubscribeDelegate();
@@ -45,36 +42,32 @@ function makeManager(): DataProviderManager {
 }
 
 describe("ChartViewer", () => {
-    test.each([
-        [ChartViewerPreset.TIME_SERIES, VisualizationKind.TIME_SERIES, DataProviderType.SUMMARY_VECTOR],
-        [ChartViewerPreset.DISTRIBUTION, VisualizationKind.HISTOGRAM, DataProviderType.INPLACE_VOLUMES],
-    ])("builds the %s preset", async (preset, visualizationKind, providerType) => {
-        const manager = makeManager();
-        applyChartViewerPreset(manager, preset);
+    test("restricts providers by module mode", () => {
+        expect(PROVIDER_ACTIONS[ChartViewerMode.TIME_SERIES].map((action) => action.type)).toEqual([
+            DataProviderType.SUMMARY_VECTOR,
+            DataProviderType.SUMMARY_VECTOR_HISTORY,
+            DataProviderType.SUMMARY_VECTOR_OBSERVATIONS,
+        ]);
+        expect(PROVIDER_ACTIONS[ChartViewerMode.DISTRIBUTION].map((action) => action.type)).toEqual([
+            DataProviderType.INPLACE_VOLUMES,
+        ]);
+    });
 
-        const children = manager.getGroupDelegate().getChildren();
-        expect(children[0]).toBeInstanceOf(SharedSetting);
-        expect((children[0] as SharedSetting<any>).getWrappedSetting().getType()).toBe(Setting.ENSEMBLE);
-        expect(children[1]).toBeInstanceOf(Group);
+    test("restricts shared settings by module mode", () => {
+        const timeSeriesSettings = SETTING_ACTIONS[ChartViewerMode.TIME_SERIES].map((action) => action.setting);
+        const distributionSettings = SETTING_ACTIONS[ChartViewerMode.DISTRIBUTION].map((action) => action.setting);
 
-        const plotView = children[1] as Group<PlotViewSettings>;
-        expect(plotView.getGroupType()).toBe(GroupType.PLOT_VIEW);
-        await expect
-            .poll(() => plotView.getWrappedSettings()[Setting.VISUALIZATION_KIND].getValue())
-            .toBe(visualizationKind);
-        const providers = plotView
-            .getGroupDelegate()
-            .getChildren()
-            .filter((item): item is DataProvider<any, any> => item instanceof DataProvider);
-        expect(providers).toHaveLength(1);
-        expect(providers[0].getType()).toBe(providerType);
-
-        manager.beforeDestroy();
+        expect(timeSeriesSettings).toContain(Setting.VECTOR_NAME);
+        expect(timeSeriesSettings).not.toContain(Setting.INPLACE_RESULT);
+        expect(distributionSettings).toContain(Setting.INPLACE_RESULT);
+        expect(distributionSettings).not.toContain(Setting.VECTOR_NAME);
     });
 
     test("assembles a fresh preset before provider data is loaded", () => {
         const manager = makeManager();
-        applyChartViewerPreset(manager, ChartViewerPreset.TIME_SERIES);
+        manager
+            .getGroupDelegate()
+            .appendChild(GroupRegistry.makeGroup(GroupType.PLOT_VIEW, manager, manager.makeGroupColor()));
         const assembler = makePlotVisualizationAssembler({ categoricalPalette: ["#123456"] });
 
         const product = assembler.make(manager);

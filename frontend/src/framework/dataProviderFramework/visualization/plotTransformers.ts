@@ -2,7 +2,10 @@ import { StatisticFunction_api } from "@api";
 import { SummaryVectorRepresentation } from "@framework/domain/DataAddress";
 import { getColumnValue, type RealizationTable } from "@framework/domain/RealizationTable";
 
-import type { InplaceVolumesSettings } from "../dataProviders/implementations/InplaceVolumesProvider";
+import type {
+    InplaceVolumesSettings,
+    InplaceVolumesStoredData,
+} from "../dataProviders/implementations/InplaceVolumesProvider";
 import type {
     SummaryVectorHistoryData,
     SummaryVectorHistorySettings,
@@ -45,7 +48,7 @@ export function transformSummaryVectorObservationToPlot(
 }
 
 export function transformInplaceVolumesToPlot(
-    args: TransformerArgs<InplaceVolumesSettings, RealizationTable>,
+    args: TransformerArgs<InplaceVolumesSettings, RealizationTable, InplaceVolumesStoredData>,
 ): SeriesVisualization[] {
     const data = args.getData();
     return data ? makeInplaceVolumesSeries(data, args.id) : [];

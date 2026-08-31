@@ -1,5 +1,11 @@
+import type { RealizationTable } from "@framework/domain/RealizationTable";
+
 import { DataProviderType } from "../dataProviders/dataProviderTypes";
-import { InplaceVolumesProvider } from "../dataProviders/implementations/InplaceVolumesProvider";
+import {
+    InplaceVolumesProvider,
+    type InplaceVolumesSettings,
+    type InplaceVolumesStoredData,
+} from "../dataProviders/implementations/InplaceVolumesProvider";
 import {
     SummaryVectorHistoryProvider,
     SummaryVectorObservationsProvider,
@@ -61,7 +67,10 @@ export function makePlotVisualizationAssembler(options: PlotAssemblerOptions) {
                 accumulatePlotData(accumulatedData, transformSummaryVectorObservationToPlot(args)),
         },
     );
-    assembler.registerDataProviderTransformers(DataProviderType.INPLACE_VOLUMES, InplaceVolumesProvider, {
+    assembler.registerDataProviderTransformers<InplaceVolumesSettings, RealizationTable, InplaceVolumesStoredData>(
+        DataProviderType.INPLACE_VOLUMES,
+        InplaceVolumesProvider,
+        {
         transformToVisualization: transformInplaceVolumesToPlot,
         reduceAccumulatedData: (accumulatedData, args) => {
             const table = args.getData();
@@ -71,7 +80,8 @@ export function makePlotVisualizationAssembler(options: PlotAssemblerOptions) {
                 table ?? undefined,
             );
         },
-    });
+        },
+    );
 
     const collectPlotView: GroupCustomPropsCollector<
         PlotViewSettings,

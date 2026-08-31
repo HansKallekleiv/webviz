@@ -1,0 +1,1 @@
+export type { SerializedSettings } from "@modules/_shared/ChartViewer/settings/settingsSerialization";
