@@ -4,6 +4,7 @@ import type { StatusWriter } from "@framework/types/statusWriter";
 import type { WorkbenchSession } from "@framework/WorkbenchSession";
 import type { WorkbenchSettings } from "@framework/WorkbenchSettings";
 
+import type { EnsembleKind } from "../dataProviders/ensembleKinds";
 import type { GlobalSettings } from "../framework/DataProviderManager/DataProviderManager";
 import type { Settings, SettingTypeDefinitions } from "../settings/settingsDefinitions";
 
@@ -141,6 +142,8 @@ export interface CustomDataProviderImplementation<
     TSettingKey extends SettingsKeysFromTuple<TSettings> = SettingsKeysFromTuple<TSettings>,
     TStoredDataKey extends keyof TStoredData = keyof TStoredData,
 > extends CustomSettingsHandler<TSettings, TStoredData, TSettingTypes, TSettingKey, TStoredDataKey> {
+    supportsEnsembleKinds?: readonly EnsembleKind[];
+
     /**
      * The default name of a provider of this type.
      */

@@ -4,6 +4,11 @@ import { PublishSubscribeDelegate } from "@lib/utils/PublishSubscribeDelegate";
 import { UnsubscribeFunctionsManagerDelegate } from "@lib/utils/UnsubscribeFunctionsManagerDelegate";
 
 import {
+    filterEnsembleIdentsBySupportedKinds,
+    type EnsembleIdent,
+    type EnsembleKind,
+} from "../dataProviders/ensembleKinds";
+import {
     type DataProviderManager,
     DataProviderManagerTopic,
     type GlobalSettings,
@@ -20,7 +25,7 @@ import type {
 import type { SerializedSettingsState } from "../interfacesAndTypes/serialization";
 import type { NullableStoredData, StoredData } from "../interfacesAndTypes/sharedTypes";
 import type { MakeSettingTypesMap, SettingsKeysFromTuple } from "../interfacesAndTypes/utils";
-import type { Settings, SettingTypeDefinitions } from "../settings/settingsDefinitions";
+import { Setting, type Settings, type SettingTypeDefinitions } from "../settings/settingsDefinitions";
 
 import { Dependency, type Read } from "./_utils/Dependency";
 
@@ -89,16 +94,19 @@ export class SettingsContextDelegate<
     private _dependencies: Dependency<any, TSettings, any, any, any>[] = [];
 
     private _dependencyStatusMessages: StatusMessage[] = [];
+    private _supportedEnsembleKinds: readonly EnsembleKind[];
 
     constructor(
         customSettingsHandler: CustomSettingsHandler<TSettings, TStoredData, TSettingTypes, TSettingKey>,
         dataProviderManager: DataProviderManager,
         settings: { [K in TSettingKey]: SettingManager<K> },
+        supportedEnsembleKinds: readonly EnsembleKind[] = ["regular"],
     ) {
         this._customSettingsHandler = customSettingsHandler;
         this._dataProviderManager = dataProviderManager;
 
         this._settings = settings;
+        this._supportedEnsembleKinds = supportedEnsembleKinds;
 
         this._unsubscribeFunctionsManagerDelegate.registerUnsubscribeFunction(
             "dependencies",
@@ -425,7 +433,14 @@ export class SettingsContextDelegate<
                     this.setValueConstraints(settingKey, null as SettingTypeDefinitions[K]["valueConstraints"]);
                     return;
                 }
-                this.setValueConstraints(settingKey, valueConstraints);
+                const filteredValueConstraints =
+                    settingKey === Setting.ENSEMBLE
+                        ? filterEnsembleIdentsBySupportedKinds(
+                              valueConstraints as unknown as readonly EnsembleIdent[],
+                              this._supportedEnsembleKinds,
+                          )
+                        : valueConstraints;
+                this.setValueConstraints(settingKey, filteredValueConstraints as SettingTypeDefinitions[K]["valueConstraints"]);
                 this.handleSettingChanged();
             });
 

@@ -30,6 +30,7 @@ import { SliderRangeSetting } from "../implementations/SliderRangeSetting";
 import { StaticRotationSetting } from "../implementations/StaticRotationSetting";
 import { StatisticFunctionSetting } from "../implementations/StatisticFunctionSetting";
 import { TimeOrIntervalSetting } from "../implementations/TimeOrIntervalSetting";
+import { VectorResamplingFrequencySetting } from "../implementations/VectorResamplingFrequencySetting";
 import { WellboreDepthFilterAttributeSetting } from "../implementations/WellboreDepthFilterAttributeSetting";
 import { WellboreDepthFilterSetting } from "../implementations/WellboreDepthFilterSetting";
 import { Setting } from "../settingsDefinitions";
@@ -117,6 +118,13 @@ SettingRegistry.registerSetting(Setting.FLUID_CONTACT, "Fluid Contact", Dropdown
         },
     ],
 });
+SettingRegistry.registerSetting(Setting.VECTOR_NAME, "Vector", DropdownStringSetting);
+SettingRegistry.registerSetting(
+    Setting.VECTOR_RESAMPLING_FREQUENCY,
+    "Resampling Frequency",
+    VectorResamplingFrequencySetting,
+);
+SettingRegistry.registerSetting(Setting.INPLACE_RESULT, "Result", DropdownStringSetting);
 SettingRegistry.registerSetting(Setting.INTERSECTION, "Intersection", IntersectionSetting, {
     customConstructorParameters: [{ extensionLengthConfig: { min: 0, max: 5000, defaultValue: 500 } }],
 });
@@ -128,6 +136,18 @@ SettingRegistry.registerSetting(Setting.POLYGONS_NAME, "Polygons Name", Dropdown
 SettingRegistry.registerSetting(Setting.POLYGON_VISUALIZATION, "Polygon Visualization", PolygonVisualizationSetting);
 SettingRegistry.registerSetting(Setting.REALIZATION, "Realization", DropdownNumberSetting);
 SettingRegistry.registerSetting(Setting.REALIZATIONS, "Realizations", SelectNumberSetting);
+SettingRegistry.registerSetting(Setting.ZONE, "Zone", SelectStringSetting, {
+    customConstructorParameters: ["allAvailable"],
+});
+SettingRegistry.registerSetting(Setting.REGION, "Region", SelectStringSetting, {
+    customConstructorParameters: ["allAvailable"],
+});
+SettingRegistry.registerSetting(Setting.FACIES, "Facies", SelectStringSetting, {
+    customConstructorParameters: ["allAvailable"],
+});
+SettingRegistry.registerSetting(Setting.LICENSE, "License", SelectStringSetting, {
+    customConstructorParameters: ["allAvailable"],
+});
 SettingRegistry.registerSetting(Setting.SEISMIC_SLICES, "Seismic Slices", SeismicSliceSetting);
 SettingRegistry.registerSetting(Setting.SENSITIVITY, "Sensitivity", SensitivitySetting);
 SettingRegistry.registerSetting(Setting.SHOW_GRID_LINES, "Show Grid Lines", BooleanSetting);

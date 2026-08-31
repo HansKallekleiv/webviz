@@ -1,6 +1,7 @@
 import type { TemplatePlotType } from "@webviz/well-log-viewer/dist/components/WellLogTemplateTypes";
 
 import type {
+    Frequency_api,
     Grid3dZone_api,
     SurfaceStatisticFunction_api,
     WellboreHeader_api,
@@ -42,6 +43,9 @@ export enum Setting {
     GRID_LAYER_K = "gridLayerK",
     GRID_NAME = "gridName",
     FLUID_CONTACT = "fluidContact",
+    VECTOR_NAME = "vectorName",
+    VECTOR_RESAMPLING_FREQUENCY = "vectorResamplingFrequency",
+    INPLACE_RESULT = "inplaceResult",
     INTERSECTION = "intersection",
     MD_RANGE = "mdRange",
     OPACITY_PERCENT = "opacityPercent",
@@ -51,6 +55,10 @@ export enum Setting {
     REALIZATION = "realization",
     STRAT_COLUMN = "stratColumn",
     REALIZATIONS = "realizations",
+    ZONE = "zone",
+    REGION = "region",
+    FACIES = "facies",
+    LICENSE = "license",
     SEISMIC_SLICES = "seismicSlices",
     SENSITIVITY = "sensitivity",
     SHOW_GRID_LINES = "showGridLines",
@@ -175,6 +183,21 @@ export type SettingTypeDefinitions = {
         externalValue: string | null;
         valueConstraints: string[];
     };
+    [Setting.VECTOR_NAME]: {
+        internalValue: string | null;
+        externalValue: string | null;
+        valueConstraints: string[];
+    };
+    [Setting.VECTOR_RESAMPLING_FREQUENCY]: {
+        internalValue: Frequency_api | null;
+        externalValue: Frequency_api | null;
+        valueConstraints: (Frequency_api | null)[];
+    };
+    [Setting.INPLACE_RESULT]: {
+        internalValue: string | null;
+        externalValue: string | null;
+        valueConstraints: string[];
+    };
     [Setting.POLYGONS_ATTRIBUTE]: {
         internalValue: string | null;
         externalValue: string | null;
@@ -290,6 +313,26 @@ export type SettingTypeDefinitions = {
         internalValue: number[] | null;
         externalValue: number[] | null;
         valueConstraints: number[];
+    };
+    [Setting.ZONE]: {
+        internalValue: string[] | null;
+        externalValue: string[] | null;
+        valueConstraints: string[];
+    };
+    [Setting.REGION]: {
+        internalValue: string[] | null;
+        externalValue: string[] | null;
+        valueConstraints: string[];
+    };
+    [Setting.FACIES]: {
+        internalValue: string[] | null;
+        externalValue: string[] | null;
+        valueConstraints: string[];
+    };
+    [Setting.LICENSE]: {
+        internalValue: string[] | null;
+        externalValue: string[] | null;
+        valueConstraints: string[];
     };
     [Setting.WELLBORES]: {
         internalValue: string[] | null;

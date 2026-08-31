@@ -21,8 +21,13 @@ type ValueType = string[] | null;
 type ValueConstraintsType = string[];
 
 export class SelectStringSetting implements CustomSettingImplementation<ValueType, ValueType, ValueConstraintsType> {
+    private _fixupStrategy: "firstAvailable" | "allAvailable";
     valueConstraintsIntersectionReducerDefinition =
         makeValueConstraintsIntersectionReducerDefinition<ValueConstraintsType>();
+
+    constructor(fixupStrategy: "firstAvailable" | "allAvailable" = "firstAvailable") {
+        this._fixupStrategy = fixupStrategy;
+    }
 
     mapInternalToExternalValue(internalValue: ValueType): ValueType {
         return internalValue;
@@ -43,7 +48,7 @@ export class SelectStringSetting implements CustomSettingImplementation<ValueTyp
     }
 
     fixupValue(currentValue: ValueType, valueConstraints: ValueConstraintsType): ValueType {
-        return fixupValue<string, string>(currentValue, valueConstraints, (v) => v, "firstAvailable");
+        return fixupValue<string, string>(currentValue, valueConstraints, (v) => v, this._fixupStrategy);
     }
 
     makeComponent(): (props: SettingComponentProps<ValueType, ValueConstraintsType>) => React.ReactNode {

@@ -11,6 +11,7 @@ import { PublishSubscribeDelegate } from "@lib/utils/PublishSubscribeDelegate";
 import { ScopedQueryController } from "@lib/utils/ScopedQueryController";
 import { UnsubscribeFunctionsManagerDelegate } from "@lib/utils/UnsubscribeFunctionsManagerDelegate";
 
+import { DEFAULT_SUPPORTED_ENSEMBLE_KINDS } from "../../dataProviders/ensembleKinds";
 import { ItemDelegate } from "../../delegates/ItemDelegate";
 import {
     SettingsContextDelegate,
@@ -145,6 +146,7 @@ export class DataProvider<
                 customDataProviderImplementation.settings,
                 customDataProviderImplementation.getDefaultSettingsValues?.() ?? {},
             ),
+            customDataProviderImplementation.supportsEnsembleKinds ?? DEFAULT_SUPPORTED_ENSEMBLE_KINDS,
         );
         this._scopedQueryController = new ScopedQueryController(params.dataProviderManager.getQueryClient());
         this._customDataProviderImpl = customDataProviderImplementation;
