@@ -67,13 +67,17 @@ export function collectPlotGroup(
     accumulatedData: PlotAccumulatedData,
     options: CollectPlotGroupOptions,
 ): PlotGroupProduct {
+    const normalizedAccumulatedData = {
+        series: accumulatedData.series ?? [],
+        realizationTables: accumulatedData.realizationTables ?? [],
+    };
     const colors = allocatePlotColors(
-        accumulatedData.series,
+        normalizedAccumulatedData.series,
         options.colorBy,
         options.categoricalPalette,
         options.ensembleColors,
     );
-    const facets = makePlotFacets(accumulatedData.series, options.subplotBy);
+    const facets = makePlotFacets(normalizedAccumulatedData.series, options.subplotBy);
     const statisticsGroupColumns = [options.subplotBy, options.colorBy].filter(
         (dimension, index, dimensions) =>
             dimension !== PlotDimension.NONE && dimensions.indexOf(dimension) === index,
@@ -86,7 +90,7 @@ export function collectPlotGroup(
         colors,
         facets,
         legendKeys: colors.map((item) => item.key),
-        statisticsTables: accumulatedData.realizationTables.map((table) => ({
+        statisticsTables: normalizedAccumulatedData.realizationTables.map((table) => ({
             table,
             groups: computeGroupedStatistics(
                 table,

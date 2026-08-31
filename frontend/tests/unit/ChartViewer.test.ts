@@ -10,6 +10,7 @@ import { SharedSetting } from "@framework/dataProviderFramework/framework/Shared
 import { GroupType } from "@framework/dataProviderFramework/groups/groupTypes";
 import type { PlotViewSettings } from "@framework/dataProviderFramework/groups/implementations/PlotView";
 import { Setting } from "@framework/dataProviderFramework/settings/settingsDefinitions";
+import { makePlotVisualizationAssembler } from "@framework/dataProviderFramework/visualization/plotAssembler";
 import { PlotDimension } from "@framework/dataProviderFramework/visualization/plotTypes";
 import type { RegularEnsemble } from "@framework/RegularEnsemble";
 import type { WorkbenchSession } from "@framework/WorkbenchSession";
@@ -17,6 +18,7 @@ import type { WorkbenchSettings } from "@framework/WorkbenchSettings";
 import { PublishSubscribeDelegate } from "@lib/utils/PublishSubscribeDelegate";
 import { applyChartViewerPreset, ChartViewerPreset } from "@modules/ChartViewer/presets";
 import {
+    collectPlotGroups,
     makePlotChannelContents,
     type PlotVisualizationGroup,
 } from "@modules/ChartViewer/view/plotChannelContents";
@@ -66,6 +68,21 @@ describe("ChartViewer", () => {
             .filter((item): item is DataProvider<any, any> => item instanceof DataProvider);
         expect(providers).toHaveLength(1);
         expect(providers[0].getType()).toBe(providerType);
+
+        manager.beforeDestroy();
+    });
+
+    test("assembles a fresh preset before provider data is loaded", () => {
+        const manager = makeManager();
+        applyChartViewerPreset(manager, ChartViewerPreset.TIME_SERIES);
+        const assembler = makePlotVisualizationAssembler({ categoricalPalette: ["#123456"] });
+
+        const product = assembler.make(manager);
+        const [plotGroup] = collectPlotGroups(product);
+
+        expect(plotGroup.customProps.colors).toEqual([]);
+        expect(plotGroup.customProps.facets).toEqual([{ key: PlotDimension.NONE, row: 0, column: 0, series: [] }]);
+        expect(plotGroup.customProps.statisticsTables).toEqual([]);
 
         manager.beforeDestroy();
     });
