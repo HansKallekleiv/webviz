@@ -33,21 +33,21 @@ export class PlotView implements CustomGroupImplementationWithSettings<PlotViewS
 
     setupBindings(context: SetupBasicBindingsContext<PlotViewSettings>): void {
         context.setting(Setting.VISUALIZATION_KIND).bindValueConstraints({
-            read: (read) => ({ dataRevision: read.globalSetting("dataRevision") }),
+            read: (read) => ({ dataRevision: read.managerDataRevision() }),
             resolve: ({ dataRevision }) => {
                 void dataRevision;
                 return getCompatibleVisualizationKinds(context.getDescendantDataProviders());
             },
         });
         context.setting(Setting.SUBPLOT_BY).bindValueConstraints({
-            read: (read) => ({ dataRevision: read.globalSetting("dataRevision") }),
+            read: (read) => ({ dataRevision: read.managerDataRevision() }),
             resolve: ({ dataRevision }) => {
                 void dataRevision;
                 return [PlotDimension.NONE, ...getAvailablePlotDimensions(context)];
             },
         });
         context.setting(Setting.COLOR_BY).bindValueConstraints({
-            read: (read) => ({ dataRevision: read.globalSetting("dataRevision") }),
+            read: (read) => ({ dataRevision: read.managerDataRevision() }),
             resolve: ({ dataRevision }) => {
                 void dataRevision;
                 return getAvailablePlotDimensions(context);

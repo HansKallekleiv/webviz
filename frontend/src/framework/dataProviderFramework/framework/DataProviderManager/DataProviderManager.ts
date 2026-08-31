@@ -35,7 +35,6 @@ export type DataProviderManagerTopicPayload = {
 };
 
 export type GlobalSettings = {
-    dataRevision: number;
     fieldId: string | null;
     wellboreUuid: string | null;
     ensembles: readonly RegularEnsemble[];
@@ -149,13 +148,9 @@ export class DataProviderManager implements ItemGroup, PublishSubscribe<DataProv
 
         if (topic === DataProviderManagerTopic.DATA_REVISION) {
             this._dataRevision++;
-            this._globalSettings.dataRevision = this._dataRevision;
         }
 
         this._publishSubscribeDelegate.notifySubscribers(topic);
-        if (topic === DataProviderManagerTopic.DATA_REVISION) {
-            this._publishSubscribeDelegate.notifySubscribers(DataProviderManagerTopic.GLOBAL_SETTINGS);
-        }
     }
 
     getWorkbenchSession(): WorkbenchSession {
@@ -241,7 +236,6 @@ export class DataProviderManager implements ItemGroup, PublishSubscribe<DataProv
         );
 
         return {
-            dataRevision: this._dataRevision,
             ensembles,
             realizationFilterFunction: createEnsembleRealizationFilterFuncForWorkbenchSession(this._workbenchSession),
             intersectionPolylines,

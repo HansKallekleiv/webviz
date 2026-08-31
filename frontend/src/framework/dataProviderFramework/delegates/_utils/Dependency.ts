@@ -23,6 +23,7 @@ export type Accessors<
 > = {
     localSetting: <K extends TKey>(settingName: K) => Read<TSettingTypes[K]>;
     globalSetting: <T extends keyof GlobalSettings>(settingName: T) => Read<GlobalSettings[T]>;
+    managerDataRevision: () => Read<number>;
     sharedResult: <TDep, THandleReads extends Record<string, Read<any>> = Record<string, never>>(
         handle: SharedResult<TDep, TSettings, TSettingTypes, TKey, THandleReads>,
     ) => Read<Awaited<TDep> | null>;
@@ -60,8 +61,11 @@ export class Dependency<
         key: K,
         handler: (value: GlobalSettings[K] | null) => void,
     ) => void;
+    private _managerDataRevisionGetter: () => number;
+    private _makeManagerDataRevisionGetter: (handler: (value: number) => void) => void;
     private _cachedSettingsMap: Map<string, any> = new Map();
     private _cachedGlobalSettingsMap: Map<string, any> = new Map();
+    private _cachedManagerDataRevision: number | null = null;
     private _cachedDependenciesMap: Map<Dependency<any, TSettings, TSettingTypes, any, any>, any> = new Map();
     private _cachedValue: Awaited<TReturnValue> | null = null;
     private _abortController: AbortController | null = null;
@@ -87,6 +91,8 @@ export class Dependency<
             key: K,
             handler: (value: GlobalSettings[K] | null) => void,
         ) => void,
+        managerDataRevisionGetter: () => number,
+        makeManagerDataRevisionGetter: (handler: (value: number) => void) => void,
         debugName: string,
     ) {
         this.debugName = debugName;
@@ -97,8 +103,11 @@ export class Dependency<
         this._makeLocalSettingGetter = makeLocalSettingGetter;
         this._localSettingLoadingStateGetter = localSettingLoadingStateGetter;
         this._makeGlobalSettingGetter = makeGlobalSettingGetter;
+        this._managerDataRevisionGetter = managerDataRevisionGetter;
+        this._makeManagerDataRevisionGetter = makeManagerDataRevisionGetter;
 
         this.getGlobalSetting = this.getGlobalSetting.bind(this);
+        this.getManagerDataRevision = this.getManagerDataRevision.bind(this);
         this.getLocalSetting = this.getLocalSetting.bind(this);
         this.getHelperDependency = this.getHelperDependency.bind(this);
         this.getStatusWriter = this.getStatusWriter.bind(this);
@@ -246,6 +255,17 @@ export class Dependency<
         return this._cachedGlobalSettingsMap.get(settingName as string);
     }
 
+    private getManagerDataRevision(): number {
+        if (this._cachedManagerDataRevision === null) {
+            this._makeManagerDataRevisionGetter((value) => {
+                this._cachedManagerDataRevision = value;
+                this.invalidate();
+            });
+            this._cachedManagerDataRevision = this._managerDataRevisionGetter();
+        }
+        return this._cachedManagerDataRevision;
+    }
+
     private getHelperDependency<TDep, TDepReads extends Record<string, Read<any>> = Record<string, never>>(
         dep: Dependency<TDep, TSettings, TSettingTypes, TKey, TDepReads>,
     ): Awaited<TDep> | Pending | null {
@@ -314,6 +334,7 @@ export class Dependency<
                 const value = this.getGlobalSetting(key);
                 return value === PENDING ? ({ __ready: false } as const) : ({ __ready: true, value } as const);
             },
+            managerDataRevision: () => ({ __ready: true, value: this.getManagerDataRevision() }),
             sharedResult: (handle) => {
                 const value = this.getHelperDependency(handle);
                 return value === PENDING ? ({ __ready: false } as const) : ({ __ready: true, value } as const);

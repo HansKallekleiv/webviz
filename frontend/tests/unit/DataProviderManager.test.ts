@@ -1,7 +1,10 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { describe, expect, test } from "vitest";
 
-import { DataProviderManager } from "@framework/dataProviderFramework/framework/DataProviderManager/DataProviderManager";
+import {
+    DataProviderManager,
+    DataProviderManagerTopic,
+} from "@framework/dataProviderFramework/framework/DataProviderManager/DataProviderManager";
 import type { RegularEnsemble } from "@framework/RegularEnsemble";
 import type { IntersectionPolyline } from "@framework/userCreatedItems/IntersectionPolylines";
 import { IntersectionPolylinesEvent } from "@framework/userCreatedItems/IntersectionPolylines";
@@ -57,6 +60,22 @@ describe("DataProviderManager", () => {
         polylines = [{ id: "polyline", name: "Polyline", color: "#000000", path: [], fieldId: "field" }];
         notifyPolylineChange();
         expect(manager.getGlobalSetting("intersectionPolylines")).toEqual(polylines);
+
+        let globalSettingsNotifications = 0;
+        let dataRevisionNotifications = 0;
+        manager
+            .getPublishSubscribeDelegate()
+            .subscribe(DataProviderManagerTopic.GLOBAL_SETTINGS, () => globalSettingsNotifications++);
+        manager
+            .getPublishSubscribeDelegate()
+            .subscribe(DataProviderManagerTopic.DATA_REVISION, () => dataRevisionNotifications++);
+        const previousRevision = manager.makeSnapshotGetter(DataProviderManagerTopic.DATA_REVISION)();
+
+        manager.publishTopic(DataProviderManagerTopic.DATA_REVISION);
+
+        expect(manager.makeSnapshotGetter(DataProviderManagerTopic.DATA_REVISION)()).toBe(previousRevision + 1);
+        expect(dataRevisionNotifications).toBe(1);
+        expect(globalSettingsNotifications).toBe(0);
 
         manager.beforeDestroy();
     });

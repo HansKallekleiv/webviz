@@ -264,6 +264,17 @@ export class SharedSettingsDelegate<
                 makeLocalSettingGetter,
                 loadingStateGetter,
                 makeGlobalSettingGetter,
+                dataProviderManager.makeSnapshotGetter(DataProviderManagerTopic.DATA_REVISION),
+                (handler) => {
+                    this._unsubscribeFunctionsManagerDelegate.registerUnsubscribeFunction(
+                        "dependencies",
+                        dataProviderManager
+                            .getPublishSubscribeDelegate()
+                            .makeSubscriberFunction(DataProviderManagerTopic.DATA_REVISION)(() =>
+                            handler(dataProviderManager.makeSnapshotGetter(DataProviderManagerTopic.DATA_REVISION)()),
+                        ),
+                    );
+                },
                 debugName,
             );
             this._dependencies.push(dependency);

@@ -405,6 +405,17 @@ export class SettingsContextDelegate<
                 makeLocalSettingGetter,
                 loadingStateGetter,
                 makeGlobalSettingGetter,
+                () => this.getDataProviderManager().makeSnapshotGetter(DataProviderManagerTopic.DATA_REVISION)(),
+                (handler) => {
+                    this._unsubscribeFunctionsManagerDelegate.registerUnsubscribeFunction(
+                        "dependencies",
+                        this.getDataProviderManager()
+                            .getPublishSubscribeDelegate()
+                            .makeSubscriberFunction(DataProviderManagerTopic.DATA_REVISION)(() =>
+                            handler(this.getDataProviderManager().makeSnapshotGetter(DataProviderManagerTopic.DATA_REVISION)()),
+                        ),
+                    );
+                },
                 debugName,
             );
             this._dependencies.push(dependency);
