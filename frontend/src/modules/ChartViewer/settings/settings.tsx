@@ -38,7 +38,7 @@ export function Settings(props: ModuleSettingsProps<any>): React.ReactNode {
     if (!dataProviderManager) return null;
 
     return (
-        <div className="h-full px-xs py-xs">
+        <div className="flex h-full w-full flex-col px-xs py-xs">
             <DataProviderManagerWrapper
                 dataProviderManager={dataProviderManager}
                 workbenchSettings={props.workbenchSettings}
