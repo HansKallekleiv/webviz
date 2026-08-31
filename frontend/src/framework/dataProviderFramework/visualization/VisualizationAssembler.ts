@@ -222,16 +222,15 @@ type DataProviderObjects<TTarget extends VisualizationTarget, TAccumulatedData e
     accumulatedData: TAccumulatedData | null;
 };
 
+type CachedDataProviderObjects<TTarget extends VisualizationTarget, TAccumulatedData extends Record<string, any>> =
+    Omit<DataProviderObjects<TTarget, TAccumulatedData>, "accumulatedData">;
+
 export type VisualizationAssemblerMakeOptions<
     TInjectedData extends Record<string, any>,
     TAccumulatedData extends Record<string, any>,
 > = {
     injectedData?: TInjectedData;
     initialAccumulatedData?: TAccumulatedData;
-    /**
-     * @deprecated - Exposed for a hotfix, avoid usage. See issue #1272
-     */
-    disableCache?: boolean;
 };
 
 export class VisualizationAssembler<
@@ -257,7 +256,8 @@ export class VisualizationAssembler<
         DataProvider<any, any, any>,
         {
             revisionNumber: number;
-            objects: DataProviderObjects<TTarget, TAccumulatedData>;
+            injectedData: TInjectedData | undefined;
+            objects: CachedDataProviderObjects<TTarget, TAccumulatedData>;
         }
     > = new WeakMap();
 
@@ -300,7 +300,6 @@ export class VisualizationAssembler<
             [],
             options?.initialAccumulatedData ?? ({} as TAccumulatedData),
             options?.injectedData,
-            options?.disableCache,
         );
     }
 
@@ -318,10 +317,6 @@ export class VisualizationAssembler<
         inheritedDataProviders: DataProvider<any, any, any>[],
         accumulatedData: TAccumulatedData,
         injectedData?: TInjectedData,
-        /**
-         * @deprecated - Exposed for a hotfix, avoid usage. See issue #1272
-         */
-        disableCache?: boolean,
     ): VisualizationGroup<TTarget, TCustomGroupProps, TAccumulatedData> {
         const children: (
             | VisualizationGroup<TTarget, TCustomGroupProps, TAccumulatedData>
@@ -387,7 +382,6 @@ export class VisualizationAssembler<
                 [...inheritedDataProviders, ...dataProviders],
                 accumulatedData,
                 injectedData,
-                disableCache,
             );
 
             accumulatedData = product.accumulatedData;
@@ -419,6 +413,13 @@ export class VisualizationAssembler<
         }
 
         for (const child of [...inheritedDataProviders, ...dataProviders]) {
+            if (!this._dataProviderTransformers.has(child.getType())) {
+                console.warn(
+                    `Skipping data provider ${child.getType()} because no visualization transformer is registered for this target`,
+                );
+                continue;
+            }
+
             if (children.some((el) => el.id === child.getItemDelegate().getId())) {
                 continue;
             }
@@ -484,43 +485,38 @@ export class VisualizationAssembler<
         dataProvider: DataProvider<any, any, any>,
         initialAccumulatedData: TAccumulatedData,
         injectedData?: TInjectedData,
-        /**
-         * @deprecated - Exposed for a hotfix, avoid usage. See issue #1272
-         */
-        disableCache?: boolean,
     ): DataProviderObjects<TTarget, TAccumulatedData> {
-        // ! Cache logic returns the wrong accumulated data for WellLogViewer in some cases. As a hot-fix, we'll allow
-        // ! the cache to be disabled here, but this should be reverted once the issue has been resolved. See #1272
-        if (!disableCache && this._cachedDataProviderVisualizationsMap.has(dataProvider)) {
-            const cached = this._cachedDataProviderVisualizationsMap.get(dataProvider);
-            if (cached && cached.revisionNumber === dataProvider.getRevisionNumber()) {
-                return cached.objects;
-            }
+        const cached = this._cachedDataProviderVisualizationsMap.get(dataProvider);
+        let objects: CachedDataProviderObjects<TTarget, TAccumulatedData>;
+
+        if (
+            !cached ||
+            cached.revisionNumber !== dataProvider.getRevisionNumber() ||
+            cached.injectedData !== injectedData
+        ) {
+            objects = {
+                visualization: this.makeDataProviderVisualization(dataProvider, injectedData),
+                hoverVisualizationFunctions: this.makeDataProviderHoverVisualizationFunctions(
+                    dataProvider,
+                    injectedData,
+                ),
+                annotations: this.makeDataProviderAnnotations(dataProvider, injectedData),
+                boundingBox: this.makeDataProviderBoundingBox(dataProvider),
+            };
+
+            this._cachedDataProviderVisualizationsMap.set(dataProvider, {
+                revisionNumber: dataProvider.getRevisionNumber(),
+                injectedData,
+                objects,
+            });
+        } else {
+            objects = cached.objects;
         }
 
-        const visualization = this.makeDataProviderVisualization(dataProvider, injectedData);
-        const hoverVisualizationFunctions = this.makeDataProviderHoverVisualizationFunctions(
-            dataProvider,
-            injectedData,
-        );
-        const annotations = this.makeDataProviderAnnotations(dataProvider, injectedData);
-        const boundingBox = this.makeDataProviderBoundingBox(dataProvider);
-        const accumulatedData = this.accumulateDataProviderData(dataProvider, initialAccumulatedData, injectedData);
-
-        const objects: DataProviderObjects<TTarget, TAccumulatedData> = {
-            visualization,
-            hoverVisualizationFunctions,
-            annotations,
-            boundingBox,
-            accumulatedData,
+        return {
+            ...objects,
+            accumulatedData: this.accumulateDataProviderData(dataProvider, initialAccumulatedData, injectedData),
         };
-
-        this._cachedDataProviderVisualizationsMap.set(dataProvider, {
-            revisionNumber: dataProvider.getRevisionNumber(),
-            objects,
-        });
-
-        return objects;
     }
 
     private makeGroup<
@@ -588,7 +584,7 @@ export class VisualizationAssembler<
     ): DataProviderVisualization<TTarget> | null {
         const func = this._dataProviderTransformers.get(dataProvider.getType())?.transformToVisualization;
         if (!func) {
-            throw new Error(`No visualization transformer found for data provider ${dataProvider.getType()}`);
+            return null;
         }
 
         const visualization = func(this.makeFactoryFunctionArgs(dataProvider, injectedData));
