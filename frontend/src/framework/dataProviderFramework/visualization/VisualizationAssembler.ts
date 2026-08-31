@@ -13,7 +13,6 @@ import type { WellPickDataCollection } from "@modules/_shared/types/wellpicks";
 import type { GroupDelegate } from "../delegates/GroupDelegate";
 import { DataProvider, DataProviderStatus } from "../framework/DataProvider/DataProvider";
 import type { DataProviderManager } from "../framework/DataProviderManager/DataProviderManager";
-import { DeltaSurface } from "../framework/DeltaSurface/DeltaSurface";
 import { Group } from "../framework/Group/Group";
 import type { GroupType } from "../groups/groupTypes";
 import type {
@@ -359,11 +358,6 @@ export class VisualizationAssembler<
                 aggregatedErrorMessages.push(
                     `${child.getItemDelegate().getName()}: ${child.getItemDelegate().getDeserializationErrors().join(", ")}`,
                 );
-                continue;
-            }
-
-            // Skip DeltaSurface for now
-            if (child instanceof DeltaSurface) {
                 continue;
             }
 
