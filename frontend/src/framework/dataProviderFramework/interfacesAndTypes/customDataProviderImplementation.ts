@@ -5,6 +5,7 @@ import type { WorkbenchSession } from "@framework/WorkbenchSession";
 import type { WorkbenchSettings } from "@framework/WorkbenchSettings";
 
 import type { EnsembleKind } from "../dataProviders/ensembleKinds";
+import type { VisualizationKind } from "../dataProviders/visualizationKinds";
 import type { GlobalSettings } from "../framework/DataProviderManager/DataProviderManager";
 import type { Settings, SettingTypeDefinitions } from "../settings/settingsDefinitions";
 
@@ -143,6 +144,7 @@ export interface CustomDataProviderImplementation<
     TStoredDataKey extends keyof TStoredData = keyof TStoredData,
 > extends CustomSettingsHandler<TSettings, TStoredData, TSettingTypes, TSettingKey, TStoredDataKey> {
     supportsEnsembleKinds?: readonly EnsembleKind[];
+    compatibleVisualizationKinds?: readonly VisualizationKind[];
 
     /**
      * The default name of a provider of this type.

@@ -20,6 +20,7 @@ export enum Representation {
     OBSERVATION_PER_REALIZATION = "Observation Per Realization",
     REALIZATION = "Realization",
     ENSEMBLE_STATISTICS = "Ensemble Statistics",
+    FANCHART = "Fanchart",
 }
 type ValueType = Representation | null;
 type ValueConstraintsType = Representation[];

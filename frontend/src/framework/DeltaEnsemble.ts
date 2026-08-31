@@ -101,6 +101,12 @@ export class DeltaEnsemble {
         return `(${this._comparisonEnsemble.getDisplayName()}) - (${this._referenceEnsemble.getDisplayName()})`;
     }
 
+    getFieldIdentifiers(): string[] {
+        return this._comparisonEnsemble
+            .getFieldIdentifiers()
+            .filter((fieldIdentifier) => this._referenceEnsemble.getFieldIdentifiers().includes(fieldIdentifier));
+    }
+
     getEnsembleName(): string {
         return this._deltaEnsembleIdent.getEnsembleName();
     }

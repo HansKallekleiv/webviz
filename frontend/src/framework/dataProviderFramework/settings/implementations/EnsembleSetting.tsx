@@ -1,7 +1,9 @@
 import type React from "react";
 
 import { EnsembleDropdown } from "@framework/components/EnsembleDropdown";
-import { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
+import type { DeltaEnsembleIdent } from "@framework/DeltaEnsembleIdent";
+import type { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
+import { getEnsembleIdentFromString } from "@framework/utils/ensembleIdentUtils";
 import { useEnsembleRealizationFilterFunc } from "@framework/WorkbenchSession";
 
 import type {
@@ -16,20 +18,21 @@ import {
     makeValueConstraintsIntersectionReducerDefinition,
 } from "./_shared/arraySingleSelect";
 
-type ValueType = RegularEnsembleIdent | null;
-type ValueConstraintsType = RegularEnsembleIdent[];
+type ValueType = RegularEnsembleIdent | DeltaEnsembleIdent | null;
+type ValueConstraintsType = (RegularEnsembleIdent | DeltaEnsembleIdent)[];
+type EnsembleIdent = Exclude<ValueType, null>;
 
 export class EnsembleSetting implements CustomSettingImplementation<ValueType, ValueType, ValueConstraintsType> {
     defaultValue: ValueType = null;
     valueConstraintsIntersectionReducerDefinition =
-        makeValueConstraintsIntersectionReducerDefinition<RegularEnsembleIdent[]>();
+        makeValueConstraintsIntersectionReducerDefinition<ValueConstraintsType>((first, second) => first.equals(second));
 
     mapInternalToExternalValue(internalValue: ValueType): ValueType {
         return internalValue;
     }
 
     isValueValid(value: ValueType, valueConstraints: ValueConstraintsType): boolean {
-        return isValueValid<RegularEnsembleIdent, RegularEnsembleIdent>(
+        return isValueValid<EnsembleIdent, EnsembleIdent>(
             value,
             valueConstraints,
             (v) => v,
@@ -38,7 +41,11 @@ export class EnsembleSetting implements CustomSettingImplementation<ValueType, V
     }
 
     fixupValue(value: ValueType, valueConstraints: ValueConstraintsType): ValueType {
-        return fixupValue<RegularEnsembleIdent, RegularEnsembleIdent>(value, valueConstraints, (v) => v);
+        return fixupValue<RegularEnsembleIdent | DeltaEnsembleIdent, RegularEnsembleIdent | DeltaEnsembleIdent>(
+            value,
+            valueConstraints,
+            (item) => item,
+        );
     }
 
     serializeValue(value: ValueType): string {
@@ -46,14 +53,21 @@ export class EnsembleSetting implements CustomSettingImplementation<ValueType, V
     }
 
     deserializeValue(serializedValue: string): ValueType {
-        return serializedValue !== "" ? RegularEnsembleIdent.fromString(serializedValue) : null;
+        if (serializedValue === "") {
+            return null;
+        }
+        const ensembleIdent = getEnsembleIdentFromString(serializedValue);
+        if (!ensembleIdent) {
+            throw new Error(`Invalid ensemble ident: ${serializedValue}`);
+        }
+        return ensembleIdent;
     }
 
     makeComponent(): (props: SettingComponentProps<ValueType, ValueConstraintsType>) => React.ReactNode {
         return function EnsembleSelect(props: SettingComponentProps<ValueType, ValueConstraintsType>) {
             const availableValues = props.valueConstraints ?? [];
 
-            const ensembles = props.globalSettings.ensembles.filter((ensemble) =>
+            const ensembles = props.workbenchSession.getEnsembleSet().getEnsembleArray().filter((ensemble) =>
                 availableValues.some((value) => value.equals(ensemble.getIdent())),
             );
 
@@ -62,6 +76,7 @@ export class EnsembleSetting implements CustomSettingImplementation<ValueType, V
             return (
                 <EnsembleDropdown
                     ensembles={ensembles}
+                    allowDeltaEnsembles
                     ensembleRealizationFilterFunction={ensembleRealizationFilterFunction}
                     value={props.value}
                     onValueChange={props.onValueChange}

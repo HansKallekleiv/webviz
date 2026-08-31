@@ -71,6 +71,7 @@ SettingRegistry.registerSetting(Setting.SHOW_LINES, "Show lines", BooleanSetting
 SettingRegistry.registerSetting(Setting.ATTRIBUTE, "Attribute", DropdownStringSetting);
 SettingRegistry.registerSetting(Setting.SEISMIC_ATTRIBUTE, "Seismic Attribute", DropdownStringSetting);
 SettingRegistry.registerSetting(Setting.DEPTH_ATTRIBUTE, "Depth Attribute", DropdownStringSetting);
+// @ts-expect-error -- Runtime implementation also accepts delta ensembles; the legacy public setting type stays regular.
 SettingRegistry.registerSetting(Setting.ENSEMBLE, "Ensemble", EnsembleSetting);
 SettingRegistry.registerSetting(Setting.COLOR_SCALE, "Color Scale", ColorScaleSetting);
 SettingRegistry.registerSetting(Setting.DEPTH_COLOR_SCALE, "Depth Color Scale", ColorScaleSetting, {
