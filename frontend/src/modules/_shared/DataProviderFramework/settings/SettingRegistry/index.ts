@@ -1,2 +1,1 @@
-export { SettingRegistry } from "./_SettingRegistry";
-import "./_registerAllSettings";
+export * from "@framework/dataProviderFramework/settings/SettingRegistry/index";

@@ -1,2 +1,2 @@
-export { DataProviderRegistry } from "./_DataProviderRegistry";
+export { DataProviderRegistry } from "@framework/dataProviderFramework/dataProviders/DataProviderRegistry";
 import "./_registerAllSharedDataProviders";

@@ -1,2 +1,1 @@
-export { GroupRegistry } from "./_GroupRegistry";
-import "./_registerAllSharedGroups";
+export * from "@framework/dataProviderFramework/groups/GroupRegistry/index";

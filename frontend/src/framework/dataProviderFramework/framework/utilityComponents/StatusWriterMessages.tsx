@@ -1,0 +1,55 @@
+import type React from "react";
+
+import { Error, Info, Warning } from "@mui/icons-material";
+
+import type { StatusMessage } from "@framework/types/statusWriter";
+import { StatusMessageType } from "@framework/types/statusWriter";
+import { Popover } from "@lib/components/Popover";
+
+export type StatusMessagesProps = { statusMessages: readonly StatusMessage[] };
+
+export function StatusMessages(props: StatusMessagesProps) {
+    const categorizedMessages = {
+        warning: props.statusMessages.filter((m) => m.type === StatusMessageType.Warning),
+        error: props.statusMessages.filter((m) => m.type === StatusMessageType.Error),
+        info: props.statusMessages.filter((m) => m.type === StatusMessageType.Info),
+    };
+
+    return (
+        <>
+            <StatusMessage messages={categorizedMessages.info}>
+                <Info className="text-info-subtle" style={{ fontSize: 16 }} />
+            </StatusMessage>
+
+            <StatusMessage messages={categorizedMessages.warning}>
+                <Warning className="text-warning-subtle" style={{ fontSize: 16 }} />
+            </StatusMessage>
+
+            <StatusMessage messages={categorizedMessages.error}>
+                <Error className="text-danger-subtle" style={{ fontSize: 16 }} />
+            </StatusMessage>
+        </>
+    );
+}
+
+function StatusMessage(props: { messages: StatusMessage[]; children: React.ReactElement }) {
+    if (!props.messages.length) return null;
+
+    return (
+        <Popover.Root>
+            <Popover.Trigger tone="neutral" size="small" variant="ghost" iconOnly>
+                {props.children}
+            </Popover.Trigger>
+            <Popover.Popup>
+                <Popover.Content>
+                    <ul>
+                        {props.messages.map((m, i) => (
+                            // eslint-disable-next-line @eslint-react/no-array-index-key -- trivial
+                            <li key={i}>{m.message}</li>
+                        ))}
+                    </ul>
+                </Popover.Content>
+            </Popover.Popup>
+        </Popover.Root>
+    );
+}

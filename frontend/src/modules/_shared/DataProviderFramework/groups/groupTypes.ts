@@ -1,7 +1,1 @@
-export enum GroupType {
-    VIEW = "VIEW",
-    WELL_LOG_TRACK_CONT = "WELL_LOG_TRACK_CONTINUOUS",
-    WELL_LOG_TRACK_DISC = "WELL_LOG_TRACK_DISCRETE",
-    WELL_LOG_DIFF_GROUP = "WELL_LOG_DIFF_GROUP",
-    INTERSECTION_VIEW = "INTERSECTION_VIEW",
-}
+export * from "@framework/dataProviderFramework/groups/groupTypes";

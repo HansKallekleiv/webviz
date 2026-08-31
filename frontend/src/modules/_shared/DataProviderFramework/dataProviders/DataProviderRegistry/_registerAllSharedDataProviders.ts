@@ -1,3 +1,5 @@
+import { DataProviderRegistry } from "@framework/dataProviderFramework/dataProviders/DataProviderRegistry";
+
 import { DataProviderType } from "../dataProviderTypes";
 import { DrilledWellborePicksProvider } from "../implementations/DrilledWellborePicksProvider";
 import { DrilledWellboreTrajectoriesProvider } from "../implementations/DrilledWellboreTrajectoriesProvider";
@@ -13,8 +15,6 @@ import {
 import { DepthSurfaceProvider } from "../implementations/surfaceProviders/DepthSurfaceProvider";
 import { InitialFluidContactSurfaceProvider } from "../implementations/surfaceProviders/InitialFluidContactSurfaceProvider";
 import { SeismicSurfaceProvider, SeismicSurfaceType } from "../implementations/surfaceProviders/SeismicSurfaceProvider";
-
-import { DataProviderRegistry } from "./_DataProviderRegistry";
 
 DataProviderRegistry.registerDataProvider(DataProviderType.DRILLED_WELLBORE_PICKS, DrilledWellborePicksProvider);
 DataProviderRegistry.registerDataProvider(

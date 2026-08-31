@@ -1,7 +1,1 @@
-import type { CustomGroupImplementation } from "../../interfacesAndTypes/customGroupImplementation";
-
-export class View implements CustomGroupImplementation {
-    getDefaultName(): string {
-        return "View";
-    }
-}
+export * from "@framework/dataProviderFramework/groups/implementations/View";
