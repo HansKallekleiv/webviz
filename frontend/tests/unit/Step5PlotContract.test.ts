@@ -9,6 +9,11 @@ import {
     makePlotFacets,
 } from "@framework/dataProviderFramework/visualization/plotCollector";
 import {
+    getSeriesPointIdentity,
+    makePlotlyFigure,
+} from "@framework/dataProviderFramework/visualization/plotlyFigure";
+import { makePlotStatisticsRows } from "@framework/dataProviderFramework/visualization/PlotStatisticsTable";
+import {
     makeInplaceVolumesSeries,
     makeSummaryVectorHistorySeries,
     makeSummaryVectorObservationSeries,
@@ -211,5 +216,66 @@ describe("plot visualization contract", () => {
         );
         expect(product.legendKeys).toEqual(["A", "B"]);
         expect(product.statisticsTables[0].groups.map((group) => group.valueStatistics.STOIIP.mean)).toEqual([10, 20]);
+    });
+
+    test("assembles subplot traces with deduplicated legends and identity highlighting", () => {
+        const series: SeriesVisualization[] = [
+            {
+                groupKeys: { ensemble: "A", ZONE: "A" },
+                role: "primary",
+                points: { x: [1], y: [10] },
+                identity: [{ realization: 1 }],
+            },
+            {
+                groupKeys: { ensemble: "A", ZONE: "B" },
+                role: "primary",
+                points: { x: [2], y: [20] },
+                identity: [{ realization: 2 }],
+            },
+        ];
+        const product = collectPlotGroup(
+            { series, realizationTables: [] },
+            {
+                visualizationKind: VisualizationKind.BAR,
+                colorBy: PlotDimension.ENSEMBLE,
+                subplotBy: PlotDimension.ZONE,
+                categoricalPalette: ["red"],
+            },
+        );
+
+        const figure = makePlotlyFigure(product, { realization: 2, timestampUtcMs: null });
+        expect(figure.data).toHaveLength(2);
+        expect(figure.data[0]).toMatchObject({ xaxis: "x", showlegend: true, selectedpoints: [] });
+        expect(figure.data[1]).toMatchObject({ xaxis: "x2", showlegend: false, selectedpoints: [0] });
+        expect(getSeriesPointIdentity(figure.identityMaps, 1, 0)).toEqual({ realization: 2 });
+    });
+
+    test("assembles client-side statistics as a table trace", () => {
+        const address: InplaceVolumesAddress = {
+            kind: DataKind.INPLACE_VOLUMES,
+            ensemble,
+            gridName: "grid",
+            resultName: "STOIIP",
+            filters: { zone: [], region: [], facies: [], license: [] },
+        };
+        const table: RealizationTable = {
+            keyColumns: { realization: new Int32Array([1]) },
+            indexColumns: { ZONE: ["A"] },
+            valueColumns: [{ name: "STOIIP", unit: "Sm3", values: new Float64Array([10]) }],
+            origin: { ensemble, address },
+        };
+        const product = collectPlotGroup(
+            { series: [], realizationTables: [table] },
+            {
+                visualizationKind: VisualizationKind.TABLE,
+                colorBy: PlotDimension.ZONE,
+                subplotBy: PlotDimension.NONE,
+                categoricalPalette: ["red"],
+            },
+        );
+
+        const figure = makePlotlyFigure(product);
+        expect(figure.data[0]).toMatchObject({ type: "table", header: { values: expect.arrayContaining(["STOIIP mean"]) } });
+        expect(makePlotStatisticsRows(product)).toMatchObject([{ group: "ZONE: A", result: "STOIIP", mean: 10 }]);
     });
 });
