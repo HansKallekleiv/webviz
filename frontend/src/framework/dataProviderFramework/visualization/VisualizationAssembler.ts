@@ -28,6 +28,8 @@ import type { StoredData } from "../interfacesAndTypes/sharedTypes";
 import type { SettingsKeysFromTuple } from "../interfacesAndTypes/utils";
 import type { Settings, SettingTypeDefinitions } from "../settings/settingsDefinitions";
 
+import type { SeriesVisualization } from "./plotTypes";
+
 export enum VisualizationItemType {
     DATA_PROVIDER_VISUALIZATION = "data-provider-visualization",
     GROUP = "group",
@@ -36,6 +38,7 @@ export enum VisualizationItemType {
 export enum VisualizationTarget {
     DECK_GL = "deck_gl",
     ESV = "esv",
+    PLOT = "plot",
     WSC_WELL_LOG = "wsc_well_log",
 }
 
@@ -46,12 +49,14 @@ export interface EsvLayerItemsMaker {
 export type DataProviderVisualizationTargetTypes = {
     [VisualizationTarget.DECK_GL]: DeckGlLayer<any>;
     [VisualizationTarget.ESV]: EsvLayerItemsMaker;
+    [VisualizationTarget.PLOT]: readonly SeriesVisualization[];
     [VisualizationTarget.WSC_WELL_LOG]: TemplatePlot | WellPickDataCollection;
 };
 
 export type DataProviderHoverVisualizationTargetTypes = {
     [VisualizationTarget.DECK_GL]: DeckGlLayer<any>;
     [VisualizationTarget.ESV]: HighlightItem;
+    [VisualizationTarget.PLOT]: never;
     [VisualizationTarget.WSC_WELL_LOG]: null;
 };
 
