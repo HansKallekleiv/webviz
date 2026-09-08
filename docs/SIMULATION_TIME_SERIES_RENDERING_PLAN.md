@@ -6,24 +6,42 @@ Date: 2026-09-08
 
 ## 1. Executive Summary
 
-Move Simulation Time Series toward an ECharts Canvas 2D renderer with an extrema-preserving ensemble overview and exact selected-realization overlays. Keep scientific data, display geometry, and interaction identity separate.
+Simulation Time Series displays reservoir simulation profiles across ensembles of hundreds of realizations. Long daily histories, multiple vectors, and comparisons across ensembles can produce millions of samples in one view. The current realization plots use Plotly WebGL rendering, which creates context-management problems when multiple charts are used. The application also aims to move away from Plotly.
 
-The primary overview tasks are to detect departures from typical ensemble behavior and compare selected realizations against the population. Showing every realization as an individually interactive line is not necessarily required at overview scale.
+**This plan proposes a hybrid visualization mode: a statistical fan chart with extrema-preserving display reduction and interactive realization overlays, initially rendered with ECharts Canvas 2D.** Its purpose is to reveal departures from typical ensemble behavior and let users compare a selected realization against the population, without drawing every realization as an interactive curve in the overview.
 
-Use zoom-dependent reduction as a supporting technique, not the sole scaling strategy. With hundreds of realizations per ensemble and up to four ensembles, per-realization decimation still produces a large amount of geometry. Aggregating the background makes rendering cost depend primarily on viewport resolution and ensemble count rather than realization count.
+The chart combines three elements:
 
-The recommended initial overview combines:
+- **Statistical context:** percentile bands and a selected reference line show typical behavior and spread.
+- **Min/max envelope:** ordinary statistical minima and maxima expose extreme values. When dates are grouped for display, preserve the lowest minimum and highest maximum within each group so brief spikes remain visible.
+- **Realization overlays:** selecting a profile, highlighting it from another module, or inspecting a min/max contributor reveals that realization's actual curve above the statistics.
 
-- Central percentile bands and a median or another selected reference statistic.
-- A distinct temporal outer range that preserves brief extrema.
-- Exact selected, pinned, or externally highlighted realization profiles.
-- Existing historical data, observations, and timestamp annotations.
+This does not introduce a new statistic. The additional work is preserving extrema during display reduction and retaining which realization and source time contributed them. The min/max boundary is not itself a realization: different members can contribute it at different times. Historical data, observations, and timestamp annotations remain available.
 
-Do not commit to replacing the current default until a prototype validates rate semantics, discovery of extreme contributors, and representative multi-module performance. Keep an explicit individual-realization mode for workflows the overview cannot serve.
+This is a change in how users explore the ensemble, not just a renderer replacement. Reducing the number of points in every curve still leaves hundreds or thousands of curves to render. A statistical background reduces that cost; zoom-dependent detail and a small number of exact overlays support inspection. ECharts Canvas 2D avoids WebGL contexts, but its performance must still be measured.
+
+Extrema preservation is relative to the data returned at the selected API resolution. It cannot recover events removed by upstream resampling. At overview scale, the chart preserves extreme values but may not show their exact duration; zooming and inspecting the contributor provide that detail. Rate profiles require interval-aware handling to avoid displaying short spikes as long plateaus.
+
+The first milestone is a client-side prototype that validates visual fidelity, contributor inspection, and multi-module performance while retaining current data queries. Backend summaries are a conditional follow-up if transfer or memory becomes the limiting factor. Do not replace the current default until these checks pass. Retain an explicit individual-realization mode for workflows the overview cannot serve.
+
+### Terminology
+
+| Term | Meaning in this plan |
+| --- | --- |
+| Vector/profile | A time-dependent reservoir quantity, such as a well's production rate; a profile is its curve for a particular realization. |
+| Realization/member | One ensemble member, identified by its ensemble identity and realization number. |
+| Canonical data | Data returned at the selected API resolution, before any display-only reduction. "Exact" means faithful to this data and its interpolation semantics, not necessarily native simulator output. |
+| Display bucket | A short time interval corresponding to a chosen horizontal screen width in the current viewport. It changes with zoom and chart size. |
+| Temporal outer range | The lowest ensemble minimum and highest ensemble maximum reached within a display bucket. It summarizes the ordinary min/max envelope across time, not a new percentile band. |
+| Contributor/provenance | The realization and source sample, segment, or interval responsible for a displayed extreme. |
+| Overlay | An individual realization curve drawn above the statistical background. A pinned overlay remains after hover ends. |
+| Display reduction/decimation | Reducing rendering geometry without changing canonical data, scientific calculations, downloads, or published data. |
+
+Sections 2-3 define scope and scale; sections 4-8 describe integration and technical design; sections 9-10 specify delivery and verification. Alternatives and limitations follow in sections 11-12.
 
 ## 2. Requirements and Decision Status
 
-### Confirmed from the design discussion
+### Workload and user requirements
 
 - An ensemble typically contains 200-400 realizations.
 - Comparing 1-4 ensembles is common.
@@ -38,7 +56,7 @@ Do not commit to replacing the current default until a prototype validates rate 
 ### Proposed decisions, subject to validation
 
 - Use ECharts Canvas 2D as the first renderer candidate.
-- Use a statistical overview with a separately represented temporal outer range.
+- Use a statistical overview whose min/max envelope becomes a temporal outer range when several dates share a display bucket.
 - Support exact highlighted overlays without rebuilding ensemble summaries.
 - Discover contributors through extrema provenance and, in detailed views, canonical-data picking.
 - Keep density visualization, backend multiresolution APIs, and automatic anomaly ranking outside the initial implementation.
@@ -77,7 +95,7 @@ Per-realization reduction to 1,000 columns still permits 1.6 million marks for 1
 
 ## 4. Current Implementation Anchors
 
-These observations describe the inspected checkout, not a future branch.
+These observations describe the checkout inspected on 2026-09-08. Recheck them when implementation begins.
 
 | Existing surface | Current responsibility and migration implication |
 | --- | --- |
@@ -91,12 +109,14 @@ These observations describe the inspected checkout, not a future branch.
 | [view/hooks/usePublishToDataChannels.ts](../frontend/src/modules/SimulationTimeSeries/view/hooks/usePublishToDataChannels.ts) | Publishes generators backed by loaded realization data. Summary-only fetching could change downstream behavior. |
 | [frontend/package.json](../frontend/package.json) | Contains Plotly, Comlink, Vitest, and Playwright tooling; ECharts is not currently listed as a dependency. |
 
-Before implementation, check the destination branch for existing ECharts infrastructure and realization-highlight contracts. Reuse those if present. Do not assume earlier experimental ECharts code exists in this checkout. This document does not select an unverified backend handler or introduce a new global event system.
+Before implementation, check the destination branch for existing ECharts infrastructure and realization-highlight contracts. Reuse those if present; otherwise identify the smallest integration needed during phase 0. Backend endpoints and cross-module event APIs are intentionally not prescribed until their current owners have been inspected.
 
 ## 5. Architecture and Ownership
 
+The initial client-side design retains canonical data and separates the statistical background from realization inspection:
+
 ```text
-Canonical query data / future summary API
+Canonical query data
     |                         |
     |                         +--> downloads and published data channels
     |
@@ -108,6 +128,8 @@ Canonical query data / future summary API
     |
     +--> canonical picking and timestamp resolution --> interaction state
 ```
+
+In a future backend-summary design, summaries would supply the background while canonical realization data would be fetched separately for inspection and data consumers. Summary responses alone cannot replace the download and published-data branches. Section 8 describes that conditional extension.
 
 ### Canonical data
 
@@ -138,7 +160,7 @@ Prefer source-index references where possible. Synthetic display coordinates, su
 
 Keep transient hovered identity, pinned identities, active timestamp, viewport, and any loading/error state separate. Hovering must not invalidate the canonical-data cache or statistical summary cache.
 
-Use the existing module state and interaction conventions after verifying them. Proposed component/function names in implementation tickets are not new public APIs until this verification is complete.
+Use the existing module state and interaction conventions after verifying them. Define concrete interfaces during implementation; keep chart-library details out of shared interaction state.
 
 ## 6. Rendering Semantics and Algorithms
 
@@ -157,6 +179,8 @@ Existing shape mappings to verify with tests:
 Specify values at exact report timestamps and the first/last supported interval explicitly. Do not infer coverage before the first or after the last valid interval. Verify adapter behavior against synthetic traces rather than relying only on matching option names.
 
 ### 6.2 Temporal extrema
+
+This is display reduction of the ordinary ensemble min/max envelope. It adds time-bucket support and contributor identity, not a new statistical measure.
 
 For each ensemble and visible time bucket, compute the lowest and highest supported canonical profile values reached anywhere in that bucket. Preserve the contributor identity and source location for each result.
 
@@ -239,6 +263,8 @@ A summary response would need a versioned contract for units, source resolution/
 Summary-only fetching requires a separate compatibility plan for downloads and published data channels. Options include fetching canonical data on demand, a backend export, and lazy data generators if the existing channel contract permits them. Preserve contents and resolution of current exports, and do not claim the module is fully loaded when a downstream consumer still lacks required canonical data.
 
 ## 9. Delivery Phases
+
+Phases 0-2 establish feasibility before production integration. The later phases assume that prototype succeeds. Phase 6 is conditional: bring its data-placement decision forward if an earlier benchmark identifies transfer or memory as a blocker, rather than completing the client implementation first.
 
 | Phase | Implementation work | Exit criteria |
 | --- | --- | --- |
