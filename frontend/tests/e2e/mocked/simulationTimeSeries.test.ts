@@ -1,11 +1,10 @@
+import type { Page } from "@playwright/test";
 import { http, HttpResponse } from "msw";
 
 import { apiUrl } from "../../mocks/apiUrl";
 import { SYNTH } from "../../mocks/syntheticField";
 import { expect, test } from "../support/mockApi";
 import { dragModuleOntoLayout } from "../support/walkthroughHelpers";
-
-import type { Page } from "@playwright/test";
 
 const SIMULATION_TIME_SERIES = "Simulation Time Series";
 
@@ -73,7 +72,7 @@ test.describe("Simulation Time Series (mocked API)", () => {
         await addSyntheticEnsembleAndModule(page);
 
         const moduleLayout = page.getByTestId("module-layout");
-        await expect(moduleLayout.getByText(/error/i).first()).toBeVisible();
+        await expect(moduleLayout.getByText("One or more queries have an error state")).toBeVisible();
         await expect(moduleLayout.locator(".scatterlayer .js-line")).toHaveCount(0);
     });
 });

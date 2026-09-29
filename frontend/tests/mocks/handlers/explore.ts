@@ -21,10 +21,6 @@ export const exploreHandlers = [
         HttpResponse.json([{ name: SYNTH.assetName }]),
     ),
 
-    http.get<PathParams, never, string[]>(apiUrl("/field_identifiers"), () =>
-        HttpResponse.json([SYNTH.fieldIdentifier]),
-    ),
-
     http.get<PathParams, never, CaseInfo_api[]>(apiUrl("/cases"), ({ request }) => {
         const assetName = new URL(request.url).searchParams.get("asset_name");
         if (assetName !== SYNTH.assetName) {
