@@ -4,10 +4,9 @@ import type { RequestHandler } from "msw";
 
 import { basicEnsembleHandlers } from "../../mocks/scenarios/basicEnsemble";
 
-export { expect };
+import { MOCK_BASE_URL } from "./mockServer";
 
-/** Must match `baseURL` in tests/e2e/_playwright.mocked.config.ts */
-export const MOCK_BASE_URL = "http://localhost:5174";
+export { expect, MOCK_BASE_URL };
 
 export type MockApi = {
     /** Prepend handlers; they take effect for subsequent requests. */
