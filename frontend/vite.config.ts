@@ -31,7 +31,8 @@ export default defineConfig(() => {
             plotlyWebglContextReleasePlugin(),
             tailwindPlugin(),
             react(),
-            vitePluginChecker({ typescript: true }),
+            // The checker overlay intercepts clicks in the mocked e2e run
+            ...(process.env.WEBVIZ_E2E_MOCKED ? [] : [vitePluginChecker({ typescript: true })]),
             babel({ plugins: [jotaiDebugLabel, jotaiReactRefresh] }),
             glsl({
                 include: "**/*.glsl",
