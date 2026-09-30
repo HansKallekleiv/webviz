@@ -18,9 +18,10 @@ async function addDepthSurfaceLayer(page: Page): Promise<void> {
     }
 
     await page.getByRole("button", { name: "Add first view" }).click();
-    await page.getByRole("button", { name: /add/i }).last().click();
-    await page.getByText("Surfaces", { exact: true }).hover();
-    await page.getByText("Depth", { exact: true }).click();
+    await page.getByRole("button", { name: "Add", exact: true }).last().click();
+    await page.getByRole("menuitem", { name: "Layers", exact: true }).hover();
+    await page.getByRole("menuitem", { name: "Surfaces", exact: true }).hover();
+    await page.getByRole("menuitem", { name: "Depth", exact: true }).click();
 }
 
 test.describe("2D Viewer (mocked API)", () => {
@@ -45,6 +46,7 @@ test.describe("2D Viewer (mocked API)", () => {
 
         await addDepthSurfaceLayer(page);
 
-        await expect(page.getByText(/error/i).first()).toBeVisible();
+        await expect(page.locator("svg.text-danger-subtle").first()).toBeVisible();
+        await expect(page.locator("svg.text-success-subtle")).toHaveCount(0);
     });
 });
