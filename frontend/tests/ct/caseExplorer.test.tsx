@@ -34,7 +34,7 @@ test.describe("CaseExplorer (mocked API)", () => {
         const component = await mount(<CaseExplorerHarness />);
         await selectSynthAsset(page);
 
-        await expect(component.getByText(/error/i).first()).toBeVisible();
+        await expect(component.getByText("Error loading cases").first()).toBeVisible();
         await expect(component.locator("tbody").getByRole("row", { name: new RegExp(SYNTH.caseName) })).toHaveCount(0);
     });
 
@@ -42,7 +42,9 @@ test.describe("CaseExplorer (mocked API)", () => {
         const component = await mount(<CaseExplorerHarness queriesDisabled />);
 
         await expect(component.getByTestId("case-selection")).toHaveText("none");
-        await expect.poll(() => mockApi.handledRequests().some((r) => r.startsWith("GET /api/logged_in_user"))).toBe(true);
+        await expect
+            .poll(() => mockApi.handledRequests().some((r) => r.startsWith("GET /api/logged_in_user")))
+            .toBe(true);
         expect(mockApi.handledRequests().filter((r) => /^GET \/api\/(asset_infos|cases)/.test(r))).toEqual([]);
     });
 
