@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 
-import { SYNTH } from "../../mocks/syntheticField";
+import { SYNTH, SYNTH_SURFACES } from "../../mocks/syntheticField";
 
 import { expect } from "./mockApi";
 import { dragModuleOntoLayout } from "./walkthroughHelpers";
@@ -32,4 +32,21 @@ export async function addModule(page: Page, title: string): Promise<void> {
         await page.getByTestId("modules-list-open-button").click();
     }
     await dragModuleOntoLayout(page, title);
+}
+
+// Signal: the view's SVG colour legend for the layer, which only exists once surface data has a value range.
+export async function expectSurfaceRendered(page: Page): Promise<void> {
+    const legend = page
+        .getByTestId("module-layout")
+        .locator("svg")
+        .filter({ has: page.locator("text", { hasText: "Depth Surface" }) });
+    await expect(legend).toBeVisible();
+
+    const tickValues = (await legend.locator("text").allTextContents()).map(Number).filter(Number.isFinite);
+    expect(tickValues.length).toBeGreaterThan(1);
+    // Labels have 3 significant digits, so allow one rounding step outside the fixture range.
+    for (const value of tickValues) {
+        expect(value).toBeGreaterThanOrEqual(SYNTH_SURFACES.valueMin - 10);
+        expect(value).toBeLessThanOrEqual(SYNTH_SURFACES.valueMax + 10);
+    }
 }
