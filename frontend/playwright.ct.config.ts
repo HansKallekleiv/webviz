@@ -7,6 +7,7 @@ import react from "@vitejs/plugin-react";
 import vitePluginChecker from "vite-plugin-checker";
 
 import aliases from "./aliases.json" with { type: "json" };
+import { CT_PORT } from "./tests/ct/support/ctServer";
 import { plotlyWebglContextReleasePlugin } from "./vite-plugin-plotly-webgl-context-release.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -37,7 +38,7 @@ export default defineConfig({
         trace: "on-first-retry",
 
         /* Port to use for Playwright component endpoint. */
-        ctPort: 3100,
+        ctPort: CT_PORT,
         ctViteConfig: {
             plugins: [
                 plotlyWebglContextReleasePlugin(),
