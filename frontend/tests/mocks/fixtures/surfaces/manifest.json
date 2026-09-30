@@ -1,0 +1,126 @@
+{
+    "caseUuid": "5e7e7e7e-0000-4000-8000-000000000001",
+    "ensembleName": "iter-0",
+    "surfaces": [
+        {
+            "attribute": "depth",
+            "file": "top_synth--depth--real-0.json",
+            "name": "Top SYNTH",
+            "realization": 0
+        },
+        {
+            "attribute": "depth",
+            "file": "base_synth--depth--real-0.json",
+            "name": "Base SYNTH",
+            "realization": 0
+        },
+        {
+            "attribute": "depth",
+            "file": "top_synth--depth--real-1.json",
+            "name": "Top SYNTH",
+            "realization": 1
+        },
+        {
+            "attribute": "depth",
+            "file": "base_synth--depth--real-1.json",
+            "name": "Base SYNTH",
+            "realization": 1
+        },
+        {
+            "attribute": "depth",
+            "file": "top_synth--depth--real-2.json",
+            "name": "Top SYNTH",
+            "realization": 2
+        },
+        {
+            "attribute": "depth",
+            "file": "base_synth--depth--real-2.json",
+            "name": "Base SYNTH",
+            "realization": 2
+        },
+        {
+            "attribute": "depth",
+            "file": "top_synth--depth--real-3.json",
+            "name": "Top SYNTH",
+            "realization": 3
+        },
+        {
+            "attribute": "depth",
+            "file": "base_synth--depth--real-3.json",
+            "name": "Base SYNTH",
+            "realization": 3
+        },
+        {
+            "attribute": "depth",
+            "file": "top_synth--depth--real-4.json",
+            "name": "Top SYNTH",
+            "realization": 4
+        },
+        {
+            "attribute": "depth",
+            "file": "base_synth--depth--real-4.json",
+            "name": "Base SYNTH",
+            "realization": 4
+        },
+        {
+            "attribute": "depth",
+            "file": "top_synth--depth--real-5.json",
+            "name": "Top SYNTH",
+            "realization": 5
+        },
+        {
+            "attribute": "depth",
+            "file": "base_synth--depth--real-5.json",
+            "name": "Base SYNTH",
+            "realization": 5
+        },
+        {
+            "attribute": "depth",
+            "file": "top_synth--depth--real-6.json",
+            "name": "Top SYNTH",
+            "realization": 6
+        },
+        {
+            "attribute": "depth",
+            "file": "base_synth--depth--real-6.json",
+            "name": "Base SYNTH",
+            "realization": 6
+        },
+        {
+            "attribute": "depth",
+            "file": "top_synth--depth--real-7.json",
+            "name": "Top SYNTH",
+            "realization": 7
+        },
+        {
+            "attribute": "depth",
+            "file": "base_synth--depth--real-7.json",
+            "name": "Base SYNTH",
+            "realization": 7
+        },
+        {
+            "attribute": "depth",
+            "file": "top_synth--depth--real-8.json",
+            "name": "Top SYNTH",
+            "realization": 8
+        },
+        {
+            "attribute": "depth",
+            "file": "base_synth--depth--real-8.json",
+            "name": "Base SYNTH",
+            "realization": 8
+        },
+        {
+            "attribute": "depth",
+            "file": "top_synth--depth--real-9.json",
+            "name": "Top SYNTH",
+            "realization": 9
+        },
+        {
+            "attribute": "depth",
+            "file": "base_synth--depth--real-9.json",
+            "name": "Base SYNTH",
+            "realization": 9
+        }
+    ]
+}

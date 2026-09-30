@@ -1,0 +1,30 @@
+{
+    "surface_names_in_strat_order": [
+        "Top SYNTH",
+        "Base SYNTH"
+    ],
+    "surfaces": [
+        {
+            "attribute_name": "depth",
+            "attribute_type": "depth",
+            "is_observation": false,
+            "name": "Top SYNTH",
+            "name_is_stratigraphic_offical": true,
+            "time_type": "NO_TIME",
+            "value_max": 1662.6784183185998,
+            "value_min": 1521.4608558098544
+        },
+        {
+            "attribute_name": "depth",
+            "attribute_type": "depth",
+            "is_observation": false,
+            "name": "Base SYNTH",
+            "name_is_stratigraphic_offical": true,
+            "time_type": "NO_TIME",
+            "value_max": 1727.716069493191,
+            "value_min": 1598.378641044795
+        }
+    ],
+    "time_intervals_iso_str": [],
+    "time_points_iso_str": []
+}
