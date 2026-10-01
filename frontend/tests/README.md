@@ -90,6 +90,7 @@ The `--` is required to pass `--ui` (or any other Playwright flag) through `npm 
 ### Where mocked tests live
 
 - `tests/mocks/syntheticField/`: the synthetic data model (asset, case, ensemble, realizations, parameters, vectors), generated from a seeded PRNG.
+- `tests/mocks/syntheticField/inplaceVolumes.ts`: one inplace volumes table (ZONE/REGION/FLUID, BULK/PORV/HCPV) generated in TypeScript; its statistics follow the backend's conventions (inverted P10/P90, sample stddev, fluids summed as `"gas + oil"` unless grouped by FLUID).
 - `tests/mocks/fixtures/surfaces/`: depth surface fixtures (data, metadata and a manifest), generated with xtgeo and serialized by the backend's own converters and schemas, so their shape and base64 encoding match production.
   Regenerate them from `backend_py/primary` with `python -m scripts.generate_frontend_fixtures`; the output is deterministic, and tests never run Python.
 - `tests/mocks/handlers/`: MSW handlers, one file per API tag.
