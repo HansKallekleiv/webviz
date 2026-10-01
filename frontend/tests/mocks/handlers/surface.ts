@@ -25,6 +25,7 @@ export function loadSurfaceFixture(file: string): SurfaceDataFloat_api {
     let data = fixtureCache.get(file);
     if (!data) {
         const url = new URL(`../fixtures/surfaces/${file}`, import.meta.url);
+        // Shape drift is caught by tests/unit/surfaceFixtures.test.ts.
         data = JSON.parse(readFileSync(url, "utf-8")) as SurfaceDataFloat_api;
         fixtureCache.set(file, data);
     }
