@@ -29,7 +29,9 @@ test.describe("Inplace Volumes Table (mocked API)", () => {
         await addInplaceVolumesTable(page);
 
         const moduleLayout = page.getByTestId("module-layout");
-        await expect.poll(() => mockApi.handledRequests().some((r) => r.startsWith(`POST ${STATISTICAL_PATH}`))).toBe(true);
+        await expect
+            .poll(() => mockApi.handledRequests().some((r) => r.startsWith(`POST ${STATISTICAL_PATH}`)))
+            .toBe(true);
 
         const params = lastRequestParams(mockApi, STATISTICAL_PATH);
         expect(params.get("case_uuid")).toBe(SYNTH.caseUuid);
@@ -64,7 +66,8 @@ test.describe("Inplace Volumes Table (mocked API)", () => {
         await page.getByRole("option", { name: /per realization/i }).click();
 
         const moduleLayout = page.getByTestId("module-layout");
-        await expect(moduleLayout.getByRole("columnheader", { name: "REAL" }).first()).toBeVisible();
+        // Sortable header cells are <th role="button">, not columnheader
+        await expect(moduleLayout.getByRole("button", { name: "REAL", exact: true }).first()).toBeVisible();
         const perRealizationParams = lastRequestParams(
             mockApi,
             "/api/inplace_volumes/get_aggregated_per_realization_inplace_table_data/",
