@@ -92,7 +92,7 @@ export function getRealizationValues(vectorName: string, realization: number): n
 }
 
 /** Linear-interpolated quantile of an ascending array (same as the backend's polars `quantile(q, "linear")`). */
-function quantileSorted(sortedValues: number[], q: number): number {
+export function quantileSorted(sortedValues: number[], q: number): number {
     const position = q * (sortedValues.length - 1);
     const lower = Math.floor(position);
     const upper = Math.ceil(position);
