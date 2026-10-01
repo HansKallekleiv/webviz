@@ -4,40 +4,14 @@ import { http, HttpResponse } from "msw";
 import { apiUrl } from "../../mocks/apiUrl";
 import { SYNTH } from "../../mocks/syntheticField";
 import { expect, test } from "../support/mockApi";
-import { dragModuleOntoLayout } from "../support/walkthroughHelpers";
+import { addModule, addSyntheticEnsemble, expandSettingsPanel } from "../support/mockedFlows";
 
 const SIMULATION_TIME_SERIES = "Simulation Time Series";
 
 async function addSyntheticEnsembleAndModule(page: Page): Promise<void> {
-    await page.goto("/");
-    await page.getByRole("button", { name: "New session" }).click();
-
-    await expect(page.getByText("Ensembles used in this session")).toBeVisible();
-    await page.getByTestId("add-regular-ensemble-button").click();
-    await page.getByRole("combobox", { name: "Asset" }).click();
-    await page.getByRole("option", { name: SYNTH.assetName }).click();
-
-    await page.getByPlaceholder("Filter ...").first().fill(SYNTH.caseUuid);
-    await page
-        .locator("tbody")
-        .getByRole("row", { name: new RegExp(SYNTH.caseUuid) })
-        .first()
-        .click();
-    await page.getByText(SYNTH.ensembleName).first().click();
-    await page.getByRole("button", { name: "Apply" }).last().click();
-    await page.getByRole("button", { name: "Apply" }).click();
-    await expect(page.getByText("Ensembles used in this session")).not.toBeVisible();
-
-    const moduleListItem = page.locator(`[title="${SIMULATION_TIME_SERIES}"]`).first();
-    if (!(await moduleListItem.isVisible())) {
-        await page.getByTestId("modules-list-open-button").click();
-    }
-    await dragModuleOntoLayout(page, SIMULATION_TIME_SERIES);
-
-    const expandSettingsButton = page.getByTitle("Expand settings panel");
-    if (await expandSettingsButton.isVisible()) {
-        await expandSettingsButton.click();
-    }
+    await addSyntheticEnsemble(page);
+    await addModule(page, SIMULATION_TIME_SERIES);
+    await expandSettingsPanel(page);
 
     const vectorSelector = page.getByTestId("vector-selector");
     const vectorInput = vectorSelector.locator("input").last();

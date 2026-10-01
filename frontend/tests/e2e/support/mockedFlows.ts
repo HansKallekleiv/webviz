@@ -34,6 +34,13 @@ export async function addModule(page: Page, title: string): Promise<void> {
     await dragModuleOntoLayout(page, title);
 }
 
+export async function expandSettingsPanel(page: Page): Promise<void> {
+    const expandSettingsButton = page.getByTitle("Expand settings panel");
+    if (await expandSettingsButton.isVisible()) {
+        await expandSettingsButton.click();
+    }
+}
+
 // Signal: the view's SVG colour legend for the layer, which only exists once surface data has a value range.
 export async function expectSurfaceRendered(page: Page): Promise<void> {
     const legend = page

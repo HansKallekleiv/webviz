@@ -4,18 +4,14 @@ import { http, HttpResponse } from "msw";
 import { apiUrl } from "../../mocks/apiUrl";
 import { SYNTH, SYNTH_SURFACES } from "../../mocks/syntheticField";
 import { expect, test } from "../support/mockApi";
-import { addModule, addSyntheticEnsemble, expectSurfaceRendered } from "../support/mockedFlows";
+import { addModule, addSyntheticEnsemble, expandSettingsPanel, expectSurfaceRendered } from "../support/mockedFlows";
 
 const TWO_D_VIEWER = "2D Viewer";
 
 async function addDepthSurfaceLayer(page: Page): Promise<void> {
     await addSyntheticEnsemble(page);
     await addModule(page, TWO_D_VIEWER);
-
-    const expandSettingsButton = page.getByTitle("Expand settings panel");
-    if (await expandSettingsButton.isVisible()) {
-        await expandSettingsButton.click();
-    }
+    await expandSettingsPanel(page);
 
     await page.getByRole("button", { name: "Add first view" }).click();
     await page.getByRole("button", { name: "Add", exact: true }).last().click();
