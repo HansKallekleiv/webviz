@@ -24,6 +24,56 @@ function lastRequestParams(mockApi: MockApi, path: string): URLSearchParams {
     return new URL(request!.slice("POST ".length), "http://x").searchParams;
 }
 
+function statisticalRequestsWithGrouping(mockApi: MockApi, groupBy: string[]): URLSearchParams[] {
+    const wanted = [...groupBy].sort().join(",");
+    return mockApi
+        .handledRequests()
+        .filter((r) => r.startsWith(`POST ${STATISTICAL_PATH}`))
+        .map((r) => new URL(r.slice("POST ".length), "http://x").searchParams)
+        .filter((params) => [...params.getAll("group_by_indices")].sort().join(",") === wanted);
+}
+
+async function addGrouping(page: Page, indexColumn: string): Promise<void> {
+    await expect(page.getByRole("listbox")).toHaveCount(0);
+    await page.getByRole("combobox", { name: "Grouping" }).click();
+    await page.getByRole("option", { name: indexColumn, exact: true }).click();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("listbox")).toHaveCount(0);
+}
+
+async function expectGroupedRows(
+    page: Page,
+    mockApi: MockApi,
+    groupBy: string[],
+    expectedRowCount: number,
+): Promise<void> {
+    // Grouping is debounced in the settings; wait for the request with exactly this grouping
+    await expect
+        .poll(() => statisticalRequestsWithGrouping(mockApi, groupBy).length, { timeout: 10_000 })
+        .toBeGreaterThan(0);
+    const params = statisticalRequestsWithGrouping(mockApi, groupBy).at(-1)!;
+
+    const rows = computeSynthInplaceStatisticalRows({
+        resultName: params.getAll("result_names")[0],
+        groupBy,
+        realizations: [...SYNTH.realizations],
+        filters: [],
+    });
+    expect(rows).toHaveLength(expectedRowCount);
+
+    const moduleLayout = page.getByTestId("module-layout");
+    for (const row of rows) {
+        const expectedTexts = [...row.groupValues, ...(groupBy.includes("FLUID") ? [row.fluidSelection] : [])];
+        let tableRow = moduleLayout
+            .getByRole("row")
+            .filter({ hasText: formatInplaceVolumesValue(row.statistics.mean) });
+        for (const text of expectedTexts) {
+            tableRow = tableRow.filter({ hasText: text });
+        }
+        await expect(tableRow.first()).toBeVisible();
+    }
+}
+
 test.describe("Inplace Volumes Table (mocked API)", () => {
     test("shows statistics for the synthetic ensemble with default settings", async ({ page, mockApi }) => {
         await addInplaceVolumesTable(page);
@@ -85,5 +135,15 @@ test.describe("Inplace Volumes Table (mocked API)", () => {
         await addInplaceVolumesTable(page);
 
         await expect(page.getByText("Failed to load inplace volumes table data")).toBeVisible();
+    });
+
+    test("groups statistics by zone, then by zone and fluid", async ({ page, mockApi }) => {
+        await addInplaceVolumesTable(page);
+
+        await addGrouping(page, "ZONE");
+        await expectGroupedRows(page, mockApi, ["ZONE"], 2);
+
+        await addGrouping(page, "FLUID");
+        await expectGroupedRows(page, mockApi, ["ZONE", "FLUID"], 4);
     });
 });
