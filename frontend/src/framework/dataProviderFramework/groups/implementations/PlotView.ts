@@ -33,10 +33,13 @@ export class PlotView implements CustomGroupImplementationWithSettings<PlotViewS
 
     setupBindings(context: SetupBasicBindingsContext<PlotViewSettings>): void {
         context.setting(Setting.VISUALIZATION_KIND).bindValueConstraints({
-            read: (read) => ({ dataRevision: read.managerDataRevision() }),
-            resolve: ({ dataRevision }) => {
+            read: (read) => ({
+                dataRevision: read.managerDataRevision(),
+                allowedKinds: read.globalSetting("allowedVisualizationKinds"),
+            }),
+            resolve: ({ dataRevision, allowedKinds }) => {
                 void dataRevision;
-                return getCompatibleVisualizationKinds(context.getDescendantDataProviders());
+                return getCompatibleVisualizationKinds(context.getDescendantDataProviders(), allowedKinds);
             },
         });
         context.setting(Setting.SUBPLOT_BY).bindValueConstraints({
@@ -56,12 +59,24 @@ export class PlotView implements CustomGroupImplementationWithSettings<PlotViewS
     }
 }
 
-export function getCompatibleVisualizationKinds(providers: readonly DataProvider<any, any>[]): VisualizationKind[] {
-    if (providers.length === 0) return Object.values(VisualizationKind);
-    return providers.reduce<VisualizationKind[]>((compatible, provider) => {
-        const providerKinds = provider.getCompatibleVisualizationKinds() ?? [];
-        return compatible.filter((kind) => providerKinds.includes(kind));
-    }, Object.values(VisualizationKind));
+/** Kinds supported by every provider, in the order of `allowedKinds` (null: no restriction). */
+export function getCompatibleVisualizationKinds(
+    providers: readonly DataProvider<any, any>[],
+    allowedKinds: readonly VisualizationKind[] | null = null,
+): VisualizationKind[] {
+    return intersectVisualizationKinds(
+        providers.map((provider) => provider.getCompatibleVisualizationKinds()),
+        allowedKinds,
+    );
+}
+
+export function intersectVisualizationKinds(
+    providerKinds: readonly (readonly VisualizationKind[] | undefined)[],
+    allowedKinds: readonly VisualizationKind[] | null,
+): VisualizationKind[] {
+    return (allowedKinds ?? Object.values(VisualizationKind)).filter((kind) =>
+        providerKinds.every((kinds) => kinds?.includes(kind) ?? false),
+    );
 }
 
 function getAvailablePlotDimensions(context: SetupBasicBindingsContext<PlotViewSettings>): PlotDimension[] {

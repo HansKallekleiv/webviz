@@ -15,6 +15,7 @@ import type { PublishSubscribe } from "@lib/utils/PublishSubscribeDelegate";
 import { PublishSubscribeDelegate } from "@lib/utils/PublishSubscribeDelegate";
 import { UnsubscribeFunctionsManagerDelegate } from "@lib/utils/UnsubscribeFunctionsManagerDelegate";
 
+import { VisualizationKind } from "../../dataProviders/visualizationKinds";
 import { GroupDelegate, GroupDelegateTopic } from "../../delegates/GroupDelegate";
 import { ItemDelegate } from "../../delegates/ItemDelegate";
 import type { Item, ItemGroup } from "../../interfacesAndTypes/entities";
@@ -40,6 +41,7 @@ export type GlobalSettings = {
     ensembles: readonly RegularEnsemble[];
     realizationFilterFunction: EnsembleRealizationFilterFunction;
     intersectionPolylines: readonly IntersectionPolyline[];
+    allowedVisualizationKinds: readonly VisualizationKind[];
 };
 
 /*
@@ -239,6 +241,8 @@ export class DataProviderManager implements ItemGroup, PublishSubscribe<DataProv
             ensembles,
             realizationFilterFunction: createEnsembleRealizationFilterFuncForWorkbenchSession(this._workbenchSession),
             intersectionPolylines,
+            // Dependencies treat a null global setting as pending, so "no restriction" must be an explicit value
+            allowedVisualizationKinds: Object.values(VisualizationKind),
         };
     }
 

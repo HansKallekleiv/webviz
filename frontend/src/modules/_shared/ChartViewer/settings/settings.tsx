@@ -1,4 +1,4 @@
-import type React from "react";
+import React from "react";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useAtom } from "jotai";
@@ -6,6 +6,7 @@ import { useAtom } from "jotai";
 import { usePersistedDataProviderManager } from "@framework/dataProviderFramework/hooks/usePersistedDataProviderManager";
 import type { ModuleSettingsProps } from "@framework/Module";
 
+import { ALLOWED_VISUALIZATION_KINDS } from "../config";
 import type { ChartViewerMode } from "../config";
 
 import { dataProviderManagerAtom, dataProviderStateAtom } from "./atoms";
@@ -28,6 +29,16 @@ export function Settings(props: SettingsProps): React.ReactNode {
         workbenchSettings: props.workbenchSettings,
         queryClient,
     });
+
+    React.useEffect(
+        function onModeChangedEffect() {
+            dataProviderManager?.updateGlobalSetting(
+                "allowedVisualizationKinds",
+                ALLOWED_VISUALIZATION_KINDS[props.mode],
+            );
+        },
+        [dataProviderManager, props.mode],
+    );
 
     if (!dataProviderManager) return null;
 

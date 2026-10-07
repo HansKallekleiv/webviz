@@ -1,4 +1,5 @@
 import { DataProviderType } from "@framework/dataProviderFramework/dataProviders/dataProviderTypes";
+import { VisualizationKind } from "@framework/dataProviderFramework/dataProviders/visualizationKinds";
 import { Setting } from "@framework/dataProviderFramework/settings/settingsDefinitions";
 
 export enum ChartViewerMode {
@@ -23,6 +24,18 @@ export const PROVIDER_ACTIONS: Record<ChartViewerMode, readonly (ChartViewerActi
     ],
     [ChartViewerMode.DISTRIBUTION]: [
         { identifier: "inplace-volumes", label: "In-place volumes", type: DataProviderType.INPLACE_VOLUMES },
+    ],
+};
+
+/** The first kind is the default for a new chart. */
+export const ALLOWED_VISUALIZATION_KINDS: Record<ChartViewerMode, readonly VisualizationKind[]> = {
+    [ChartViewerMode.TIME_SERIES]: [VisualizationKind.TIME_SERIES],
+    [ChartViewerMode.DISTRIBUTION]: [
+        VisualizationKind.HISTOGRAM,
+        VisualizationKind.BOX,
+        VisualizationKind.BAR,
+        VisualizationKind.CONVERGENCE,
+        VisualizationKind.TABLE,
     ],
 };
 
