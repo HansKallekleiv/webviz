@@ -7,10 +7,14 @@ import { DataProviderRegistry } from "@framework/dataProviderFramework/dataProvi
 import type { GroupDelegate } from "@framework/dataProviderFramework/delegates/GroupDelegate";
 import type { DataProviderManager } from "@framework/dataProviderFramework/framework/DataProviderManager/DataProviderManager";
 import { DataProviderManagerComponent } from "@framework/dataProviderFramework/framework/DataProviderManager/DataProviderManagerComponent";
-import { Group } from "@framework/dataProviderFramework/framework/Group/Group";
 import { SharedSetting } from "@framework/dataProviderFramework/framework/SharedSetting/SharedSetting";
 import { GroupRegistry } from "@framework/dataProviderFramework/groups/GroupRegistry";
 import { GroupType } from "@framework/dataProviderFramework/groups/groupTypes";
+import {
+    canAddProviderTypeToPlotView,
+    isMoveIntoPlotViewAllowed,
+    isPlotView,
+} from "@framework/dataProviderFramework/groups/implementations/plotViewCompatibility";
 import type { ItemGroup } from "@framework/dataProviderFramework/interfacesAndTypes/entities";
 import { useColorSet } from "@framework/WorkbenchSettings";
 import type { WorkbenchSettings } from "@framework/WorkbenchSettings";
@@ -55,8 +59,8 @@ export function DataProviderManagerWrapper(props: DataProviderManagerWrapperProp
 
     function makeActionsForGroup(group: ItemGroup): ActionGroup[] {
         if (group === props.dataProviderManager) return [PLOT_VIEW_ACTION, makeSharedSettingsActions(props.mode)];
-        if (group instanceof Group && group.getGroupType() === GroupType.PLOT_VIEW) {
-            return [makeProviderActionGroup(props.mode), makeSharedSettingsActions(props.mode)];
+        if (isPlotView(group)) {
+            return [makeProviderActionGroup(props.mode, group), makeSharedSettingsActions(props.mode)];
         }
         return [];
     }
@@ -67,6 +71,7 @@ export function DataProviderManagerWrapper(props: DataProviderManagerWrapperProp
             dataProviderManager={props.dataProviderManager}
             groupActions={makeActionsForGroup}
             onAction={handleAction}
+            isMoveAllowed={isMoveIntoPlotViewAllowed}
             additionalHeaderComponents={null}
             emptyContentPlaceholder={
                 <Button tone="accent" onClick={() => addPlotView(rootGroupDelegate)}>
@@ -82,14 +87,19 @@ const PLOT_VIEW_ACTION: ActionGroup = {
     children: [{ identifier: "plot-view", icon: <BarChart fontSize="small" />, label: "Chart" }],
 };
 
-function makeProviderActionGroup(mode: ChartViewerMode): ActionGroup {
+function makeProviderActionGroup(mode: ChartViewerMode, plotView: ItemGroup): ActionGroup {
     return {
         label: "Data",
-        children: PROVIDER_ACTIONS[mode].map((action) => ({
-            identifier: action.identifier,
-            icon: <BarChart fontSize="small" />,
-            label: action.label,
-        })),
+        children: PROVIDER_ACTIONS[mode].map((action) => {
+            const compatibility = canAddProviderTypeToPlotView(action.type, plotView);
+            return {
+                identifier: action.identifier,
+                icon: <BarChart fontSize="small" />,
+                label: action.label,
+                disabled: !compatibility.allowed,
+                disabledReason: compatibility.reason,
+            };
+        }),
     };
 }
 

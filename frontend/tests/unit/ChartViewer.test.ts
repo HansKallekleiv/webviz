@@ -1,46 +1,27 @@
-import type { QueryClient } from "@tanstack/react-query";
 import { describe, expect, test, vi } from "vitest";
 
 import { DataProviderType } from "@framework/dataProviderFramework/dataProviders/dataProviderTypes";
 import { VisualizationKind } from "@framework/dataProviderFramework/dataProviders/visualizationKinds";
-import { DataProviderManager } from "@framework/dataProviderFramework/framework/DataProviderManager/DataProviderManager";
+import type { DataProviderManager } from "@framework/dataProviderFramework/framework/DataProviderManager/DataProviderManager";
 import type { Group } from "@framework/dataProviderFramework/framework/Group/Group";
 import { GroupRegistry } from "@framework/dataProviderFramework/groups/GroupRegistry";
 import { GroupType } from "@framework/dataProviderFramework/groups/groupTypes";
 import { Setting } from "@framework/dataProviderFramework/settings/settingsDefinitions";
 import { makePlotVisualizationAssembler } from "@framework/dataProviderFramework/visualization/plotAssembler";
 import { PlotDimension } from "@framework/dataProviderFramework/visualization/plotTypes";
-import type { RegularEnsemble } from "@framework/RegularEnsemble";
-import type { WorkbenchSession } from "@framework/WorkbenchSession";
-import type { WorkbenchSettings } from "@framework/WorkbenchSettings";
-import { PublishSubscribeDelegate } from "@lib/utils/PublishSubscribeDelegate";
-import { ALLOWED_VISUALIZATION_KINDS, ChartViewerMode, PROVIDER_ACTIONS, SETTING_ACTIONS } from "@modules/_shared/ChartViewer/config";
+import {
+    ALLOWED_VISUALIZATION_KINDS,
+    ChartViewerMode,
+    PROVIDER_ACTIONS,
+    SETTING_ACTIONS,
+} from "@modules/_shared/ChartViewer/config";
 import {
     collectPlotGroups,
     makePlotChannelContents,
     type PlotVisualizationGroup,
 } from "@modules/_shared/ChartViewer/view/plotChannelContents";
 
-function makeManager(): DataProviderManager {
-    const sessionDelegate = new PublishSubscribeDelegate();
-    const workbenchSession = {
-        getEnsembleSet: () => ({ getRegularEnsembleArray: () => [] as RegularEnsemble[] }),
-        getRealizationFilterSet: () => ({
-            getRealizationFilterForEnsembleIdent: () => ({ getFilteredRealizations: () => [] }),
-        }),
-        getUserCreatedItems: () => ({
-            getIntersectionPolylines: () => ({
-                getPolylines: () => [],
-                subscribe: () => () => undefined,
-            }),
-        }),
-        getPublishSubscribeDelegate: () => sessionDelegate,
-    } as unknown as WorkbenchSession;
-    const workbenchSettings = {
-        getSelectedColorPalette: () => ({ getColors: () => ["#123456"] }),
-    } as unknown as WorkbenchSettings;
-    return new DataProviderManager(workbenchSession, workbenchSettings, {} as QueryClient);
-}
+import { makeStubDataProviderManager as makeManager } from "../utils/stubDataProviderManager";
 
 function addPlotView(manager: DataProviderManager): Group<any, any> {
     const plotView = GroupRegistry.makeGroup(GroupType.PLOT_VIEW, manager, manager.makeGroupColor());

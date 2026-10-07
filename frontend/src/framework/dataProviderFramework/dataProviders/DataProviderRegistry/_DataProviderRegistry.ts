@@ -1,8 +1,10 @@
 import { DataProvider } from "../../framework/DataProvider/DataProvider";
 import type { DataProviderManager } from "../../framework/DataProviderManager/DataProviderManager";
 import type { CustomDataProviderImplementation } from "../../interfacesAndTypes/customDataProviderImplementation";
+import type { VisualizationKind } from "../visualizationKinds";
 
 export class DataProviderRegistry {
+    private static _compatibleVisualizationKinds: Map<string, readonly VisualizationKind[] | undefined> = new Map();
     private static _registeredDataProviders: Map<
         string,
         {
@@ -36,19 +38,32 @@ export class DataProviderRegistry {
         dataProviderManager: DataProviderManager,
         instanceName?: string,
     ): DataProvider<any, any, any, any> {
+        return new DataProvider({
+            instanceName,
+            dataProviderManager,
+            customDataProviderImplementation: this.makeCustomDataProviderImplementation(type),
+            type,
+        });
+    }
+
+    static getCompatibleVisualizationKinds(type: string): readonly VisualizationKind[] | undefined {
+        if (!this._compatibleVisualizationKinds.has(type)) {
+            // Implementations only initialise fields in their constructors, so a throwaway instance is side-effect free
+            const kinds = this.makeCustomDataProviderImplementation(type).compatibleVisualizationKinds;
+            this._compatibleVisualizationKinds.set(type, kinds);
+        }
+        return this._compatibleVisualizationKinds.get(type);
+    }
+
+    private static makeCustomDataProviderImplementation(
+        type: string,
+    ): CustomDataProviderImplementation<any, any, any, any, any, any> {
         const stored = this._registeredDataProviders.get(type);
         if (!stored) {
             throw new Error(`Data provider '${type}' not found`);
         }
-        const customDataProviderImplementation = new stored.customDataProviderImplementation(
+        return new stored.customDataProviderImplementation(
             ...(stored.customDataProviderImplementationConstructorParams ?? []),
         );
-
-        return new DataProvider({
-            instanceName,
-            dataProviderManager,
-            customDataProviderImplementation,
-            type,
-        });
     }
 }

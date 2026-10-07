@@ -40,9 +40,8 @@ export function GroupComponent(props: GroupComponentProps): React.ReactNode {
 
     const sharedSettingsDelegate = props.group.getSharedSettingsDelegate();
 
-    const actions = React.useMemo(() => {
-        return makeActionsForGroup(props.group);
-    }, [props.group, makeActionsForGroup]);
+    // Not memoized: actions may depend on the group's children (e.g. disabled incompatible providers)
+    const actions = makeActionsForGroup(props.group);
 
     const handleActionClick = React.useCallback(
         function handleActionClick(actionIdentifier: string) {
