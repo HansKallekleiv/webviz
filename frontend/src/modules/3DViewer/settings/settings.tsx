@@ -7,11 +7,15 @@ import { FieldDropdown } from "@framework/components/FieldDropdown";
 import type { ModuleSettingsProps } from "@framework/Module";
 import { useEnsembleSet } from "@framework/WorkbenchSession";
 import { Setting } from "@lib/components/Setting";
+import type { DataProviderManagerOptions } from "@modules/_shared/DataProviderFramework/framework/DataProviderManager/DataProviderManager";
 import { usePersistedDataProviderManager } from "@modules/_shared/DataProviderFramework/hooks/usePersistedDataProviderManager";
 
 import { dataProviderManagerAtom, dataProviderStateAtom } from "./atoms/baseAtoms";
 import { fieldIdentifierAtom } from "./atoms/persistableFixableAtoms";
 import { DataProviderManagerWrapper } from "./components/dataProviderManagerWrapper";
+
+// A depth delta has no meaningful 3D geometry (z would be the difference), so delta ensembles are 2D-only
+const DATA_PROVIDER_MANAGER_OPTIONS: DataProviderManagerOptions = { allowDeltaEnsembles: false };
 
 export function Settings(props: ModuleSettingsProps<any>): React.ReactNode {
     const ensembleSet = useEnsembleSet(props.workbenchSession);
@@ -29,6 +33,7 @@ export function Settings(props: ModuleSettingsProps<any>): React.ReactNode {
         workbenchSession: props.workbenchSession,
         workbenchSettings: props.workbenchSettings,
         queryClient,
+        managerOptions: DATA_PROVIDER_MANAGER_OPTIONS,
     });
 
     React.useEffect(

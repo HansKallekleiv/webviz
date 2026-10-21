@@ -7,6 +7,10 @@
 
 ## October 2026
 
+### Added
+
+- **2D viewer**: Attribute and depth surface layers can use delta ensembles, showing the per-realization difference between the two ensembles.
+
 ### Fixed
 
 - **2D, 3D, Intersection and Well log viewers**: Fixed several issues with loading saved sessions and changing layer settings.

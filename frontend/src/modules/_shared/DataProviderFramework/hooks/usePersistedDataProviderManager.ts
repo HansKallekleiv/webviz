@@ -5,7 +5,11 @@ import type { QueryClient } from "@tanstack/query-core";
 import type { WorkbenchSession } from "@framework/WorkbenchSession";
 import type { WorkbenchSettings } from "@framework/WorkbenchSettings";
 
-import { DataProviderManager, DataProviderManagerTopic } from "../framework/DataProviderManager/DataProviderManager";
+import {
+    DataProviderManager,
+    type DataProviderManagerOptions,
+    DataProviderManagerTopic,
+} from "../framework/DataProviderManager/DataProviderManager";
 
 export type UsePersistedDataProviderManagerOptions = {
     /** Callback to set the DataProviderManager instance - must be reference-stable */
@@ -16,6 +20,8 @@ export type UsePersistedDataProviderManagerOptions = {
     workbenchSession: WorkbenchSession;
     workbenchSettings: WorkbenchSettings;
     queryClient: QueryClient;
+    /** Passed to the DataProviderManager constructor. Must be reference-stable (define outside the component). */
+    managerOptions?: DataProviderManagerOptions;
 };
 
 export function usePersistedDataProviderManager(options: UsePersistedDataProviderManagerOptions): void {
@@ -26,6 +32,7 @@ export function usePersistedDataProviderManager(options: UsePersistedDataProvide
         workbenchSession,
         workbenchSettings,
         queryClient,
+        managerOptions,
     } = options;
 
     // Ref to track last persisted serialized state - to avoid redundant applications of same state to manager
@@ -63,7 +70,7 @@ export function usePersistedDataProviderManager(options: UsePersistedDataProvide
      */
     React.useEffect(
         function setupDataProviderManagerEffect() {
-            const manager = new DataProviderManager(workbenchSession, workbenchSettings, queryClient);
+            const manager = new DataProviderManager(workbenchSession, workbenchSettings, queryClient, managerOptions);
             dataProviderManagerRef.current = manager;
             setDataProviderManager(manager);
 
@@ -91,7 +98,14 @@ export function usePersistedDataProviderManager(options: UsePersistedDataProvide
                 manager.beforeDestroy();
             };
         },
-        [persistDataProviderManagerState, queryClient, setDataProviderManager, workbenchSession, workbenchSettings],
+        [
+            persistDataProviderManagerState,
+            queryClient,
+            setDataProviderManager,
+            workbenchSession,
+            workbenchSettings,
+            managerOptions,
+        ],
     );
 
     /**

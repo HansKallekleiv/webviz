@@ -1,4 +1,5 @@
 import { SurfaceStatisticFunction_api } from "@api";
+import type { DeltaEnsembleIdent } from "@framework/DeltaEnsembleIdent";
 import type { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
 import type { WorkbenchSession } from "@framework/WorkbenchSession";
 
@@ -11,7 +12,7 @@ export type SensitivityConstraint = {
  * Returns sensitivity name/case pairs for the selected ensemble.
  */
 export function resolveSensitivityConstraints(
-    ensembleIdent: RegularEnsembleIdent | null,
+    ensembleIdent: RegularEnsembleIdent | DeltaEnsembleIdent | null,
     workbenchSession: WorkbenchSession,
 ): SensitivityConstraint[] {
     if (!ensembleIdent) {

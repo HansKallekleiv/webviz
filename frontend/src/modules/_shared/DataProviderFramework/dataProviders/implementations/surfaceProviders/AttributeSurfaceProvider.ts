@@ -1,17 +1,27 @@
-import { hashKey } from "@tanstack/query-core";
+import { hashKey, type QueryKey } from "@tanstack/query-core";
 import { isEqual } from "lodash-es";
 
-import type { GetStatisticalSurfaceDataHybridData_api, Options } from "@api";
+import type {
+    GetDeltaSurfaceDataData_api,
+    GetStatisticalSurfaceDataHybridData_api,
+    Options,
+    SurfaceDataFloat_api,
+    SurfaceDataPng_api,
+} from "@api";
 import {
     SurfaceAttributeType_api,
     SurfaceStatisticFunction_api,
     SurfaceTimeType_api,
+    getDeltaSurfaceData,
+    getDeltaSurfaceDataQueryKey,
     getRealizationSurfacesMetadataOptions,
     getStatisticalSurfaceDataHybrid,
     getStatisticalSurfaceDataHybridQueryKey,
     getSurfaceDataOptions,
 } from "@api";
+import { DeltaEnsembleIdent } from "@framework/DeltaEnsembleIdent";
 import { lroProgressBus } from "@framework/LroProgressBus";
+import type { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
 import { wrapLongRunningQuery } from "@framework/utils/lro/longRunningApiCalls";
 import { makeCacheBustingQueryParam } from "@framework/utils/queryUtils";
 import { sortStringArray } from "@lib/utils/arrays";
@@ -24,14 +34,14 @@ import type { SetupBindingsContext } from "@modules/_shared/DataProviderFramewor
 import type { MakeSettingTypesMap } from "@modules/_shared/DataProviderFramework/interfacesAndTypes/utils";
 import { Setting } from "@modules/_shared/DataProviderFramework/settings/settingsDefinitions";
 import { SurfaceAddressBuilder, dedupeSurfaceAttributes, isSameAttribute } from "@modules/_shared/Surface";
+import { intersectSurfaceMetaSets, makeDeltaSurfaceDataQuery } from "@modules/_shared/Surface/deltaSurfaceUtils";
 import { transformSurfaceData } from "@modules/_shared/Surface/queryDataTransforms";
 import { encodeSurfAddrStr, type AnySurfaceAddress } from "@modules/_shared/Surface/surfaceAddress";
 
 import { Representation } from "../../../settings/implementations/RepresentationSetting";
 import {
-    getAvailableEnsembleIdentsForField,
+    getAvailableEnsembleIdentsForFieldIncludingDelta,
     getAvailableRealizationsForEnsembleIdent,
-    requireRegularEnsembleIdent,
 } from "../../dependencyFunctions/sharedSettingUpdaterFunctions";
 
 import { resolveSensitivityConstraints, resolveStatisticFunctionConstraints } from "./_commonSettingsUpdaters";
@@ -180,7 +190,13 @@ export class AttributeSurfaceProvider implements CustomDataProviderImplementatio
         });
 
         setting(Setting.REPRESENTATION).bindValueConstraints({
-            resolve() {
+            read(read) {
+                return { ensembleIdent: read.localSetting(Setting.ENSEMBLE) };
+            },
+            resolve({ ensembleIdent }) {
+                if (ensembleIdent instanceof DeltaEnsembleIdent) {
+                    return [Representation.REALIZATION];
+                }
                 return [Representation.REALIZATION, Representation.ENSEMBLE_STATISTICS];
             },
         });
@@ -196,10 +212,11 @@ export class AttributeSurfaceProvider implements CustomDataProviderImplementatio
                 return {
                     fieldIdentifier: read.globalSetting("fieldId"),
                     ensembles: read.globalSetting("ensembles"),
+                    deltaEnsembles: read.globalSetting("deltaEnsembles"),
                 };
             },
-            resolve({ fieldIdentifier, ensembles }) {
-                return getAvailableEnsembleIdentsForField(fieldIdentifier, ensembles);
+            resolve({ fieldIdentifier, ensembles, deltaEnsembles }) {
+                return getAvailableEnsembleIdentsForFieldIncludingDelta(fieldIdentifier, ensembles, deltaEnsembles);
             },
         });
 
@@ -208,7 +225,7 @@ export class AttributeSurfaceProvider implements CustomDataProviderImplementatio
                 return { ensembleIdent: read.localSetting(Setting.ENSEMBLE) };
             },
             resolve({ ensembleIdent }) {
-                return resolveSensitivityConstraints(requireRegularEnsembleIdent(ensembleIdent), workbenchSession);
+                return resolveSensitivityConstraints(ensembleIdent, workbenchSession);
             },
         });
 
@@ -218,21 +235,31 @@ export class AttributeSurfaceProvider implements CustomDataProviderImplementatio
                 return { ensembleIdent: read.localSetting(Setting.ENSEMBLE) };
             },
             async resolve({ ensembleIdent: selectedEnsembleIdent }, { abortSignal }) {
-                const ensembleIdent = requireRegularEnsembleIdent(selectedEnsembleIdent);
-                if (!ensembleIdent) {
+                if (!selectedEnsembleIdent) {
                     return null;
                 }
 
-                return await queryClient.fetchQuery({
-                    ...getRealizationSurfacesMetadataOptions({
-                        query: {
-                            case_uuid: ensembleIdent.getCaseUuid(),
-                            ensemble_name: ensembleIdent.getEnsembleName(),
-                            ...makeCacheBustingQueryParam(ensembleIdent),
-                        },
-                        signal: abortSignal,
-                    }),
-                });
+                const fetchMetadata = (ensembleIdent: RegularEnsembleIdent) =>
+                    queryClient.fetchQuery({
+                        ...getRealizationSurfacesMetadataOptions({
+                            query: {
+                                case_uuid: ensembleIdent.getCaseUuid(),
+                                ensemble_name: ensembleIdent.getEnsembleName(),
+                                ...makeCacheBustingQueryParam(ensembleIdent),
+                            },
+                            signal: abortSignal,
+                        }),
+                    });
+
+                if (selectedEnsembleIdent instanceof DeltaEnsembleIdent) {
+                    const [comparisonMetaSet, referenceMetaSet] = await Promise.all([
+                        fetchMetadata(selectedEnsembleIdent.getComparisonEnsembleIdent()),
+                        fetchMetadata(selectedEnsembleIdent.getReferenceEnsembleIdent()),
+                    ]);
+                    return intersectSurfaceMetaSets(comparisonMetaSet, referenceMetaSet);
+                }
+
+                return await fetchMetadata(selectedEnsembleIdent);
             },
         });
 
@@ -374,16 +401,13 @@ export class AttributeSurfaceProvider implements CustomDataProviderImplementatio
     }
 
     fetchData(params: FetchDataParams<AttributeSurfaceSettings, SurfaceData>): Promise<SurfaceData> {
-        const {
-            getSetting,
-            getStoredData,
-            getWorkbenchSession,
-            fetchQuery,
-            setProgressMessage,
-            onFetchCancelOrFinish,
-        } = params;
+        const { getSetting, getStoredData, getWorkbenchSession, fetchQuery } = params;
 
-        const ensembleIdent = requireRegularEnsembleIdent(getSetting(Setting.ENSEMBLE));
+        const ensembleIdent = getSetting(Setting.ENSEMBLE);
+        if (ensembleIdent instanceof DeltaEnsembleIdent) {
+            return this.fetchDeltaSurfaceData(params, ensembleIdent);
+        }
+
         let filteredRealizations = getStoredData("realizations") ?? [];
         const formationName = getSetting(Setting.FORMATION_NAME);
         const attribute = getSetting(Setting.SURFACE_ATTRIBUTE);
@@ -484,15 +508,64 @@ export class AttributeSurfaceProvider implements CustomDataProviderImplementatio
             maxTotalDurationSecs: 120,
         });
 
-        function handleTaskProgress(progressMessage: string | null) {
-            setProgressMessage(progressMessage);
+        return this.fetchWithLroProgress(params, queryKey, () => fetchQuery({ ...queryOptions }));
+    }
+
+    private fetchDeltaSurfaceData(
+        params: FetchDataParams<AttributeSurfaceSettings, SurfaceData>,
+        ensembleIdent: DeltaEnsembleIdent,
+    ): Promise<SurfaceData> {
+        const { getSetting, fetchQuery } = params;
+
+        if (getSetting(Setting.REPRESENTATION) !== Representation.REALIZATION) {
+            throw new Error("Statistics of delta ensembles are not supported yet");
         }
-        const unsubscribe = lroProgressBus.subscribe(hashKey(queryKey), handleTaskProgress);
-        onFetchCancelOrFinish(() => {
-            unsubscribe();
+
+        const formationName = getSetting(Setting.FORMATION_NAME);
+        const attribute = getSetting(Setting.SURFACE_ATTRIBUTE);
+        const realization = getSetting(Setting.REALIZATION);
+        if (!formationName || !attribute || realization === null) {
+            throw new Error("Missing settings for delta surface");
+        }
+
+        const addrBuilder = new SurfaceAddressBuilder();
+        addrBuilder.withEnsembleIdent(ensembleIdent.getComparisonEnsembleIdent());
+        addrBuilder.withName(formationName);
+        addrBuilder.withAttribute(attribute);
+        if (this.isTimePointSurface()) {
+            addrBuilder.withTimeOrInterval(getSetting(Setting.TIME_POINT));
+        }
+        if (this.isTimeIntervalSurface()) {
+            addrBuilder.withTimeOrInterval(getSetting(Setting.TIME_INTERVAL));
+        }
+        addrBuilder.withRealization(realization);
+
+        const apiFunctionArgs: Options<GetDeltaSurfaceDataData_api, false> = {
+            query: makeDeltaSurfaceDataQuery(addrBuilder.buildRealizationAddress(), ensembleIdent, this._dataFormat),
+        };
+        const queryKey = getDeltaSurfaceDataQueryKey(apiFunctionArgs);
+        const queryOptions = wrapLongRunningQuery({
+            queryFn: getDeltaSurfaceData,
+            queryFnArgs: apiFunctionArgs,
+            queryKey: queryKey,
+            delayBetweenPollsSecs: 1.0,
+            maxTotalDurationSecs: 120,
         });
 
-        const promise = fetchQuery({ ...queryOptions }).then((data) => ({
+        return this.fetchWithLroProgress(params, queryKey, () => fetchQuery({ ...queryOptions }));
+    }
+
+    private fetchWithLroProgress(
+        params: FetchDataParams<AttributeSurfaceSettings, SurfaceData>,
+        queryKey: QueryKey,
+        fetch: () => Promise<SurfaceDataFloat_api | SurfaceDataPng_api>,
+    ): Promise<SurfaceData> {
+        const { setProgressMessage, onFetchCancelOrFinish } = params;
+
+        const unsubscribe = lroProgressBus.subscribe(hashKey(queryKey), setProgressMessage);
+        onFetchCancelOrFinish(unsubscribe);
+
+        const promise = fetch().then((data) => ({
             format: this._dataFormat,
             surfaceData: transformSurfaceData(data),
         }));

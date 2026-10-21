@@ -121,4 +121,30 @@ describe("Ensemble setting with delta ensembles", () => {
             expect(getProviderSetting(provider, Setting.REALIZATION).getValueConstraints()).toEqual([1, 2]);
         }
     });
+
+    test("a manager with allowDeltaEnsembles: false offers no delta ensembles, even to delta-capable providers", async () => {
+        const manager = makeDataProviderManager(
+            {
+                fieldId: "field-a",
+                realizationFilterFunction: (ident) => ensembleSet.getEnsemble(ident).getRealizations(),
+            },
+            { ensembleSet, managerOptions: { allowDeltaEnsembles: false } },
+        );
+        manager.deserializeState(managerState([deltaEnsembleProvider("Delta capable")]));
+        await settle(manager);
+        const provider = findProvider(manager, "Delta capable");
+
+        expect(manager.getGlobalSetting("deltaEnsembles")).toEqual([]);
+        expect(identStrings(getProviderSetting(provider, Setting.ENSEMBLE).getValueConstraints())).toEqual(
+            REGULAR_IDENT_STRINGS,
+        );
+    });
+
+    test("a manager with default options takes delta ensembles from the ensemble set", async () => {
+        const manager = makeDataProviderManager({ fieldId: "field-a" }, { ensembleSet });
+
+        expect(manager.getGlobalSetting("deltaEnsembles")?.map((e) => e.getIdent().toString())).toEqual([
+            delta.getIdent().toString(),
+        ]);
+    });
 });

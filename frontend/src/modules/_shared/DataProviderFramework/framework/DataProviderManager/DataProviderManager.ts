@@ -62,6 +62,11 @@ export type GlobalSettings = {
     intersectionPolylines: readonly IntersectionPolyline[];
 };
 
+export type DataProviderManagerOptions = {
+    /** When false, `deltaEnsembles` is always empty so no provider can offer delta ensembles (e.g. 3D geometry of a depth delta is meaningless). Default true. */
+    allowDeltaEnsembles?: boolean;
+};
+
 /*
  * The DataProviderManager class is responsible for managing all items (data providers, groups, settings, etc.).
  * It is the main ancestor of all items and provides a way to subscribe/publish messages to all descendants.
@@ -91,11 +96,18 @@ export class DataProviderManager implements ItemGroup, PublishSubscribe<DataProv
     private _isSerializedStateRevisionSuspended = false;
     private _cancelPendingReadinessWait: (() => void) | null = null;
     private _groupColorGenerator: Generator<string, string>;
+    private _allowDeltaEnsembles: boolean;
 
-    constructor(workbenchSession: WorkbenchSession, workbenchSettings: WorkbenchSettings, queryClient: QueryClient) {
+    constructor(
+        workbenchSession: WorkbenchSession,
+        workbenchSettings: WorkbenchSettings,
+        queryClient: QueryClient,
+        options: DataProviderManagerOptions = {},
+    ) {
         this._workbenchSession = workbenchSession;
         this._workbenchSettings = workbenchSettings;
         this._queryClient = queryClient;
+        this._allowDeltaEnsembles = options.allowDeltaEnsembles ?? true;
         this._itemDelegate = new ItemDelegate("DataProviderManager", 0, this);
         this._groupDelegate = new GroupDelegate(this);
 
@@ -379,7 +391,7 @@ export class DataProviderManager implements ItemGroup, PublishSubscribe<DataProv
 
     private initializeGlobalSettings(): Partial<GlobalSettings> {
         const ensembles = clone(this._workbenchSession.getEnsembleSet().getRegularEnsembleArray());
-        const deltaEnsembles = clone(this._workbenchSession.getEnsembleSet().getDeltaEnsembleArray());
+        const deltaEnsembles = clone(this.getAllowedDeltaEnsembles());
         const intersectionPolylines = clone(
             this._workbenchSession.getUserCreatedItems().getIntersectionPolylines().getPolylines(),
         );
@@ -402,7 +414,14 @@ export class DataProviderManager implements ItemGroup, PublishSubscribe<DataProv
     private handleEnsembleSetChanged() {
         const ensembles = this._workbenchSession.getEnsembleSet().getRegularEnsembleArray();
         this.updateGlobalSetting("ensembles", ensembles);
-        this.updateGlobalSetting("deltaEnsembles", this._workbenchSession.getEnsembleSet().getDeltaEnsembleArray());
+        this.updateGlobalSetting("deltaEnsembles", this.getAllowedDeltaEnsembles());
+    }
+
+    private getAllowedDeltaEnsembles(): readonly DeltaEnsemble[] {
+        if (!this._allowDeltaEnsembles) {
+            return [];
+        }
+        return this._workbenchSession.getEnsembleSet().getDeltaEnsembleArray();
     }
 
     private handleIntersectionPolylinesChanged() {
