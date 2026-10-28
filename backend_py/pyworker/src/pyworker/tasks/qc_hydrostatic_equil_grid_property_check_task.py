@@ -72,7 +72,7 @@ async def qc_hydrostatic_equil_grid_property_check_task_async(
 
     try:
         result = await check.compute_grid_property_check_async(grid_name=msg.grid_name, realization=msg.realization)
-    except ServiceLayerException as exc:
+    except (ServiceLayerException, ValueError) as exc:
         raise TaskFailedError(
             f"Failed to compute grid property check: {str(exc)}", internal_error_msg=repr(exc)
         ) from exc

@@ -70,7 +70,7 @@ async def qc_hydrostatic_equil_vector_check_task_async(
         result = await check.compute_vector_check_async(
             t0_iso=msg.t0_iso, t1_iso=msg.t1_iso, realizations=msg.realizations
         )
-    except ServiceLayerException as exc:
+    except (ServiceLayerException, ValueError) as exc:
         raise TaskFailedError(f"Failed to compute vector check: {str(exc)}", internal_error_msg=repr(exc)) from exc
 
     perf_metrics.record_lap("check")
