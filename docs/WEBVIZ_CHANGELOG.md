@@ -23,7 +23,7 @@
 
 ### Added
 
-- **Economic screening**: A new screening module provides discounted oil and sales-gas volumes, oil equivalents, NPV, IRR, fixed-gas break-even oil price, distributions, and time profiles for regular and delta ensembles.
+- **Economic screening**: A new screening module provides discounted oil and sales-gas volumes, oil equivalents, NPV in USD, IRR, break-even oil price at a fixed gas price, distributions, and time profiles per realization for regular and delta ensembles.
 
 ## September 2026
 
