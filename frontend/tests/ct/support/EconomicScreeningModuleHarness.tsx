@@ -25,7 +25,6 @@ import {
     costProfileAtom,
     currencyAtom,
     discountRatePercentAtom,
-    earlyValueConfigurationAtom,
     gasPriceAtom,
     gasPriceBasisAtom,
     oilPriceAtom,
@@ -41,7 +40,6 @@ import {
 import type {
     CashFlowProfileType,
     CostProfileEntry,
-    EarlyValueConfiguration,
     EconomicMeasure,
     ResultMode,
 } from "@modules/EconomicScreening/typesAndEnums";
@@ -54,7 +52,6 @@ export type EconomicScreeningHarnessInitialState = {
     gasPrice?: number | null;
     discountRatePercent?: number;
     costProfile?: CostProfileEntry[];
-    earlyValue?: EarlyValueConfiguration;
     resultMode?: ResultMode;
     selectedMeasure?: EconomicMeasure;
     cashFlowProfileType?: CashFlowProfileType;
@@ -132,7 +129,6 @@ function makeModuleInstance(initialState: EconomicScreeningHarnessInitialState =
         store.set(discountRatePercentAtom, initialState.discountRatePercent);
     }
     if (initialState.costProfile) store.set(costProfileAtom, initialState.costProfile);
-    if (initialState.earlyValue) store.set(earlyValueConfigurationAtom, initialState.earlyValue);
     if (initialState.resultMode) store.set(resultModeAtom, initialState.resultMode);
     if (initialState.selectedMeasure) store.set(selectedMeasureAtom, initialState.selectedMeasure);
     if (initialState.cashFlowProfileType) store.set(cashFlowProfileTypeAtom, initialState.cashFlowProfileType);

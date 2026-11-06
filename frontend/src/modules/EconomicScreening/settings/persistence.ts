@@ -19,7 +19,6 @@ import {
     currencyAtom,
     discountRatePercentAtom,
     distributionPlotTypeAtom,
-    earlyValueConfigurationAtom,
     gasPriceAtom,
     gasPriceBasisAtom,
     missingComponentAssumptionsAtom,
@@ -49,8 +48,6 @@ export type SerializedSettings = {
     gasPrice: number | null;
     gasPriceBasis: GasPriceBasis;
     costProfile: CostProfileEntry[];
-    earlyValueEnabled: boolean;
-    earlyValueEndYear: number | null;
     resultMode: ResultMode;
     selectedMeasure: EconomicMeasure;
     distributionPlotType: DistributionPlotType;
@@ -83,8 +80,6 @@ const schemaBuilder = new SchemaBuilder<SerializedSettings>(() => ({
                 },
             },
         },
-        earlyValueEnabled: { type: "boolean" },
-        earlyValueEndYear: { type: "int32", nullable: true },
         resultMode: { enum: Object.values(ResultMode) },
         selectedMeasure: { enum: Object.values(EconomicMeasure) },
         distributionPlotType: { enum: Object.values(DistributionPlotType) },
@@ -104,8 +99,6 @@ const schemaBuilder = new SchemaBuilder<SerializedSettings>(() => ({
 export const SERIALIZED_SETTINGS_SCHEMA = schemaBuilder.build();
 
 export const serializeSettings: SerializeStateFunction<SerializedSettings> = (get) => {
-    const earlyValueConfiguration = get(earlyValueConfigurationAtom);
-
     return {
         stateFormat: SETTINGS_STATE_FORMAT,
         selectedEnsembleIdentString: get(selectedEnsembleIdentAtom).value?.toString() ?? null,
@@ -117,8 +110,6 @@ export const serializeSettings: SerializeStateFunction<SerializedSettings> = (ge
         gasPrice: get(gasPriceAtom),
         gasPriceBasis: get(gasPriceBasisAtom),
         costProfile: get(costProfileAtom),
-        earlyValueEnabled: earlyValueConfiguration.enabled,
-        earlyValueEndYear: earlyValueConfiguration.endYear,
         resultMode: get(resultModeAtom),
         selectedMeasure: get(selectedMeasureAtom),
         distributionPlotType: get(distributionPlotTypeAtom),
@@ -140,10 +131,6 @@ export const deserializeSettings: DeserializeStateFunction<SerializedSettings> =
             : raw.selectedEnsembleIdentString
               ? (getEnsembleIdentFromString(raw.selectedEnsembleIdentString) ?? undefined)
               : undefined;
-    const earlyValueConfiguration =
-        raw.earlyValueEnabled !== undefined || raw.earlyValueEndYear !== undefined
-            ? { enabled: raw.earlyValueEnabled ?? false, endYear: raw.earlyValueEndYear ?? null }
-            : undefined;
     const selectedRealization =
         raw.selectedRealization === undefined
             ? undefined
@@ -158,7 +145,6 @@ export const deserializeSettings: DeserializeStateFunction<SerializedSettings> =
     setIfDefined(set, gasPriceAtom, raw.gasPrice);
     setIfDefined(set, gasPriceBasisAtom, raw.gasPriceBasis);
     setIfDefined(set, costProfileAtom, raw.costProfile);
-    setIfDefined(set, earlyValueConfigurationAtom, earlyValueConfiguration);
     setIfDefined(set, resultModeAtom, raw.resultMode);
     setIfDefined(set, selectedMeasureAtom, raw.selectedMeasure);
     setIfDefined(set, distributionPlotTypeAtom, raw.distributionPlotType);

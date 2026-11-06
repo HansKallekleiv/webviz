@@ -5,7 +5,7 @@ import { isEnsembleIdentOfType } from "@framework/utils/ensembleIdentUtils";
 import { CostDraftStatus, DEFAULT_GAS_TO_OIL_EQUIVALENT_FACTOR } from "@modules/EconomicScreening/typesAndEnums";
 import { formatMonthIndex } from "@modules/EconomicScreening/utils/calendar";
 import { getIneligibilityMessage, Ineligibility } from "@modules/EconomicScreening/utils/eligibility";
-import { isYearInHorizon, type EvaluationHorizon } from "@modules/EconomicScreening/utils/evaluationHorizon";
+import type { EvaluationHorizon } from "@modules/EconomicScreening/utils/evaluationHorizon";
 import {
     computeMonthlyRealizationEconomics,
     type MonthlyRealizationEconomicResult,
@@ -22,7 +22,6 @@ import {
     constituentGasConsumptionWarningAtom,
     costDraftStatusAtom,
     costProfileAtom,
-    earlyValueConfigurationAtom,
     economicAssumptionsAtom,
     evaluationHorizonAtom,
     priceAssumptionsAtom,
@@ -36,7 +35,6 @@ export type EconomicScreeningResults = {
     gasUnit: string;
     warnings: string[];
     errors: string[];
-    isEarlyValueConfigurationValid: boolean;
     horizon: EvaluationHorizon | null;
 };
 
@@ -51,12 +49,10 @@ const unmaskedResultsAtom = atom<EconomicScreeningResults>((get) => {
     const evaluationHorizon = get(evaluationHorizonAtom);
     const priceAssumptions = get(priceAssumptionsAtom);
     const costProfile = get(costProfileAtom);
-    const earlyValueConfiguration = get(earlyValueConfigurationAtom);
     const validRealizationNumbers = get(realizationNumbersAtom) ?? [];
 
     const warnings: string[] = [];
     const errors: string[] = [];
-    let isEarlyValueConfigurationValid = true;
 
     const { oilUnit, gasUnit, salesGasStrategy } = snapshot;
 
@@ -96,7 +92,6 @@ const unmaskedResultsAtom = atom<EconomicScreeningResults>((get) => {
         gasUnit,
         warnings,
         errors,
-        isEarlyValueConfigurationValid,
         horizon: null,
     });
 
@@ -112,15 +107,6 @@ const unmaskedResultsAtom = atom<EconomicScreeningResults>((get) => {
         return withheld();
     }
     const { horizon } = evaluationHorizon;
-
-    // The Settings setup summary reports an out-of-range early year; only the early outputs are withheld here.
-    if (
-        earlyValueConfiguration.enabled &&
-        earlyValueConfiguration.endYear !== null &&
-        !isYearInHorizon(earlyValueConfiguration.endYear, horizon)
-    ) {
-        isEarlyValueConfigurationValid = false;
-    }
 
     const gasToOilEquivalentDivisor =
         oilUnit === "" || gasUnit === ""
@@ -165,8 +151,6 @@ const unmaskedResultsAtom = atom<EconomicScreeningResults>((get) => {
         gasToOilEquivalentDivisor: gasToOilEquivalentDivisor ?? DEFAULT_GAS_TO_OIL_EQUIVALENT_FACTOR,
         oilPricePerVolume,
         gasPricePerVolume,
-        earlyEndYear:
-            earlyValueConfiguration.enabled && isEarlyValueConfigurationValid ? earlyValueConfiguration.endYear : null,
     };
 
     const selectedRealizations = new Set(validRealizationNumbers);
@@ -194,7 +178,7 @@ const unmaskedResultsAtom = atom<EconomicScreeningResults>((get) => {
         );
     }
 
-    return { results, oilUnit, gasUnit, warnings, errors, isEarlyValueConfigurationValid, horizon };
+    return { results, oilUnit, gasUnit, warnings, errors, horizon };
 });
 
 export const economicScreeningResultsAtom = atom<EconomicScreeningResults>((get) => {
@@ -221,7 +205,6 @@ export const economicScreeningResultsAtom = atom<EconomicScreeningResults>((get)
                 discountedNetCashFlow: null,
                 cumulativeDiscountedCashFlow: null,
             })),
-            early: result.early ? { ...result.early, npv: null } : null,
         })),
     };
 });

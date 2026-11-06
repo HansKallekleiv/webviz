@@ -7,7 +7,6 @@ import {
     costDraftStatusAtom,
     costProfileAtom,
     distributionPlotTypeAtom,
-    earlyValueConfigurationAtom,
     economicAssumptionsAtom,
     evaluationHorizonAtom,
     priceAssumptionsAtom,
@@ -42,9 +41,6 @@ export const settingsToViewInterfaceEffects: InterfaceEffects<SettingsToViewInte
     },
     (getInterfaceValue, setAtomValue) => {
         setAtomValue(costDraftStatusAtom, getInterfaceValue("costDraftStatus"));
-    },
-    (getInterfaceValue, setAtomValue) => {
-        setAtomValue(earlyValueConfigurationAtom, getInterfaceValue("earlyValueConfiguration"));
     },
     (getInterfaceValue, setAtomValue) => {
         setAtomValue(resultModeAtom, getInterfaceValue("resultMode"));

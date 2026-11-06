@@ -12,7 +12,6 @@ import {
     getMeasureRequirement,
     getRevenueIneligibility,
     Ineligibility,
-    isRevenueResolved,
     MeasureRequirement,
     REQUIREMENT_NEEDS,
     revenueNeeds,
@@ -34,13 +33,12 @@ import { EMPTY_SOURCE_SNAPSHOT, SourceStatus } from "@modules/EconomicScreening/
 const PRICES = [null, 0, 50, -5];
 const BOOLEANS = [false, true];
 
-describe("revenueNeeds and isRevenueResolved", () => {
-    test("are exactly equivalent to the previous revenue rule", () => {
+describe("revenueNeeds", () => {
+    test("is exactly equivalent to the previous revenue rule", () => {
         for (const price of PRICES) {
             for (const isEstablished of BOOLEANS) {
                 for (const isConfirmedAbsent of BOOLEANS) {
                     const previous = price === 0 || (isEstablished && (price !== null || isConfirmedAbsent));
-                    expect(isRevenueResolved(price, isEstablished, isConfirmedAbsent)).toBe(previous);
                     expect(getRevenueIneligibility("oil", price, isEstablished, isConfirmedAbsent) === null).toBe(
                         previous,
                     );
@@ -98,8 +96,6 @@ describe("REQUIREMENT_NEEDS", () => {
             [EconomicMeasure.DISCOUNTED_OIL_VOLUME, MeasureRequirement.OIL_VOLUME],
             [EconomicMeasure.DISCOUNTED_SALES_GAS_VOLUME, MeasureRequirement.GAS_VOLUME],
             [EconomicMeasure.DISCOUNTED_OIL_EQUIVALENTS, MeasureRequirement.OIL_AND_GAS_VOLUME],
-            [EconomicMeasure.UNDISCOUNTED_OIL_VOLUME, MeasureRequirement.OIL_VOLUME],
-            [EconomicMeasure.UNDISCOUNTED_SALES_GAS_VOLUME, MeasureRequirement.GAS_VOLUME],
         ]);
         for (const measure of Object.values(EconomicMeasure)) {
             expect(isFinancialMeasure(measure)).toBe(REQUIREMENT_NEEDS[getMeasureRequirement(measure)].validCostDraft);
@@ -274,11 +270,10 @@ describe("readiness and calculation parity", () => {
                                         gasPrice,
                                         costProfile,
                                         costDraftStatus,
-                                        earlyValue: { enabled: false, endYear: null },
                                         requirement,
                                     });
                                     expect(readiness.isLoading).toBe(false);
-                                    const isReady = readiness.issues.every((issue) => issue.field === "earlyYear");
+                                    const isReady = readiness.issues.length === 0;
                                     const measures = Object.values(EconomicMeasure).filter(
                                         (measure) => getMeasureRequirement(measure) === requirement,
                                     );

@@ -150,7 +150,7 @@ export const SCALE_ENSEMBLE_NAME = "Scale";
 export const SCALE_FIRST_YEAR = 2025;
 export const SCALE_MONTH_COUNT = 360;
 export const SCALE_LAST_YEAR = SCALE_FIRST_YEAR + SCALE_MONTH_COUNT / 12 - 1;
-/** Its oil source ends on 1 January 2050, so its full-horizon oil results are excluded; early results are not. */
+/** Its oil source ends on 1 January 2050, so its full-horizon oil results are excluded. */
 export const SCALE_SHORT_OIL_INDEX = 7;
 const SCALE_SHORT_OIL_END_MONTH = (2050 - SCALE_FIRST_YEAR) * 12;
 
@@ -256,17 +256,14 @@ export function scaleReferenceEconomics(
     monthlyOil: number[],
     monthlyGas: number[],
     inputs: ScaleEconomicInputs,
-    earlyEndYear: number | null,
     rateOverride?: number,
 ) {
     const rate = rateOverride ?? inputs.discountRatePercent / 100;
     const start = inputs.predictionStartYear;
     const discount = (time: number) => Math.pow(1 + rate, -time);
     let npv = 0;
-    let earlyDcf = 0;
     let discountedOil = 0;
     let discountedGas = 0;
-    let earlyDiscountedOil = 0;
     let presentCosts = 0;
     for (let month = 0; month < SCALE_MONTH_COUNT; month++) {
         const year = SCALE_FIRST_YEAR + Math.floor(month / 12);
@@ -276,10 +273,6 @@ export function scaleReferenceEconomics(
         npv += revenue;
         discountedOil += monthlyOil[month] * factor;
         discountedGas += monthlyGas[month] * factor;
-        if (earlyEndYear !== null && year <= earlyEndYear) {
-            earlyDcf += revenue;
-            earlyDiscountedOil += monthlyOil[month] * factor;
-        }
     }
     for (const cost of inputs.costs) {
         if (cost.year < start || cost.year > SCALE_LAST_YEAR) continue;
@@ -289,8 +282,7 @@ export function scaleReferenceEconomics(
         }
         npv -= presentCost;
         presentCosts += presentCost;
-        if (earlyEndYear !== null && cost.year <= earlyEndYear) earlyDcf -= presentCost;
     }
     const breakEvenOilPrice = (presentCosts - inputs.gasPrice * discountedGas) / discountedOil;
-    return { npv, earlyDcf, discountedOil, earlyDiscountedOil, breakEvenOilPrice };
+    return { npv, discountedOil, breakEvenOilPrice };
 }

@@ -21,9 +21,6 @@ describe("channel display strings", () => {
         expect(displayStringOf(EconomicMeasure.DISCOUNTED_OIL_VOLUME)).toBe(
             "Discounted oil volume (iter-0; 8%, from 2019)",
         );
-        expect(displayStringOf(EconomicMeasure.UNDISCOUNTED_SALES_GAS_VOLUME)).toBe(
-            "Undiscounted sales gas volume (iter-0; from 2019)",
-        );
     });
 
     test("leave out fixed conventions, currency and the evaluation end", () => {

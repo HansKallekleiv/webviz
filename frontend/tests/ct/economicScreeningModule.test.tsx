@@ -1,12 +1,7 @@
 import type { Page } from "@playwright/test";
 
-import { EARLY_MEASURE_CHANNEL_ID_MAP, MEASURE_CHANNEL_ID_MAP } from "@modules/EconomicScreening/channelDefs";
-import {
-    CashFlowProfileType,
-    EarlyEconomicMeasure,
-    EconomicMeasure,
-    ResultMode,
-} from "@modules/EconomicScreening/typesAndEnums";
+import { MEASURE_CHANNEL_ID_MAP } from "@modules/EconomicScreening/channelDefs";
+import { CashFlowProfileType, EconomicMeasure, ResultMode } from "@modules/EconomicScreening/typesAndEnums";
 
 import { makeSeriesFromMonthlyVolumes } from "./support/economicScreeningConnectedFixtures";
 import { EconomicScreeningModuleHarness } from "./support/EconomicScreeningModuleHarness";
@@ -402,7 +397,7 @@ test("shows a selected realization without complete profile data as unavailable"
     expect(fixtures.vectorDataRequests).toHaveLength(2);
 });
 
-// --- Domain/UX pass: setup guidance, prediction-year selection, early value and cost fields. ---
+// --- Domain/UX pass: setup guidance, prediction-year selection and cost fields. ---
 const UX_SCREENSHOT_DIR = "test-results/economic-screening-ux";
 
 function setupStatus(page: Page) {
@@ -452,7 +447,7 @@ for (const layout of [
     { name: "desktop", width: 1320, settingsWidth: 400, viewWidth: 880 },
     { name: "narrow", width: 720, settingsWidth: 320, viewWidth: 360 },
 ]) {
-    test(`separates optional early cash flow from break-even in ${layout.name} Settings`, async ({ mount, page }) => {
+    test(`lays out break-even settings in ${layout.name} Settings`, async ({ mount, page }) => {
         const fixtures = await routeSourceFixtures(page, { vectorNames: ["FOPT", "FGPT", "FGIT"] });
         await page.setViewportSize({ width: layout.width, height: 700 });
         await mount(
@@ -465,15 +460,12 @@ for (const layout of [
                     gasPrice: 0,
                     costProfile: [{ year: 2030, capex: 1000, opex: 0 }],
                     selectedMeasure: EconomicMeasure.BREAK_EVEN_OIL_PRICE,
-                    earlyValue: { enabled: true, endYear: null },
                 }}
             />,
         );
         const settings = settingsRegion(page);
         const status = setupStatus(page);
-        await expect.poll(() => setupItems(page)).toEqual(["Early value: enter a Calculate through year."]);
-        await expect(status.locator("summary")).toHaveText("Optional early comparison");
-        await expect(status).toContainText("full results unchanged");
+        await expect(status).toHaveText("Setup ready");
         await expect
             .poll(
                 async () =>
@@ -483,9 +475,6 @@ for (const layout of [
                     ).length,
             )
             .toBe(3);
-        const fullBefore = (await readPublishedChannels(page)).filter((channel) =>
-            Object.values(MEASURE_CHANNEL_ID_MAP).includes(channel.channelIdString),
-        );
         await expect(settings.getByRole("button", { name: "Advanced", exact: true })).toHaveCount(0);
         await expect(
             settings.getByText("Gas revenue excluded; gas-volume outputs still require resolved gas data."),
@@ -500,42 +489,6 @@ for (const layout of [
             expect(labelBox.y + labelBox.height).toBeLessThanOrEqual(inputBox.y);
             expect(await input.evaluate((element) => getComputedStyle(element).textAlign)).toBe("right");
         }
-        const section = settings.getByRole("button", { name: "Early cash-flow comparison", exact: true });
-        await section.click();
-        await status.getByRole("button", { name: "Early value: enter a Calculate through year.", exact: true }).click();
-        const throughYear = settings.getByRole("textbox", { name: "Calculate through year", exact: true });
-        await expect(throughYear).toBeFocused();
-        await expect(throughYear).toBeInViewport();
-        await expect(status).toBeInViewport();
-        expect((await status.boundingBox())!.height).toBeLessThanOrEqual((await settings.boundingBox())!.height * 0.4);
-        expect(await fitsHorizontally(status)).toBe(true);
-        await page.screenshot({
-            path: `test-results/economic-screening-presentation/${layout.name}-optional-status.png`,
-        });
-        await page.keyboard.type("2030");
-        await page.keyboard.press("Tab");
-        await expect(status).toHaveText("Setup ready");
-        await expect(earlyComparison(page)).toContainText("Early discounted cash flow");
-        await expect(earlyComparison(page)).not.toContainText("Break-even");
-        expect(
-            (await readPublishedChannels(page)).filter((channel) =>
-                Object.values(MEASURE_CHANNEL_ID_MAP).includes(channel.channelIdString),
-            ),
-        ).toEqual(fullBefore);
-        await settings.getByRole("checkbox", { name: "Early value", exact: true }).uncheck();
-        await expect(earlyComparison(page)).toHaveCount(0);
-        await expect
-            .poll(async () =>
-                (await readPublishedChannels(page))
-                    .filter((channel) => Object.values(EARLY_MEASURE_CHANNEL_ID_MAP).includes(channel.channelIdString))
-                    .flatMap((channel) => channel.contents.flat()),
-            )
-            .toEqual([]);
-        expect(
-            (await readPublishedChannels(page)).filter((channel) =>
-                Object.values(MEASURE_CHANNEL_ID_MAP).includes(channel.channelIdString),
-            ),
-        ).toEqual(fullBefore);
         expect(fixtures.vectorDataRequests.sort()).toEqual(["FGIT", "FGPT", "FOPT"]);
         expect(fixtures.unexpectedApiRequests).toEqual([]);
     });
@@ -667,10 +620,10 @@ test("applies an explicit missing-component assumption to gas revenue without au
 
 // Deterministic source from 1 January 2018 to 1 July 2020: 2018 is covered with zero production, and the
 // 1 July terminal boundary closes June 2020. Realization 21's oil ends on 1 January 2020.
-const EARLY_MONTH_COUNT = 30;
-const EARLY_MONTHLY_OIL: Record<number, number> = { 3: 100, 8: 150, 21: 120 };
-const EARLY_SHORT_OIL_REALIZATION = 21;
-const EARLY_INPUTS = {
+const DELAYED_MONTH_COUNT = 30;
+const DELAYED_MONTHLY_OIL: Record<number, number> = { 3: 100, 8: 150, 21: 120 };
+const DELAYED_SHORT_OIL_REALIZATION = 21;
+const DELAYED_INPUTS = {
     predictionStartYear: 2018,
     discountRatePercent: 10,
     oilPrice: 50,
@@ -682,27 +635,27 @@ const EARLY_INPUTS = {
     ],
 };
 
-function earlyMonthlyOil(realization: number): number[] {
-    return Array.from({ length: EARLY_MONTH_COUNT }, (_, month) => {
+function delayedMonthlyOil(realization: number): number[] {
+    return Array.from({ length: DELAYED_MONTH_COUNT }, (_, month) => {
         if (month < 12) return 0;
-        if (realization === EARLY_SHORT_OIL_REALIZATION && month >= 24) return 0;
-        return EARLY_MONTHLY_OIL[realization];
+        if (realization === DELAYED_SHORT_OIL_REALIZATION && month >= 24) return 0;
+        return DELAYED_MONTHLY_OIL[realization];
     });
 }
 
-function earlyMonthlyGas(realization: number): number[] {
-    return Array.from({ length: EARLY_MONTH_COUNT }, (_, month) =>
-        month < 12 ? 0 : 100 * EARLY_MONTHLY_OIL[realization],
+function delayedMonthlyGas(realization: number): number[] {
+    return Array.from({ length: DELAYED_MONTH_COUNT }, (_, month) =>
+        month < 12 ? 0 : 100 * DELAYED_MONTHLY_OIL[realization],
     );
 }
 
-function earlySeriesFor(vectorName: string) {
+function delayedSeriesFor(vectorName: string) {
     return REALIZATIONS.map((realization) => {
-        const isShortOil = vectorName === "FOPT" && realization === EARLY_SHORT_OIL_REALIZATION;
+        const isShortOil = vectorName === "FOPT" && realization === DELAYED_SHORT_OIL_REALIZATION;
         return makeSeriesFromMonthlyVolumes(
             realization,
             2018,
-            vectorName === "FOPT" ? earlyMonthlyOil(realization) : earlyMonthlyGas(realization),
+            vectorName === "FOPT" ? delayedMonthlyOil(realization) : delayedMonthlyGas(realization),
             ["REGULAR"],
             isShortOil ? monthStartUtcMs(2020, 1) : monthStartUtcMs(2020, 7),
         );
@@ -714,18 +667,18 @@ function earlySeriesFor(vectorName: string) {
  * and OPEX (annual/12, all twelve months even in 2020), mid-year CAPEX, through the end of `throughYear`.
  */
 function referenceDiscountedCashFlow(realization: number, throughYear: number): number {
-    const rate = EARLY_INPUTS.discountRatePercent / 100;
+    const rate = DELAYED_INPUTS.discountRatePercent / 100;
     const factor = (time: number) => Math.pow(1 + rate, -time);
-    const oil = earlyMonthlyOil(realization);
-    const gas = earlyMonthlyGas(realization);
+    const oil = delayedMonthlyOil(realization);
+    const gas = delayedMonthlyGas(realization);
     let value = 0;
-    for (let month = 0; month < EARLY_MONTH_COUNT; month++) {
+    for (let month = 0; month < DELAYED_MONTH_COUNT; month++) {
         const year = 2018 + Math.floor(month / 12);
         if (year > throughYear) continue;
         const time = year - 2018 + ((month % 12) + 0.5) / 12;
-        value += (EARLY_INPUTS.oilPrice * oil[month] + EARLY_INPUTS.gasPrice * gas[month]) * factor(time);
+        value += (DELAYED_INPUTS.oilPrice * oil[month] + DELAYED_INPUTS.gasPrice * gas[month]) * factor(time);
     }
-    for (const cost of EARLY_INPUTS.costProfile) {
+    for (const cost of DELAYED_INPUTS.costProfile) {
         if (cost.year > throughYear) continue;
         value -= cost.capex * factor(cost.year - 2018 + 0.5);
         for (let month = 1; month <= 12; month++) {
@@ -740,38 +693,6 @@ function channelEntries(channels: PublishedChannel[], channelIdString: string): 
         key: number;
         value: number;
     }[];
-}
-
-function earlyComparison(page: Page) {
-    return viewRegion(page).getByRole("region", { name: "Early value comparison" });
-}
-
-/**
- * The comparison value in currency units, from the exact value in the cell title. The visible text is checked to
- * agree with it on the display scale shown in the header.
- */
-async function comparisonValue(page: Page, rowLabel: string): Promise<number | "Unavailable"> {
-    const header = (await earlyComparison(page).getByRole("columnheader").nth(2).textContent())!;
-    const scale = header.includes("billion")
-        ? 1e9
-        : header.includes("million")
-          ? 1e6
-          : header.includes("thousand")
-            ? 1e3
-            : 1;
-    const cell = earlyComparison(page).getByRole("row", { name: rowLabel }).getByRole("cell").nth(2);
-    const text = (await cell.textContent())!.trim();
-    if (text === "Unavailable") return "Unavailable";
-    const exact = parseFloat((await cell.getAttribute("title"))!);
-    const shown = Number(text);
-    const decimals = text.split(".")[1]?.length ?? 0;
-    expect(Math.abs(shown - exact / scale)).toBeLessThanOrEqual(0.5 * 10 ** -decimals + 1e-12);
-    return exact;
-}
-
-function expectDisplayedClose(actual: number | "Unavailable", expected: number) {
-    expect(actual).not.toBe("Unavailable");
-    expect(Math.abs((actual as number) - expected)).toBeLessThanOrEqual(1e-5 * Math.abs(expected) + 1e-6);
 }
 
 async function plottedValue(page: Page, traceName: string, year: number): Promise<number | null> {
@@ -801,11 +722,10 @@ async function plottedValue(page: Page, traceName: string, year: number): Promis
         );
 }
 
-const EARLY_DCF_CHANNEL = EARLY_MEASURE_CHANNEL_ID_MAP[EarlyEconomicMeasure.DISCOUNTED_CASH_FLOW];
 const NPV_CHANNEL = MEASURE_CHANNEL_ID_MAP[EconomicMeasure.NPV];
 
 test("suggests covered years, accepts typed years and keeps the choice under filtering", async ({ mount, page }) => {
-    const fixtures = await routeSourceFixtures(page, { seriesFor: earlySeriesFor });
+    const fixtures = await routeSourceFixtures(page, { seriesFor: delayedSeriesFor });
     await page.setViewportSize({ width: 1320, height: 700 });
     const component = await mount(
         <EconomicScreeningModuleHarness
@@ -879,7 +799,7 @@ test("suggests covered years, accepts typed years and keeps the choice under fil
 });
 
 test("keeps a stored evaluation start year that is outside the suggestions", async ({ mount, page }) => {
-    await routeSourceFixtures(page, { seriesFor: earlySeriesFor });
+    await routeSourceFixtures(page, { seriesFor: delayedSeriesFor });
     await mount(
         <EconomicScreeningModuleHarness
             settingsOpen
@@ -901,7 +821,7 @@ test("keeps a stored evaluation start year that is outside the suggestions", asy
 });
 
 test("commits a typed whole year when focus leaves, and Escape cancels the edit", async ({ mount, page }) => {
-    const fixtures = await routeSourceFixtures(page, { seriesFor: earlySeriesFor });
+    const fixtures = await routeSourceFixtures(page, { seriesFor: delayedSeriesFor });
     await mount(
         <EconomicScreeningModuleHarness
             settingsOpen
@@ -952,8 +872,8 @@ test("commits a typed whole year when focus leaves, and Escape cancels the edit"
 });
 
 test("reports missing source coverage for the selected realizations in the setup summary", async ({ mount, page }) => {
-    const fixtures = await routeSourceFixtures(page, { seriesFor: earlySeriesFor });
-    const initialState = { ...EARLY_INPUTS, predictionStartYear: 2016, selectedMeasure: EconomicMeasure.NPV };
+    const fixtures = await routeSourceFixtures(page, { seriesFor: delayedSeriesFor });
+    const initialState = { ...DELAYED_INPUTS, predictionStartYear: 2016, selectedMeasure: EconomicMeasure.NPV };
     const component = await mount(
         <EconomicScreeningModuleHarness settingsOpen viewWidth={900} viewHeight={640} initialState={initialState} />,
     );
@@ -1002,7 +922,7 @@ function disjointCoverageSeriesFor(vectorName: string) {
         return makeSeriesFromMonthlyVolumes(
             realization,
             2018,
-            vectorName === "FOPT" ? earlyMonthlyOil(3) : earlyMonthlyGas(3),
+            vectorName === "FOPT" ? delayedMonthlyOil(3) : delayedMonthlyGas(3),
             ["REGULAR"],
             isShort ? monthStartUtcMs(2020, 1) : monthStartUtcMs(2020, 7),
         );
@@ -1016,7 +936,7 @@ test("requires the needed products to be covered in the same selected realizatio
             settingsOpen
             viewWidth={900}
             viewHeight={640}
-            initialState={{ ...EARLY_INPUTS, selectedMeasure: EconomicMeasure.NPV }}
+            initialState={{ ...DELAYED_INPUTS, selectedMeasure: EconomicMeasure.NPV }}
             filteredRealizations={[3, 8]}
         />,
     );
@@ -1037,11 +957,8 @@ test("requires the needed products to be covered in the same selected realizatio
     expect(fixtures.unexpectedApiRequests).toEqual([]);
 });
 
-test("shows early and full discounted cash flow from the computed results with a labeled profile marker", async ({
-    mount,
-    page,
-}) => {
-    const fixtures = await routeSourceFixtures(page, { seriesFor: earlySeriesFor });
+test("plots and publishes full discounted cash flow from the computed results", async ({ mount, page }) => {
+    const fixtures = await routeSourceFixtures(page, { seriesFor: delayedSeriesFor });
     await page.setViewportSize({ width: 1320, height: 760 });
     await mount(
         <EconomicScreeningModuleHarness
@@ -1049,108 +966,23 @@ test("shows early and full discounted cash flow from the computed results with a
             viewWidth={900}
             viewHeight={700}
             initialState={{
-                ...EARLY_INPUTS,
-                earlyValue: { enabled: true, endYear: 2019 },
+                ...DELAYED_INPUTS,
                 resultMode: ResultMode.TIME_PROFILE,
                 cashFlowProfileType: CashFlowProfileType.CUMULATIVE_DISCOUNTED_CASH_FLOW,
                 selectedRealization: 3,
             }}
         />,
     );
-    const view = viewRegion(page);
-    const settings = settingsRegion(page);
     await waitForPlottedData(page);
 
-    const expected2018 = referenceDiscountedCashFlow(3, 2018);
+    // The plotted 2019 point and the published channel agree with the reference.
     const expected2019 = referenceDiscountedCashFlow(3, 2019);
-    const expectedFull = referenceDiscountedCashFlow(3, 2020);
-    expect(expected2018).toBeLessThan(0);
-
-    // Through 2019: rendered comparison, plotted 2019 point and published channel agree with the reference.
-    await expect(earlyComparison(page)).toContainText(
-        "Early value through 2019 | Valuation 1 January 2018 | Currency USD",
-    );
-    await expect(earlyComparison(page).getByRole("row", { name: /Early discounted cash flow/ })).toContainText(
-        "Jan 2018-Dec 2019",
-    );
-    await expect(earlyComparison(page).getByRole("row", { name: /Net present value/ })).toContainText(
-        "Jan 2018-Jun 2020",
-    );
-    await expect(earlyComparison(page).getByRole("columnheader").nth(2)).toContainText("Realization 3");
-    expectDisplayedClose(await comparisonValue(page, "Early discounted cash flow"), expected2019);
-    expectDisplayedClose(await comparisonValue(page, "Net present value"), expectedFull);
     expect(Math.abs((await plottedValue(page, "Realization 3", 2019))! - expected2019)).toBeLessThan(1e-6);
-    await expect(view.locator(".annotation-text")).toHaveText("Early value through 2019");
-    let channels = await readPublishedChannels(page);
-    const fullNpv = channelEntries(channels, NPV_CHANNEL);
+    const fullNpv = channelEntries(await readPublishedChannels(page), NPV_CHANNEL);
     expect(fullNpv.map((entry) => entry.key)).toEqual([3, 8]);
     for (const entry of fullNpv) {
         expect(Math.abs(entry.value - referenceDiscountedCashFlow(entry.key, 2020))).toBeLessThan(1e-6);
     }
-    const early2019 = channelEntries(channels, EARLY_DCF_CHANNEL);
-    expect(early2019.map((entry) => entry.key)).toEqual([3, 8, 21]);
-    for (const entry of early2019) {
-        expect(Math.abs(entry.value - referenceDiscountedCashFlow(entry.key, 2019))).toBeLessThan(1e-6);
-    }
-    await page.screenshot({ path: `${UX_SCREENSHOT_DIR}/desktop-early-2019-realization.png` });
-
-    const throughYear = settings.getByRole("textbox", { name: "Calculate through year" });
-    await typeAndTabAway(page, throughYear, "2018");
-    await expect(view.locator(".annotation-text")).toHaveText("Early value through 2018");
-    expectDisplayedClose(await comparisonValue(page, "Early discounted cash flow"), expected2018);
-    await expect
-        .poll(async () => channelEntries(await readPublishedChannels(page), EARLY_DCF_CHANNEL)[0]?.value)
-        .toBeCloseTo(expected2018, 6);
-
-    // Through the final year: equals full NPV and includes the full 2020 costs; short-oil 21 is unavailable.
-    await typeAndTabAway(page, throughYear, "2020");
-    await expect(earlyComparison(page).getByRole("row", { name: /Early discounted cash flow/ })).toContainText(
-        "Jan 2018-Jun 2020",
-    );
-    expectDisplayedClose(await comparisonValue(page, "Early discounted cash flow"), expectedFull);
-    await expect
-        .poll(async () =>
-            channelEntries(await readPublishedChannels(page), EARLY_DCF_CHANNEL).map((entry) => entry.key),
-        )
-        .toEqual([3, 8]);
-    channels = await readPublishedChannels(page);
-    const early2020 = channelEntries(channels, EARLY_DCF_CHANNEL);
-    expect(Math.abs(early2020[0].value - fullNpv[0].value)).toBeLessThan(1e-6);
-    expect(channelEntries(channels, NPV_CHANNEL)).toEqual(fullNpv);
-
-    // Aggregate: labeled P50 per horizon with each horizon's own valid count.
-    await typeAndTabAway(page, throughYear, "2019");
-    await realizationCombobox(page).click();
-    await page.keyboard.press("Escape");
-    await settings.getByRole("button", { name: "Clear selection" }).last().click();
-    await expect(earlyComparison(page).getByRole("columnheader").nth(2)).toContainText("P50");
-    await expect(earlyComparison(page).getByRole("row", { name: /Early discounted cash flow/ })).toContainText("3/3");
-    await expect(earlyComparison(page).getByRole("row", { name: /Net present value/ })).toContainText("2/3");
-    await expect(earlyComparison(page)).toContainText("need not come from the same realization");
-    const earlyMedian = [3, 8, 21]
-        .map((realization) => referenceDiscountedCashFlow(realization, 2019))
-        .sort((a, b) => a - b)[1];
-    const fullMedian = (referenceDiscountedCashFlow(3, 2020) + referenceDiscountedCashFlow(8, 2020)) / 2;
-    expectDisplayedClose(await comparisonValue(page, "Early discounted cash flow"), earlyMedian);
-    expectDisplayedClose(await comparisonValue(page, "Net present value"), fullMedian);
-    await page.screenshot({ path: `${UX_SCREENSHOT_DIR}/desktop-early-2019-aggregate.png` });
-
-    // Disabled early value withdraws only early context and contents.
-    await settings.getByRole("checkbox", { name: "Early value" }).uncheck();
-    await expect(earlyComparison(page)).toHaveCount(0);
-    await expect(view.locator(".annotation-text")).toHaveCount(0);
-    await expect.poll(async () => channelEntries(await readPublishedChannels(page), EARLY_DCF_CHANNEL)).toEqual([]);
-    expect(channelEntries(await readPublishedChannels(page), NPV_CHANNEL)).toEqual(fullNpv);
-    await waitForPlottedData(page);
-
-    // An out-of-range year does the same and is reported in the setup summary.
-    await settings.getByRole("checkbox", { name: "Early value" }).check();
-    await typeAndTabAway(page, throughYear, "2025");
-    await expect(setupStatus(page)).toContainText("Early value: choose a Calculate through year within 2018-2020.");
-    await expect(earlyComparison(page)).toHaveCount(0);
-    await expect(view.locator(".annotation-text")).toHaveCount(0);
-    await expect.poll(async () => channelEntries(await readPublishedChannels(page), EARLY_DCF_CHANNEL)).toEqual([]);
-    expect(channelEntries(await readPublishedChannels(page), NPV_CHANNEL)).toEqual(fullNpv);
     await expectNoConfigurationInputsInView(page);
     expect(fixtures.vectorDataRequests.sort()).toEqual(["FGST", "FOPT"]);
     expect(fixtures.unexpectedApiRequests).toEqual([]);
@@ -1161,8 +993,8 @@ async function fitsHorizontally(locator: ReturnType<Page["getByRole"]>): Promise
     return locator.evaluate((element) => element.scrollWidth <= element.clientWidth + 1);
 }
 
-test("keeps the early comparison, marker and setup summary contained in a narrow layout", async ({ mount, page }) => {
-    await routeSourceFixtures(page, { seriesFor: earlySeriesFor });
+test("keeps the time profile and setup summary contained in a narrow layout", async ({ mount, page }) => {
+    await routeSourceFixtures(page, { seriesFor: delayedSeriesFor });
     await page.setViewportSize({ width: 720, height: 700 });
     await mount(
         <EconomicScreeningModuleHarness
@@ -1170,9 +1002,8 @@ test("keeps the early comparison, marker and setup summary contained in a narrow
             viewWidth={360}
             viewHeight={640}
             initialState={{
-                ...EARLY_INPUTS,
+                ...DELAYED_INPUTS,
                 gasPrice: null,
-                earlyValue: { enabled: true, endYear: 2019 },
                 resultMode: ResultMode.TIME_PROFILE,
                 cashFlowProfileType: CashFlowProfileType.CUMULATIVE_DISCOUNTED_CASH_FLOW,
                 selectedRealization: 3,
@@ -1191,30 +1022,9 @@ test("keeps the early comparison, marker and setup summary contained in a narrow
     await gasPrice.blur();
     await expect(setupStatus(page)).toHaveText("Setup ready");
     await waitForPlottedData(page);
-    await expect(viewRegion(page).locator(".annotation-text")).toHaveText("Early value through 2019");
-
-    const view = viewRegion(page);
-    const viewBox = (await view.boundingBox())!;
-    const comparisonBox = (await earlyComparison(page).boundingBox())!;
-    expect(comparisonBox.x + comparisonBox.width).toBeLessThanOrEqual(viewBox.x + viewBox.width);
-    for (const cell of await earlyComparison(page).getByRole("cell").all()) {
-        const cellBox = (await cell.boundingBox())!;
-        expect(cellBox.x + cellBox.width, `cell "${await cell.textContent()}"`).toBeLessThanOrEqual(
-            viewBox.x + viewBox.width,
-        );
-    }
-    const annotation = (await view.locator(".annotation").first().boundingBox())!;
-    const legend = (await view.locator(".legend").first().boundingBox())!;
-    const plot = (await view.locator(".main-svg").first().boundingBox())!;
-    expect(overlaps(annotation, legend)).toBe(false);
-    for (const label of [...(await view.locator(".xtick text").all()), view.locator(".xtitle").first()]) {
-        expect(overlaps(annotation, (await label.boundingBox())!)).toBe(false);
-    }
-    expect(annotation.x).toBeGreaterThanOrEqual(plot.x);
-    expect(annotation.x + annotation.width).toBeLessThanOrEqual(plot.x + plot.width);
     await expectLegendClearOfYearAxis(page);
     await page.mouse.move(0, 0);
-    await page.screenshot({ path: `${UX_SCREENSHOT_DIR}/narrow-early-time-profile.png` });
+    await page.screenshot({ path: `${UX_SCREENSHOT_DIR}/narrow-time-profile.png` });
 });
 
 test("starts prices and costs closed for volumes and opens them once a result needs them", async ({ mount, page }) => {
@@ -1310,16 +1120,12 @@ test("names Settings cost inputs by year without step buttons while other number
     await page.screenshot({ path: `${UX_SCREENSHOT_DIR}/desktop-settings-costs.png` });
 });
 
-test("cost paste preserves channels until Apply and matches independent full and early cash flows", async ({
-    mount,
-    page,
-}) => {
-    const fixtures = await routeSourceFixtures(page, { seriesFor: earlySeriesFor });
+test("cost paste preserves channels until Apply and matches independent cash flows", async ({ mount, page }) => {
+    const fixtures = await routeSourceFixtures(page, { seriesFor: delayedSeriesFor });
     await page.setViewportSize({ width: 1320, height: 700 });
     const initialState = {
-        ...EARLY_INPUTS,
-        costProfile: [{ year: 2016, capex: 7, opex: 0 }, ...EARLY_INPUTS.costProfile],
-        earlyValue: { enabled: true, endYear: 2019 },
+        ...DELAYED_INPUTS,
+        costProfile: [{ year: 2016, capex: 7, opex: 0 }, ...DELAYED_INPUTS.costProfile],
         selectedMeasure: EconomicMeasure.BREAK_EVEN_OIL_PRICE,
         resultMode: ResultMode.ALL_RESULTS,
         selectedRealization: 3,
@@ -1377,21 +1183,16 @@ test("cost paste preserves channels until Apply and matches independent full and
             (total, value) => total + value,
             0,
         );
-    const earlyChange = -costPv(2019, 600, 1200);
-    const fullChange = earlyChange + costPv(2020, 500, 1200);
+    const fullChange = costPv(2020, 500, 1200) - costPv(2019, 600, 1200);
     await expect
         .poll(async () => channelEntries(await readPublishedChannels(page), NPV_CHANNEL)[0]?.value)
         .toBeCloseTo(referenceDiscountedCashFlow(3, 2020) + fullChange, 7);
     const actual = await readPublishedChannels(page);
     for (const entry of channelEntries(actual, NPV_CHANNEL))
         expect(entry.value).toBeCloseTo(referenceDiscountedCashFlow(entry.key, 2020) + fullChange, 7);
-    for (const entry of channelEntries(actual, EARLY_DCF_CHANNEL))
-        expect(entry.value).toBeCloseTo(referenceDiscountedCashFlow(entry.key, 2019) + earlyChange, 7);
     for (const measure of [
         EconomicMeasure.DISCOUNTED_OIL_VOLUME,
-        EconomicMeasure.UNDISCOUNTED_OIL_VOLUME,
         EconomicMeasure.DISCOUNTED_SALES_GAS_VOLUME,
-        EconomicMeasure.UNDISCOUNTED_SALES_GAS_VOLUME,
         EconomicMeasure.DISCOUNTED_OIL_EQUIVALENTS,
     ]) {
         expect(channelEntries(actual, MEASURE_CHANNEL_ID_MAP[measure])).toEqual(
@@ -1404,8 +1205,6 @@ test("cost paste preserves channels until Apply and matches independent full and
             {
                 expectedNpv3: referenceDiscountedCashFlow(3, 2020) + fullChange,
                 actualNpv3: channelEntries(actual, NPV_CHANNEL)[0],
-                expectedEarly3: referenceDiscountedCashFlow(3, 2019) + earlyChange,
-                actualEarly3: channelEntries(actual, EARLY_DCF_CHANNEL)[0],
                 costs: await readCosts(),
             },
             null,

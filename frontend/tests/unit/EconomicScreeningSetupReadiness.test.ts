@@ -89,7 +89,6 @@ function readyInput(
         gasPrice: null,
         costProfile: [],
         costDraftStatus: CostDraftStatus.COMMITTED,
-        earlyValue: { enabled: false, endYear: null },
         requirement: MeasureRequirement.FINANCIAL,
         ...inputOverrides,
     };
@@ -397,20 +396,13 @@ describe("getSetupReadiness", () => {
         }
     });
 
-    test("reports invalid cost drafts and early-value years", () => {
+    test("reports invalid cost drafts", () => {
         const base = readyInput({ predictionStartYear: 2018, oilPrice: 50, gasPrice: 0 });
         expect(messages({ ...base, costDraftStatus: CostDraftStatus.INVALID })).toEqual(["Correct the cost schedule."]);
         expect(messages({ ...base, costDraftStatus: CostDraftStatus.PENDING })).toEqual([]);
         expect(
             messages({ ...base, costDraftStatus: CostDraftStatus.INVALID, requirement: MeasureRequirement.OIL_VOLUME }),
         ).toEqual([]);
-        expect(messages({ ...base, earlyValue: { enabled: true, endYear: null } })).toEqual([
-            "Early value: enter a Calculate through year.",
-        ]);
-        expect(messages({ ...base, earlyValue: { enabled: true, endYear: 2025 } })).toEqual([
-            "Early value: choose a Calculate through year within 2018-2020.",
-        ]);
-        expect(messages({ ...base, earlyValue: { enabled: false, endYear: 2025 } })).toEqual([]);
     });
 });
 

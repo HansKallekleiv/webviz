@@ -65,10 +65,6 @@ function rawMeasureValue(
             return result.hasSalesGasData ? result.discountedSalesGasVolume : null;
         case EconomicMeasure.DISCOUNTED_OIL_EQUIVALENTS:
             return result.hasOilData && result.hasSalesGasData ? result.discountedOilEquivalents : null;
-        case EconomicMeasure.UNDISCOUNTED_OIL_VOLUME:
-            return result.hasOilData ? result.undiscountedOilVolume : null;
-        case EconomicMeasure.UNDISCOUNTED_SALES_GAS_VOLUME:
-            return result.hasSalesGasData ? result.undiscountedSalesGasVolume : null;
         default:
             return null;
     }
@@ -107,11 +103,9 @@ export function getMeasureUnit(measure: EconomicMeasure, context: MeasureUnitCon
         case EconomicMeasure.BREAK_EVEN_OIL_PRICE:
             return `${context.currency} ${OilPriceBasisEnumToStringMapping[context.oilPriceBasis]}`;
         case EconomicMeasure.DISCOUNTED_OIL_VOLUME:
-        case EconomicMeasure.UNDISCOUNTED_OIL_VOLUME:
         case EconomicMeasure.DISCOUNTED_OIL_EQUIVALENTS:
             return oilUnit;
         case EconomicMeasure.DISCOUNTED_SALES_GAS_VOLUME:
-        case EconomicMeasure.UNDISCOUNTED_SALES_GAS_VOLUME:
             return gasUnit;
         default:
             return "";

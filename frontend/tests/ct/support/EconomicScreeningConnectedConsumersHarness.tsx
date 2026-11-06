@@ -60,7 +60,6 @@ import {
     currencyAtom,
     discountRatePercentAtom,
     distributionPlotTypeAtom,
-    earlyValueConfigurationAtom,
     gasPriceAtom,
     gasPriceBasisAtom,
     oilPriceAtom,
@@ -74,7 +73,6 @@ import {
     type CostDraftStatus,
     Currency,
     type DistributionPlotType,
-    type EarlyValueConfiguration,
     type EconomicMeasure,
     GasPriceBasis,
     OilPriceBasis,
@@ -164,7 +162,6 @@ export type ProducerDisplay = { resultMode: ResultMode; measure: EconomicMeasure
 export type ConnectedConsumersHarnessProps = {
     producerEnsemble: ProducerEnsemble;
     costDraftStatus: CostDraftStatus;
-    early: EarlyValueConfiguration;
     producerDisplay?: ProducerDisplay;
     /** Producer channel id strings; null leaves a receiver disconnected. */
     distributionX: string | null;
@@ -356,10 +353,6 @@ export function EconomicScreeningConnectedConsumersHarness(props: ConnectedConsu
     useEffect(() => {
         producerStore.set(costDraftStatusAtom, props.costDraftStatus);
     }, [producerStore, props.costDraftStatus]);
-    const { enabled: earlyEnabled, endYear: earlyEndYear } = props.early;
-    useEffect(() => {
-        producerStore.set(earlyValueConfigurationAtom, { enabled: earlyEnabled, endYear: earlyEndYear });
-    }, [producerStore, earlyEnabled, earlyEndYear]);
     const filterKey = props.filteredRealizations ? props.filteredRealizations.join(",") : null;
     useEffect(() => {
         const filtered = filterKey === null ? null : filterKey.split(",").map(Number);
@@ -384,7 +377,6 @@ export function EconomicScreeningConnectedConsumersHarness(props: ConnectedConsu
                 gasPriceAtom,
                 discountRatePercentAtom,
                 costProfileAtom,
-                earlyValueConfigurationAtom,
                 predictionStartYearAtom,
                 costDraftStatusAtom,
                 RealizationFilterSetAtom,

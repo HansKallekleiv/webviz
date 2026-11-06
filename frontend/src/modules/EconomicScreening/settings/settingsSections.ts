@@ -9,7 +9,6 @@ export enum SettingsSection {
     PRICES = "Prices",
     COSTS = "Costs",
     RESULTS = "Results",
-    EARLY_CASH_FLOW_COMPARISON = "Early cash-flow comparison",
 }
 
 export const FIELD_SECTIONS: Record<SetupField, SettingsSection> = {
@@ -20,7 +19,6 @@ export const FIELD_SECTIONS: Record<SetupField, SettingsSection> = {
     injection: SettingsSection.PRICES,
     consumption: SettingsSection.PRICES,
     costs: SettingsSection.COSTS,
-    earlyYear: SettingsSection.EARLY_CASH_FLOW_COMPARISON,
 };
 
 export type SectionStateProps = Required<Pick<SettingSectionProps, "title" | "open" | "onOpenChange">>;

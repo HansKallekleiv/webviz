@@ -23,15 +23,12 @@ const BASE_RESULT: MonthlyRealizationEconomicResult = {
     discountedOilVolume: 0,
     discountedSalesGasVolume: 0,
     discountedOilEquivalents: 0,
-    undiscountedOilVolume: 0,
-    undiscountedSalesGasVolume: 0,
     npv: null,
     financialIneligibility: null,
     irr: null,
     breakEvenOilPrice: null,
     breakEvenIneligibility: null,
     excludedCostYears: [],
-    early: null,
 };
 
 describe("getMeasureUnavailableReason", () => {
@@ -75,7 +72,7 @@ describe("getMeasureUnavailableReason", () => {
 
     test("reports missing coverage for volume measures", () => {
         const results = [{ ...BASE_RESULT, hasOilData: false, hasSalesGasData: false }];
-        expect(getMeasureUnavailableReason(results, EconomicMeasure.UNDISCOUNTED_OIL_VOLUME)).toBe(
+        expect(getMeasureUnavailableReason(results, EconomicMeasure.DISCOUNTED_OIL_VOLUME)).toBe(
             "Oil source coverage is not established for every month of the evaluation.",
         );
         expect(getMeasureUnavailableReason(results, EconomicMeasure.DISCOUNTED_SALES_GAS_VOLUME)).toBe(

@@ -1,6 +1,6 @@
 import type { ChannelContentMetaData, DataGenerator } from "@framework/types/dataChannnel";
 
-import { EarlyEconomicMeasure, EarlyEconomicMeasureEnumToStringMapping, EconomicMeasure } from "./typesAndEnums";
+import { EconomicMeasure } from "./typesAndEnums";
 import type { MeasureUnitContext } from "./utils/measureAccessors";
 import { getMeasureDisplayName, getMeasureUnit, getMeasureValues } from "./utils/measureAccessors";
 import type { MonthlyRealizationEconomicResult } from "./utils/monthlyEconomics";
@@ -13,18 +13,9 @@ export type ChannelContext = {
 
 const NO_CHANNEL_CONTEXT: ChannelContext = { discountRatePercent: null, predictionStartYear: null };
 
-/** Measures whose value does not depend on the discount rate. */
-const UNDISCOUNTED_MEASURES: ReadonlySet<EconomicMeasure> = new Set([
-    EconomicMeasure.IRR,
-    EconomicMeasure.UNDISCOUNTED_OIL_VOLUME,
-    EconomicMeasure.UNDISCOUNTED_SALES_GAS_VOLUME,
-]);
-
 const SHORT_MEASURE_NAMES: Partial<Record<EconomicMeasure, string>> = {
     [EconomicMeasure.NPV]: "NPV",
     [EconomicMeasure.IRR]: "IRR",
-    [EconomicMeasure.UNDISCOUNTED_OIL_VOLUME]: "Undiscounted oil volume",
-    [EconomicMeasure.UNDISCOUNTED_SALES_GAS_VOLUME]: "Undiscounted sales gas volume",
 };
 
 /**
@@ -66,7 +57,8 @@ export function makeMeasureDataGenerator(
                 SHORT_MEASURE_NAMES[measure] ?? getMeasureDisplayName(measure),
                 ensembleDisplayName,
                 channelContext,
-                !UNDISCOUNTED_MEASURES.has(measure),
+                // IRR is the only measure that does not depend on the discount rate.
+                measure !== EconomicMeasure.IRR,
             ),
             preferredColor,
         };
@@ -74,53 +66,6 @@ export function makeMeasureDataGenerator(
         return {
             data: realizations.map((realization, i) => ({ key: realization, value: values[i] })),
             metaData,
-        };
-    };
-}
-
-/** Publishes only values that are valid on the early horizon itself, which uses its own end year. */
-export function makeEarlyMeasureDataGenerator(
-    results: MonthlyRealizationEconomicResult[],
-    measure: EarlyEconomicMeasure,
-    endYear: number,
-    unit: string,
-    ensembleIdentString: string,
-    ensembleDisplayName: string,
-    preferredColor: string,
-    channelContext: ChannelContext = NO_CHANNEL_CONTEXT,
-): DataGenerator {
-    return () => {
-        const data = results.flatMap((result) => {
-            const earlyValue = result.early;
-            if (!earlyValue || earlyValue.endYear !== endYear) {
-                return [];
-            }
-            const value =
-                measure === EarlyEconomicMeasure.DISCOUNTED_OIL_VOLUME
-                    ? earlyValue.hasOilData
-                        ? earlyValue.discountedOilVolume
-                        : null
-                    : measure === EarlyEconomicMeasure.DISCOUNTED_SALES_GAS_VOLUME
-                      ? earlyValue.hasSalesGasData
-                          ? earlyValue.discountedSalesGasVolume
-                          : null
-                      : earlyValue.npv;
-            return value !== null && Number.isFinite(value) ? [{ key: result.realization, value }] : [];
-        });
-
-        return {
-            data,
-            metaData: {
-                unit,
-                ensembleIdentString,
-                displayString: makeChannelDisplayString(
-                    `${EarlyEconomicMeasureEnumToStringMapping[measure]} through ${endYear}`,
-                    ensembleDisplayName,
-                    channelContext,
-                    true,
-                ),
-                preferredColor,
-            },
         };
     };
 }

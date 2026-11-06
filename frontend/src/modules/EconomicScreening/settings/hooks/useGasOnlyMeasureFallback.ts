@@ -20,8 +20,6 @@ export function useGasOnlyMeasureFallback(): void {
         }
         if (selectedMeasure === EconomicMeasure.DISCOUNTED_OIL_VOLUME) {
             setSelectedMeasure(EconomicMeasure.DISCOUNTED_SALES_GAS_VOLUME);
-        } else if (selectedMeasure === EconomicMeasure.UNDISCOUNTED_OIL_VOLUME) {
-            setSelectedMeasure(EconomicMeasure.UNDISCOUNTED_SALES_GAS_VOLUME);
         }
         if (cashFlowProfileType === CashFlowProfileType.ANNUAL_OIL_VOLUME) {
             setCashFlowProfileType(CashFlowProfileType.ANNUAL_SALES_GAS_VOLUME);

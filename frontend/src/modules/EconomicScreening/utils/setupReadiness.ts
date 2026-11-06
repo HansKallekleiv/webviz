@@ -1,18 +1,9 @@
-import {
-    CostDraftStatus,
-    type CostProfileEntry,
-    type EarlyValueConfiguration,
-} from "@modules/EconomicScreening/typesAndEnums";
+import { CostDraftStatus, type CostProfileEntry } from "@modules/EconomicScreening/typesAndEnums";
 
 import { formatMonthIndex } from "./calendar";
 import { hasIncludedNonZeroCost } from "./costProfile";
 import { REQUIREMENT_NEEDS, revenueNeeds, type MeasureRequirement } from "./eligibility";
-import {
-    getEvaluationHorizonError,
-    isYearInHorizon,
-    type EvaluationHorizon,
-    type EvaluationHorizonState,
-} from "./evaluationHorizon";
+import { getEvaluationHorizonError, type EvaluationHorizon, type EvaluationHorizonState } from "./evaluationHorizon";
 import { isProductConfirmedAbsent, isProductEstablished } from "./monthlyEconomics";
 import { isMonthCoverageEstablished, monthIndexOf, type MonthlyProductionProfile } from "./monthlyProduction";
 import { SourceStatus, type EconomicSourceSnapshot, type RealizationProfiles } from "./sourceSnapshot";
@@ -60,8 +51,7 @@ export type SetupField =
     | "gasPrice"
     | "injection"
     | "consumption"
-    | "costs"
-    | "earlyYear";
+    | "costs";
 
 export type SetupIssue = { kind: SetupIssueKind; message: string; field?: SetupField };
 
@@ -165,7 +155,6 @@ export type SetupReadinessInput = {
     gasPrice: number | null;
     costProfile: CostProfileEntry[];
     costDraftStatus: CostDraftStatus;
-    earlyValue: EarlyValueConfiguration;
     requirement: MeasureRequirement;
 };
 
@@ -304,18 +293,6 @@ export function getSetupReadiness(input: SetupReadinessInput): SetupReadiness {
         !hasIncludedNonZeroCost(input.costProfile, horizon.startYear, horizon.endYear)
     ) {
         addInput("Enter a non-zero CAPEX or OPEX within the evaluation.", "costs");
-    }
-
-    if (input.earlyValue.enabled) {
-        const earlyEndYear = input.earlyValue.endYear;
-        if (earlyEndYear === null) {
-            addInput("Early value: enter a Calculate through year.", "earlyYear");
-        } else if (horizon && !isYearInHorizon(earlyEndYear, horizon)) {
-            addInput(
-                `Early value: choose a Calculate through year within ${horizon.startYear}-${horizon.endYear}.`,
-                "earlyYear",
-            );
-        }
     }
 
     return { isLoading, issues };

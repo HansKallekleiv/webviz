@@ -41,8 +41,6 @@ const MEASURE_GROUPS: { title: string; measures: EconomicMeasure[] }[] = [
             EconomicMeasure.DISCOUNTED_OIL_VOLUME,
             EconomicMeasure.DISCOUNTED_SALES_GAS_VOLUME,
             EconomicMeasure.DISCOUNTED_OIL_EQUIVALENTS,
-            EconomicMeasure.UNDISCOUNTED_OIL_VOLUME,
-            EconomicMeasure.UNDISCOUNTED_SALES_GAS_VOLUME,
         ],
     },
     {

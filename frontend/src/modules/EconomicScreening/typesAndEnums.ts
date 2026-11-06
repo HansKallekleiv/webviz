@@ -5,8 +5,6 @@ export enum EconomicMeasure {
     DISCOUNTED_OIL_VOLUME = "DISCOUNTED_OIL_VOLUME",
     DISCOUNTED_SALES_GAS_VOLUME = "DISCOUNTED_SALES_GAS_VOLUME",
     DISCOUNTED_OIL_EQUIVALENTS = "DISCOUNTED_OIL_EQUIVALENTS",
-    UNDISCOUNTED_OIL_VOLUME = "UNDISCOUNTED_OIL_VOLUME",
-    UNDISCOUNTED_SALES_GAS_VOLUME = "UNDISCOUNTED_SALES_GAS_VOLUME",
 }
 
 export const EconomicMeasureEnumToStringMapping: Record<EconomicMeasure, string> = {
@@ -16,20 +14,6 @@ export const EconomicMeasureEnumToStringMapping: Record<EconomicMeasure, string>
     [EconomicMeasure.DISCOUNTED_OIL_VOLUME]: "Discounted oil volume",
     [EconomicMeasure.DISCOUNTED_SALES_GAS_VOLUME]: "Discounted sales gas volume",
     [EconomicMeasure.DISCOUNTED_OIL_EQUIVALENTS]: "Discounted oil equivalents",
-    [EconomicMeasure.UNDISCOUNTED_OIL_VOLUME]: "Oil volume (undiscounted)",
-    [EconomicMeasure.UNDISCOUNTED_SALES_GAS_VOLUME]: "Sales gas volume (undiscounted)",
-};
-
-export enum EarlyEconomicMeasure {
-    DISCOUNTED_OIL_VOLUME = "EARLY_DISCOUNTED_OIL_VOLUME",
-    DISCOUNTED_SALES_GAS_VOLUME = "EARLY_DISCOUNTED_SALES_GAS_VOLUME",
-    DISCOUNTED_CASH_FLOW = "EARLY_DISCOUNTED_CASH_FLOW",
-}
-
-export const EarlyEconomicMeasureEnumToStringMapping: Record<EarlyEconomicMeasure, string> = {
-    [EarlyEconomicMeasure.DISCOUNTED_OIL_VOLUME]: "Early discounted oil volume",
-    [EarlyEconomicMeasure.DISCOUNTED_SALES_GAS_VOLUME]: "Early discounted sales gas volume",
-    [EarlyEconomicMeasure.DISCOUNTED_CASH_FLOW]: "Early discounted cash flow",
 };
 
 export enum BreakEvenSlopeDirection {
@@ -137,11 +121,6 @@ export type PriceAssumptions = {
 
 export type EconomicAssumptions = {
     discountRatePercent: number;
-};
-
-export type EarlyValueConfiguration = {
-    enabled: boolean;
-    endYear: number | null;
 };
 
 export const DEFAULT_DISCOUNT_RATE_PERCENT = 8;

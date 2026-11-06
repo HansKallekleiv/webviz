@@ -14,8 +14,8 @@ import { ChannelManager } from "@framework/internal/DataChannels/ChannelManager"
 import type { RealizationFilterSet } from "@framework/RealizationFilterSet";
 import { RegularEnsemble } from "@framework/RegularEnsemble";
 import { KeyKind, type DataGenerator } from "@framework/types/dataChannnel";
-import { EARLY_MEASURE_CHANNEL_ID_MAP, MEASURE_CHANNEL_ID_MAP } from "@modules/EconomicScreening/channelDefs";
-import { makeEarlyMeasureDataGenerator, makeMeasureDataGenerator } from "@modules/EconomicScreening/dataGenerators";
+import { MEASURE_CHANNEL_ID_MAP } from "@modules/EconomicScreening/channelDefs";
+import { makeMeasureDataGenerator } from "@modules/EconomicScreening/dataGenerators";
 import {
     cashFlowProfileTypeAtom,
     costDraftStatusAtom,
@@ -23,7 +23,6 @@ import {
     currencyAtom,
     discountRatePercentAtom,
     distributionPlotTypeAtom,
-    earlyValueConfigurationAtom,
     gasPriceAtom,
     gasPriceBasisAtom,
     oilPriceAtom,
@@ -46,7 +45,6 @@ import {
     CostDraftStatus,
     Currency,
     DistributionPlotType,
-    EarlyEconomicMeasure,
     EconomicMeasure,
     GasPriceBasis,
     OilPriceBasis,
@@ -283,16 +281,6 @@ function publishedThroughChannel(store: Store, measure: EconomicMeasure) {
                   "Fixture",
                   "#123456",
               ),
-    );
-}
-
-function publishedEarlyThroughChannel(store: Store, measure: EarlyEconomicMeasure, endYear: number) {
-    const { results } = store.get(economicScreeningResultsAtom);
-    return receiveThroughChannel(
-        EARLY_MEASURE_CHANNEL_ID_MAP[measure],
-        results.length === 0
-            ? null
-            : makeEarlyMeasureDataGenerator(results, measure, endYear, "USD", "fixture", "Fixture", "#123456"),
     );
 }
 
@@ -616,21 +604,9 @@ describe("Economic Screening source queries and publication", () => {
             { year: 2030, capex: 1000, opex: 1200 },
             { year: 2031, capex: 0, opex: 1200 },
         ]);
-        store.set(earlyValueConfigurationAtom, { enabled: true, endYear: 2030 });
         const opex = new Array(24).fill(100);
         const expectedWithCosts = expectedNpv - 1000 * Math.pow(1.1, -0.5) - discountedMonthly(opex, 0.1);
         expect(publishedNpv(store)[0]).toEqual({ key: 1, value: expect.closeTo(expectedWithCosts, 8) });
-        expect(publishedEarlyThroughChannel(store, EarlyEconomicMeasure.DISCOUNTED_CASH_FLOW, 2030)[0]).toEqual({
-            key: 1,
-            value: expect.closeTo(
-                discountedMonthly(
-                    PRODUCING_OIL.slice(0, 12).map((volume) => 50 * volume + 0.2 * 100 - 100),
-                    0.1,
-                ) -
-                    1000 * Math.pow(1.1, -0.5),
-                8,
-            ),
-        });
         expect(executedRequestKeys).toHaveLength(2);
 
         cleanUp(queryClient, unmountView);
@@ -647,7 +623,6 @@ describe("Economic Screening source queries and publication", () => {
 
         store.set(oilPriceAtom, 60);
         store.set(costProfileAtom, [{ year: 2030, capex: 1000, opex: 100 }]);
-        store.set(earlyValueConfigurationAtom, { enabled: true, endYear: 2030 });
         store.set(discountRatePercentAtom, 12);
         await waitFor(() => publishedNpv(store)[0].value !== beforeEdits[0].value);
         store.set(predictionStartYearAtom, 2031);
@@ -658,7 +633,6 @@ describe("Economic Screening source queries and publication", () => {
 
         store.set(oilPriceAtom, 50);
         store.set(costProfileAtom, []);
-        store.set(earlyValueConfigurationAtom, { enabled: false, endYear: null });
         store.set(discountRatePercentAtom, 10);
         store.set(predictionStartYearAtom, 2030);
         expect(publishedNpv(store)).toEqual(beforeEdits);
@@ -801,14 +775,13 @@ describe("Economic Screening settings-to-view ownership boundary", () => {
         cleanUp(queryClient, unmountView, unmountSettings);
     });
 
-    test("display choices reach the view without refetching or changing full and early channel values", async () => {
+    test("display choices reach the view without refetching or changing channel values", async () => {
         resetRequests();
         const ensemble = makeProducingEnsemble();
         EnsembleFingerprintStore.setAll(new Map([[ensemble.getIdent().toString(), "fingerprint"]]));
         const { store, queryClient } = makeStore(new EnsembleSet([ensemble]));
         store.set(selectedEnsembleIdentAtom, ensemble.getIdent());
         store.set(costProfileAtom, [{ year: 2030, capex: 1000, opex: 1200 }]);
-        store.set(earlyValueConfigurationAtom, { enabled: true, endYear: 2030 });
         const { instance } = await createEconomicScreeningInstance(store);
         const unmountView = mountView(store, instance);
         await waitFor(() => executedRequestKeys.length === 2);
@@ -818,9 +791,6 @@ describe("Economic Screening settings-to-view ownership boundary", () => {
         const snapshot = store.get(settingsSourceSnapshotAtom);
         const measures = Object.values(EconomicMeasure);
         const fullBefore = measures.map((measure) => publishedThroughChannel(store, measure));
-        const earlyBefore = Object.values(EarlyEconomicMeasure).map((measure) =>
-            publishedEarlyThroughChannel(store, measure, 2030),
-        );
 
         for (const mode of Object.values(ResultMode)) {
             store.set(resultModeAtom, mode);
@@ -835,9 +805,6 @@ describe("Economic Screening settings-to-view ownership boundary", () => {
         expect(store.get(viewSelectedRealizationAtom)).toBe(2);
         expect(store.get(economicScreeningResultsAtom).results.map((result) => result.realization)).toEqual([1, 2]);
         expect(measures.map((measure) => publishedThroughChannel(store, measure))).toEqual(fullBefore);
-        expect(
-            Object.values(EarlyEconomicMeasure).map((measure) => publishedEarlyThroughChannel(store, measure, 2030)),
-        ).toEqual(earlyBefore);
         expect(store.get(settingsSourceSnapshotAtom)).toBe(snapshot);
         expect(executedRequestKeys).toHaveLength(2);
 
@@ -971,7 +938,6 @@ describe("Economic Screening at scale", () => {
         EnsembleFingerprintStore.setAll(new Map([[ensemble.getIdent().toString(), "scale-fingerprint"]]));
         const { store, queryClient } = makeStore(new EnsembleSet([ensemble]));
         setScaleInputs(store, SCALE_BASE_INPUTS);
-        store.set(earlyValueConfigurationAtom, { enabled: true, endYear: 2034 });
         store.set(selectedEnsembleIdentAtom, ensemble.getIdent());
         const { instance } = await createEconomicScreeningInstance(store);
         const unmountView = mountView(store, instance);
@@ -997,10 +963,6 @@ describe("Economic Screening at scale", () => {
         store.set(costProfileAtom, costs);
         store.set(costDraftStatusAtom, CostDraftStatus.COMMITTED);
         await nextTurn();
-        store.set(earlyValueConfigurationAtom, { enabled: true, endYear: 2060 });
-        await nextTurn();
-        expect(publishedEarlyThroughChannel(store, EarlyEconomicMeasure.DISCOUNTED_CASH_FLOW, 2060)).toEqual([]);
-        store.set(earlyValueConfigurationAtom, { enabled: true, endYear: 2036 });
         store.set(oilPriceAtom, 47);
         store.set(oilPriceAtom, 46);
         await nextTurn();
@@ -1012,7 +974,6 @@ describe("Economic Screening at scale", () => {
                 scaleServedMonthlyVolumes(realizations, realization, "oil"),
                 scaleServedMonthlyVolumes(realizations, realization, "gas"),
                 inputs,
-                2036,
             ),
         }));
         const fullOil = expected.filter((entry) => entry.realization !== shortOil);
@@ -1030,22 +991,12 @@ describe("Economic Screening at scale", () => {
             fullOil,
             (entry) => entry.breakEvenOilPrice,
         );
-        expectChannel(
-            publishedEarlyThroughChannel(store, EarlyEconomicMeasure.DISCOUNTED_CASH_FLOW, 2036),
-            expected,
-            (entry) => entry.earlyDcf,
-        );
-        expectChannel(
-            publishedEarlyThroughChannel(store, EarlyEconomicMeasure.DISCOUNTED_OIL_VOLUME, 2036),
-            expected,
-            (entry) => entry.earlyDiscountedOil,
-        );
         const irr = publishedThroughChannel(store, EconomicMeasure.IRR);
         expect(irr.map((entry) => entry.key)).toEqual(fullOil.map((entry) => entry.realization));
         for (const { key, value } of [irr[0], irr[250], irr[irr.length - 1]]) {
             const oil = scaleServedMonthlyVolumes(realizations, key as number, "oil");
             const gas = scaleServedMonthlyVolumes(realizations, key as number, "gas");
-            const residual = scaleReferenceEconomics(oil, gas, inputs, null, (value as number) / 100).npv;
+            const residual = scaleReferenceEconomics(oil, gas, inputs, (value as number) / 100).npv;
             expect(Math.abs(residual) / 4_200_000).toBeLessThan(1e-6);
         }
 
@@ -1118,18 +1069,12 @@ describe("Economic Screening at scale", () => {
         store.set(oilPriceAtom, 55);
         await nextTurn();
         store.set(discountRatePercentAtom, 6);
-        store.set(earlyValueConfigurationAtom, { enabled: true, endYear: 2030 });
         await nextTurn();
 
         const inputs = { ...deltaInputs, oilPrice: 55, discountRatePercent: 6 };
         const expected = realizations.map((realization) => ({
             realization,
-            ...scaleReferenceEconomics(
-                scaleDeltaMonthlyOil(realization),
-                scaleDeltaMonthlyGas(realization),
-                inputs,
-                2030,
-            ),
+            ...scaleReferenceEconomics(scaleDeltaMonthlyOil(realization), scaleDeltaMonthlyGas(realization), inputs),
         }));
         const npv = publishedNpv(store);
         expect(npv.map((entry) => entry.key)).toEqual(realizations);
@@ -1137,8 +1082,6 @@ describe("Economic Screening at scale", () => {
         expect(
             npv.some((entry) => (entry.value as number) < 0) && npv.some((entry) => (entry.value as number) > 0),
         ).toBe(true);
-        const early = publishedEarlyThroughChannel(store, EarlyEconomicMeasure.DISCOUNTED_CASH_FLOW, 2030);
-        early.forEach((entry, index) => expect(entry.value).toBeCloseTo(expected[index].earlyDcf, 4));
         expect(store.get(settingsSourceSnapshotAtom)).toBe(snapshot);
         expect(executedRequestKeys.filter((key) => key.startsWith(caseKey))).toHaveLength(2);
 

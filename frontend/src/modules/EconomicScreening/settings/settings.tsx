@@ -17,7 +17,6 @@ import {
     cashFlowProfileTypeAtom,
     costDraftStatusAtom,
     costProfileAtom,
-    earlyValueConfigurationAtom,
     gasPriceAtom,
     missingComponentAssumptionsAtom,
     oilPriceAtom,
@@ -33,7 +32,6 @@ import {
 } from "./atoms/sourceSnapshotAtoms";
 import { CostsSection } from "./components/sections/costsSection";
 import { DataAndValuationSection } from "./components/sections/dataAndValuationSection";
-import { EarlyCashFlowComparisonSection } from "./components/sections/earlyCashFlowComparisonSection";
 import { PricesSection } from "./components/sections/pricesSection";
 import { ResultsSection } from "./components/sections/resultsSection";
 import { SetupSummary } from "./components/setupSummary";
@@ -98,7 +96,6 @@ export function Settings(props: ModuleSettingsProps<Interfaces>): ReactNode {
     useGasOnlyMeasureFallback();
 
     const selectedEnsembleIdent = useAtomValue(validSelectedEnsembleIdentAtom);
-    const earlyValueConfiguration = useAtomValue(earlyValueConfigurationAtom);
     const oilPrice = useAtomValue(oilPriceAtom);
     const gasPrice = useAtomValue(gasPriceAtom);
     const costProfile = useAtomValue(costProfileAtom);
@@ -127,7 +124,6 @@ export function Settings(props: ModuleSettingsProps<Interfaces>): ReactNode {
         gasPrice,
         costProfile,
         costDraftStatus,
-        earlyValue: earlyValueConfiguration,
         requirement,
     });
     const resultLabel =
@@ -157,10 +153,6 @@ export function Settings(props: ModuleSettingsProps<Interfaces>): ReactNode {
                     <PricesSection sectionProps={sectionProps(SettingsSection.PRICES)} readiness={setupReadiness} />
                     <CostsSection sectionProps={sectionProps(SettingsSection.COSTS)} readiness={setupReadiness} />
                     <ResultsSection sectionProps={sectionProps(SettingsSection.RESULTS)} />
-                    <EarlyCashFlowComparisonSection
-                        sectionProps={sectionProps(SettingsSection.EARLY_CASH_FLOW_COMPARISON)}
-                        readiness={setupReadiness}
-                    />
                 </Setting.Panel>
             </Setting.ScrollArea>
         </div>

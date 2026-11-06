@@ -43,18 +43,10 @@ export const RESULTS_HELP =
 export const REALIZATION_HELP =
     "Highlights one realization over the aggregate. Clear the selection to show only the aggregate.";
 
-export const EARLY_VALUE_HELP =
-    "Optional cash-flow and volume comparison, independent of the primary measure. No early IRR or break-even price is calculated. Accumulated discounted cash flow and volumes from 1 January of the evaluation start year through the end of the chosen year, valued on the same date as the full evaluation. It is not remaining future value and does not move the valuation date. The final year stops at supported production coverage, while its full annual costs still apply. Full results are unchanged.";
-
-export const EARLY_VALUE_END_YEAR_HELP =
-    "Inclusive last calendar year of the early value, within the evaluation years. Through the final evaluation year, it equals the full result for a fully eligible realization.";
-
 export const MEASURE_DESCRIPTIONS: Record<EconomicMeasure, string> = {
     [EconomicMeasure.DISCOUNTED_OIL_VOLUME]: "Oil production, weighted by when it is produced.",
     [EconomicMeasure.DISCOUNTED_SALES_GAS_VOLUME]: "Sales gas production, weighted by when it is produced.",
     [EconomicMeasure.DISCOUNTED_OIL_EQUIVALENTS]: "Discounted oil plus discounted gas / 1000 (SODIR factor).",
-    [EconomicMeasure.UNDISCOUNTED_OIL_VOLUME]: "Total oil production over the evaluation.",
-    [EconomicMeasure.UNDISCOUNTED_SALES_GAS_VOLUME]: "Total sales gas production over the evaluation.",
     [EconomicMeasure.NPV]: "Discounted revenue minus discounted costs. Needs prices.",
     [EconomicMeasure.IRR]: "Discount rate that makes NPV zero. Needs prices, and costs for a sign change.",
     [EconomicMeasure.BREAK_EVEN_OIL_PRICE]: "Oil price that makes NPV zero, gas price fixed. Needs costs.",

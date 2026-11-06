@@ -7,7 +7,6 @@ import {
     currencyAtom,
     discountRatePercentAtom,
     distributionPlotTypeAtom,
-    earlyValueConfigurationAtom,
     gasPriceAtom,
     gasPriceBasisAtom,
     oilPriceAtom,
@@ -27,7 +26,6 @@ import type {
     CostProfileEntry,
     CashFlowProfileType,
     DistributionPlotType,
-    EarlyValueConfiguration,
     EconomicAssumptions,
     EconomicMeasure,
     PriceAssumptions,
@@ -46,7 +44,6 @@ export type SettingsToViewInterface = {
     priceAssumptions: PriceAssumptions;
     costProfile: CostProfileEntry[];
     costDraftStatus: CostDraftStatus;
-    earlyValueConfiguration: EarlyValueConfiguration;
     resultMode: ResultMode;
     selectedMeasure: EconomicMeasure;
     distributionPlotType: DistributionPlotType;
@@ -91,9 +88,6 @@ export const settingsToViewInterfaceInitialization: InterfaceInitialization<Sett
     },
     costDraftStatus: (get) => {
         return get(costDraftStatusAtom);
-    },
-    earlyValueConfiguration: (get) => {
-        return get(earlyValueConfigurationAtom);
     },
     resultMode: (get) => {
         return get(resultModeAtom);

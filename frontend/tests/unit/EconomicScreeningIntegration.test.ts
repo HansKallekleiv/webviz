@@ -7,12 +7,11 @@ import { DeltaEnsemble } from "@framework/DeltaEnsemble";
 import { EnsembleSet } from "@framework/EnsembleSet";
 import { EnsembleSetAtom } from "@framework/GlobalAtoms";
 import { RegularEnsemble } from "@framework/RegularEnsemble";
-import { makeEarlyMeasureDataGenerator, makeMeasureDataGenerator } from "@modules/EconomicScreening/dataGenerators";
+import { makeMeasureDataGenerator } from "@modules/EconomicScreening/dataGenerators";
 import {
     costProfileAtom,
     currencyAtom,
     discountRatePercentAtom,
-    earlyValueConfigurationAtom,
     gasPriceAtom,
     gasPriceBasisAtom,
     oilPriceAtom,
@@ -26,13 +25,7 @@ import {
     validRealizationNumbersAtom,
     vectorDataQueriesAtom,
 } from "@modules/EconomicScreening/settings/atoms/sourceQueryAtoms";
-import {
-    Currency,
-    EarlyEconomicMeasure,
-    EconomicMeasure,
-    GasPriceBasis,
-    OilPriceBasis,
-} from "@modules/EconomicScreening/typesAndEnums";
+import { Currency, EconomicMeasure, GasPriceBasis, OilPriceBasis } from "@modules/EconomicScreening/typesAndEnums";
 import { monthStartUtcMs, SourceKind } from "@modules/EconomicScreening/utils/monthlyProduction";
 import { volumeUnitInSm3 } from "@modules/EconomicScreening/utils/unitConversion";
 import { economicScreeningResultsAtom } from "@modules/EconomicScreening/view/atoms/derivedAtoms";
@@ -260,18 +253,6 @@ function metricData(store: Store, measure: EconomicMeasure) {
     return metricGenerator(store, measure).data;
 }
 
-function earlyData(store: Store, measure: EarlyEconomicMeasure, endYear: number) {
-    return makeEarlyMeasureDataGenerator(
-        store.get(economicScreeningResultsAtom).results,
-        measure,
-        endYear,
-        "USD",
-        "fixture",
-        "Fixture",
-        "#123456",
-    )().data;
-}
-
 describe("Economic Screening query results to channel data", () => {
     test("retains the valuation date, horizon and exact realization keys after filtering", async () => {
         const { store } = await setup();
@@ -378,19 +359,15 @@ describe("Economic Screening query results to channel data", () => {
         expect(store.get(economicScreeningResultsAtom).errors).toEqual([]);
     });
 
-    test("publishes a cost-only early horizon only when zero production is source-covered", async () => {
+    test("includes a cost-only pre-production year only when zero production is source-covered", async () => {
         const { store } = await setup();
         const covered = (realization: number, volumes: number[]) =>
             series(realization, 2019, [...new Array(12).fill(0), ...volumes]);
         setQueries(store, query([covered(7, OIL_7), covered(42, OIL_42)]), query([covered(7, GAS), covered(42, GAS)]));
         store.set(predictionStartYearAtom, 2019);
         store.set(costProfileAtom, [{ year: 2019, capex: 100, opex: 0 }]);
-        store.set(earlyValueConfigurationAtom, { enabled: true, endYear: 2019 });
 
         expect(store.get(economicScreeningResultsAtom).errors).toEqual([]);
-        const early = earlyData(store, EarlyEconomicMeasure.DISCOUNTED_CASH_FLOW, 2019);
-        expect(early.map((entry) => entry.key)).toEqual([7, 42]);
-        expect(early[0].value).toBeCloseTo(-100 * Math.pow(1.1, -0.5), 10);
         expect(metricData(store, EconomicMeasure.NPV)[0].value).toBeCloseTo(
             2 * discounted(OIL_7, 2020, 2019) + 0.1 * discounted(GAS, 2020, 2019) - 100 * Math.pow(1.1, -0.5),
             8,
@@ -400,26 +377,17 @@ describe("Economic Screening query results to channel data", () => {
         const { store: uncovered } = await setup();
         uncovered.set(predictionStartYearAtom, 2019);
         uncovered.set(costProfileAtom, [{ year: 2019, capex: 100, opex: 0 }]);
-        uncovered.set(earlyValueConfigurationAtom, { enabled: true, endYear: 2019 });
-        expect(earlyData(uncovered, EarlyEconomicMeasure.DISCOUNTED_CASH_FLOW, 2019)).toEqual([]);
         expect(metricData(uncovered, EconomicMeasure.NPV)).toEqual([]);
     });
 
-    test("keeps early values valid when only a later month is partial, and withholds the full results", async () => {
+    test("withholds the full results when only a later month is partial", async () => {
         const { store } = await setup();
         const partialOil = series(7, 2020, OIL_7, { partialLastMonthDays: 15 });
         const partialGas = series(7, 2020, GAS, { partialLastMonthDays: 15 });
         setQueries(store, query([partialOil, series(42, 2020, OIL_42)]), query([partialGas, series(42, 2020, GAS)]));
-        store.set(earlyValueConfigurationAtom, { enabled: true, endYear: 2020 });
 
         expect(metricData(store, EconomicMeasure.NPV).map((entry) => entry.key)).toEqual([42]);
         expect(metricData(store, EconomicMeasure.DISCOUNTED_OIL_VOLUME).map((entry) => entry.key)).toEqual([42]);
-        const early = earlyData(store, EarlyEconomicMeasure.DISCOUNTED_CASH_FLOW, 2020);
-        expect(early.map((entry) => entry.key)).toEqual([7, 42]);
-        expect(early[0].value).toBeCloseTo(
-            2 * discounted(OIL_7.slice(0, 12), 2020) + 0.1 * discounted(GAS.slice(0, 12), 2020),
-            10,
-        );
         expect(store.get(economicScreeningResultsAtom).warnings).toContain(
             "Oil source coverage is incomplete over Jan 2020-Dec 2021 for 1 of 2 realizations; their results that need oil are withheld.",
         );
@@ -435,7 +403,7 @@ describe("Economic Screening query results to channel data", () => {
 
         expect(store.get(sourceHorizonAtom).endYear).toBe(2021);
         expect(metricData(store, EconomicMeasure.NPV).map((entry) => entry.key)).toEqual([7]);
-        expect(metricData(store, EconomicMeasure.UNDISCOUNTED_OIL_VOLUME).map((entry) => entry.key)).toEqual([7]);
+        expect(metricData(store, EconomicMeasure.DISCOUNTED_OIL_VOLUME).map((entry) => entry.key)).toEqual([7]);
     });
 
     test("withholds every result when the server omits source coverage", async () => {
@@ -521,28 +489,15 @@ describe("Economic Screening query results to channel data", () => {
         expect(store.get(sourceHorizonAtom).endYear).toBeNull();
     });
 
-    test("keeps full-evaluation outputs when only the early end year is invalid", async () => {
-        const { store } = await setup();
-        const expected = metricData(store, EconomicMeasure.NPV);
-        store.set(earlyValueConfigurationAtom, { enabled: true, endYear: 2030 });
-        expect(metricData(store, EconomicMeasure.NPV)).toEqual(expected);
-        const { errors, isEarlyValueConfigurationValid, results } = store.get(economicScreeningResultsAtom);
-        expect(errors).toEqual([]);
-        expect(isEarlyValueConfigurationValid).toBe(false);
-        expect(results.every((result) => result.early === null)).toBe(true);
-    });
-
-    test("withholds all results for a blocking error alongside an invalid early end year", async () => {
+    test("withholds all results for a blocking error", async () => {
         const { store, gas } = await setup();
         const oil = [series(7, 2020, OIL_7, { unit: "XYZ" }), series(42, 2020, OIL_42, { unit: "XYZ" })];
         setQueries(store, query(oil), query(gas));
-        store.set(earlyValueConfigurationAtom, { enabled: true, endYear: 2030 });
-        const { errors, isEarlyValueConfigurationValid, results } = store.get(economicScreeningResultsAtom);
+        const { errors, results } = store.get(economicScreeningResultsAtom);
         expect(errors).toEqual([
             'Unrecognised oil volume unit "XYZ". Cannot apply the given oil price.',
             'Cannot convert between oil unit "XYZ" and gas unit "SM3".',
         ]);
-        expect(isEarlyValueConfigurationValid).toBe(false);
         expect(results).toEqual([]);
     });
 });

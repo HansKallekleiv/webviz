@@ -11,12 +11,7 @@ import {
     type IrrComputationResult,
     type TimedCashFlowEvent,
 } from "./economicCalculations";
-import {
-    getBreakEvenIneligibility,
-    getRevenueIneligibility,
-    isRevenueResolved,
-    type Ineligibility,
-} from "./eligibility";
+import { getBreakEvenIneligibility, getRevenueIneligibility, type Ineligibility } from "./eligibility";
 import {
     isMonthCoverageEstablished,
     monthIndexOf,
@@ -41,8 +36,6 @@ export type ResolvedMonthlyAssumptions = {
     /** Null means unspecified. Zero intentionally omits the product's revenue. */
     oilPricePerVolume: number | null;
     gasPricePerVolume: number | null;
-    /** Inclusive end year of the separate early outputs; null when early outputs are not requested. */
-    earlyEndYear?: number | null;
 };
 
 export type MonthlyRealizationInput = {
@@ -68,17 +61,6 @@ export type AnnualEconomicProfileEntry = {
     cumulativeDiscountedCashFlow: number | null;
 };
 
-/** Early outputs, validated on their own inclusive horizon from the same valuation date. */
-export type EarlyMonthlyValueResult = {
-    endYear: number;
-    hasOilData: boolean;
-    hasSalesGasData: boolean;
-    discountedOilVolume: number;
-    discountedSalesGasVolume: number;
-    discountedOilEquivalents: number;
-    npv: number | null;
-};
-
 export type MonthlyRealizationEconomicResult = {
     realization: number;
     predictionStartYear: number;
@@ -92,8 +74,6 @@ export type MonthlyRealizationEconomicResult = {
     discountedOilVolume: number;
     discountedSalesGasVolume: number;
     discountedOilEquivalents: number;
-    undiscountedOilVolume: number;
-    undiscountedSalesGasVolume: number;
     npv: number | null;
     /** Why NPV, IRR and the cash-flow profile are unavailable; null when they are calculated. */
     financialIneligibility: Ineligibility | null;
@@ -104,7 +84,6 @@ export type MonthlyRealizationEconomicResult = {
     breakEvenSlopeDirection?: BreakEvenSlopeDirection;
     /** Years of non-zero cost entries outside the evaluated horizon, which are kept out of every total. */
     excludedCostYears: number[];
-    early: EarlyMonthlyValueResult | null;
 };
 
 /** Discount factor for a volume produced during a calendar month, timed at the month's midpoint. */
@@ -411,8 +390,6 @@ export function computeMonthlyRealizationEconomics(
         discountedSalesGasVolume,
         discountedOilEquivalents:
             discountedOilVolume + discountedSalesGasVolume / assumptions.gasToOilEquivalentDivisor,
-        undiscountedOilVolume: annualComponents.reduce((sum, entry) => sum + entry.oilVolume, 0),
-        undiscountedSalesGasVolume: annualComponents.reduce((sum, entry) => sum + entry.salesGasVolume, 0),
         npv,
         financialIneligibility,
         irr: irrResult?.irr ?? null,
@@ -421,62 +398,5 @@ export function computeMonthlyRealizationEconomics(
         breakEvenIneligibility,
         breakEvenSlopeDirection,
         excludedCostYears,
-        early: computeEarlyValue(annualComponents, oil, gas, assumptions, startMonthIndex),
-    };
-}
-
-/**
- * Cumulative discounted values through an inclusive calendar year, from the same valuation date as the
- * full evaluation. Validity is established on this shorter horizon alone, so an incomplete later
- * month does not remove valid early values, and the full results are never shortened.
- */
-function computeEarlyValue(
-    annualComponents: AnnualComponents[],
-    oil: EvaluatedProduct,
-    gas: EvaluatedProduct,
-    assumptions: ResolvedMonthlyAssumptions,
-    startMonthIndex: number,
-): EarlyMonthlyValueResult | null {
-    const endYear = assumptions.earlyEndYear;
-    if (
-        endYear === null ||
-        endYear === undefined ||
-        endYear < assumptions.predictionStartYear ||
-        monthIndexOf(endYear, 1) > assumptions.horizonEndMonthIndex
-    ) {
-        return null;
-    }
-    const earlyEndMonthIndex = Math.min(monthIndexOf(endYear, 12), assumptions.horizonEndMonthIndex);
-    const includedYears = annualComponents.filter((entry) => entry.year <= endYear);
-
-    const hasOilData = isEstablishedThrough(oil, earlyEndMonthIndex);
-    const hasSalesGasData = isEstablishedThrough(gas, earlyEndMonthIndex);
-    const canComputeNpv =
-        isRevenueResolved(
-            assumptions.oilPricePerVolume,
-            hasOilData,
-            isConfirmedAbsentThrough(oil, startMonthIndex, earlyEndMonthIndex),
-        ) &&
-        isRevenueResolved(
-            assumptions.gasPricePerVolume,
-            hasSalesGasData,
-            isConfirmedAbsentThrough(gas, startMonthIndex, earlyEndMonthIndex),
-        );
-    const oilPrice = assumptions.oilPricePerVolume ?? 0;
-    const gasPrice = assumptions.gasPricePerVolume ?? 0;
-    const discountedOilVolume = includedYears.reduce((sum, entry) => sum + entry.discountedOilVolume, 0);
-    const discountedSalesGasVolume = includedYears.reduce((sum, entry) => sum + entry.discountedSalesGasVolume, 0);
-
-    return {
-        endYear,
-        hasOilData,
-        hasSalesGasData,
-        discountedOilVolume,
-        discountedSalesGasVolume,
-        discountedOilEquivalents:
-            discountedOilVolume + discountedSalesGasVolume / assumptions.gasToOilEquivalentDivisor,
-        npv: canComputeNpv
-            ? includedYears.reduce((sum, entry) => sum + discountedNetCashFlowOf(entry, oilPrice, gasPrice), 0)
-            : null,
     };
 }

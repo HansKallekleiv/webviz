@@ -2,7 +2,6 @@ import { describe, expect, test } from "vitest";
 
 import {
     getEvaluationHorizonError,
-    isYearInHorizon,
     resolveEvaluationHorizon,
 } from "@modules/EconomicScreening/utils/evaluationHorizon";
 import { monthIndexOf } from "@modules/EconomicScreening/utils/monthlyProduction";
@@ -73,17 +72,5 @@ describe("getEvaluationHorizonError", () => {
         );
         expect(getEvaluationHorizonError({ status: "LOADING" })).toBeNull();
         expect(getEvaluationHorizonError(resolveEvaluationHorizon(2030, READY_THROUGH_JUNE_2031))).toBeNull();
-    });
-});
-
-describe("isYearInHorizon", () => {
-    test("includes both the start year and the partial final year", () => {
-        const horizon = { startYear: 2030, endYear: 2031, endMonthIndex: monthIndexOf(2031, 6) };
-        expect([2029, 2030, 2031, 2032].map((year) => isYearInHorizon(year, horizon))).toEqual([
-            false,
-            true,
-            true,
-            false,
-        ]);
     });
 });

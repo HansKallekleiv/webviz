@@ -8,7 +8,10 @@ import {
     makeCostLookup,
 } from "@modules/EconomicScreening/utils/economicCalculations";
 import { Ineligibility } from "@modules/EconomicScreening/utils/eligibility";
-import type { ResolvedMonthlyAssumptions } from "@modules/EconomicScreening/utils/monthlyEconomics";
+import type {
+    MonthlyRealizationEconomicResult,
+    ResolvedMonthlyAssumptions,
+} from "@modules/EconomicScreening/utils/monthlyEconomics";
 import {
     capexDiscountFactor,
     computeMonthlyRealizationEconomics,
@@ -25,6 +28,14 @@ import {
 
 function npvOfEvents(events: { time: number; value: number }[], rate: number): number {
     return events.reduce((sum, event) => sum + event.value / Math.pow(1 + rate, event.time), 0);
+}
+
+function totalOilVolume(result: MonthlyRealizationEconomicResult): number {
+    return result.annualProfile.reduce((sum, entry) => sum + entry.oilVolume, 0);
+}
+
+function totalSalesGasVolume(result: MonthlyRealizationEconomicResult): number {
+    return result.annualProfile.reduce((sum, entry) => sum + entry.salesGasVolume, 0);
 }
 
 describe("computeInternalRateOfReturnFromEvents", () => {
@@ -108,7 +119,7 @@ describe("monthly ports of annual-model regressions", () => {
         expect(result.npv).toBeNull();
         expect(result.irr).toBeNull();
         expect(result.discountedOilVolume).toBeGreaterThan(0);
-        expect(result.undiscountedSalesGasVolume).toBeCloseTo(12000, 9);
+        expect(totalSalesGasVolume(result)).toBeCloseTo(12000, 9);
     });
 
     test("returns a negative break-even price when gas revenue exceeds costs", () => {
@@ -229,7 +240,7 @@ describe("monthly screening model", () => {
         expect(result.realization).toBe(3);
         expect(result.discountedOilVolume).toBeCloseTo(expectedDiscountedOil, 9);
         expect(result.discountedOilVolume).toBeCloseTo(1144.585212, 5);
-        expect(result.undiscountedOilVolume).toBeCloseTo(1200, 9);
+        expect(totalOilVolume(result)).toBeCloseTo(1200, 9);
         expect(result.npv).toBeCloseTo(expectedNpv, 8);
         // Mid-year annual OPEX previously gave 56085.105488.
         expect(result.npv).toBeCloseTo(56085.033804, 4);
@@ -318,7 +329,7 @@ describe("monthly screening model", () => {
         expect(result.npv).toBeNull();
         expect(result.breakEvenOilPrice).toBeNull();
         expect(result.financialIneligibility).toBe(Ineligibility.OIL_COVERAGE);
-        expect(result.undiscountedOilVolume).toBeCloseTo(1200, 9);
+        expect(totalOilVolume(result)).toBeCloseTo(1200, 9);
         expect(result.annualProfile[0].oilVolume).toBe(0);
     });
 
@@ -337,7 +348,7 @@ describe("monthly screening model", () => {
         expect(result.hasSalesGasData).toBe(true);
         expect(result.npv).toBeNull();
         expect(result.evaluationEndYear).toBe(2031);
-        expect(result.undiscountedOilVolume).toBeCloseTo(1200, 9);
+        expect(totalOilVolume(result)).toBeCloseTo(1200, 9);
     });
 
     test("does not use one product's later endpoint as support for another", () => {
@@ -359,7 +370,7 @@ describe("monthly screening model", () => {
         expect(result.hasSalesGasData).toBe(false);
         expect(result.npv).toBeNull();
         expect(result.financialIneligibility).toBe(Ineligibility.GAS_COVERAGE);
-        expect(result.undiscountedOilVolume).toBeCloseTo(2400, 9);
+        expect(totalOilVolume(result)).toBeCloseTo(2400, 9);
     });
 
     test("withholds financial results while monthly coverage is unverified", () => {
@@ -378,7 +389,7 @@ describe("monthly screening model", () => {
         expect(result.hasOilData).toBe(false);
         expect(result.npv).toBeNull();
         expect(result.breakEvenOilPrice).toBeNull();
-        expect(result.undiscountedOilVolume).toBeCloseTo(1200, 9);
+        expect(totalOilVolume(result)).toBeCloseTo(1200, 9);
     });
 
     test("keeps independently valid gas volumes when oil coverage is partial", () => {
@@ -438,7 +449,7 @@ describe("monthly screening model", () => {
         expect(blank.npv).toBeNull();
         expect(blank.financialIneligibility).toBe(Ineligibility.OIL_PRICE_MISSING);
         expect(zero.npv).toBeCloseTo(0.1 * zero.discountedSalesGasVolume - 100 * Math.pow(1.1, -0.5), 9);
-        expect(zero.undiscountedOilVolume).toBeCloseTo(1200, 9);
+        expect(totalOilVolume(zero)).toBeCloseTo(1200, 9);
     });
 
     test("keeps cost years outside the evaluated horizon out of every total", () => {
@@ -715,7 +726,7 @@ describe("monthly screening model", () => {
         expect(result.npv).not.toBeNull();
     });
 
-    test("ends the cumulative profile at NPV and matches the early result", () => {
+    test("ends the cumulative profile at NPV", () => {
         const result = computeMonthlyRealizationEconomics(
             {
                 realization: 1,
@@ -726,7 +737,6 @@ describe("monthly screening model", () => {
                 oilPricePerVolume: 50,
                 gasPricePerVolume: 0.3,
                 horizonEndMonthIndex: monthIndexOf(2032, 12),
-                earlyEndYear: 2031,
             }),
             [
                 { year: 2030, capex: 50000, opex: 1000 },
@@ -737,74 +747,6 @@ describe("monthly screening model", () => {
 
         const lastEntry = result.annualProfile[result.annualProfile.length - 1];
         expect(lastEntry.cumulativeDiscountedCashFlow).toBeCloseTo(result.npv!, 8);
-
-        const early = result.early!;
-        expect(early.endYear).toBe(2031);
-        expect(early.npv).toBeCloseTo(result.annualProfile[1].cumulativeDiscountedCashFlow!, 10);
-        expect(early.discountedOilVolume).toBeCloseTo(
-            result.annualProfile[0].discountedOilVolume + result.annualProfile[1].discountedOilVolume,
-            10,
-        );
-        expect(early.discountedOilEquivalents).toBeCloseTo(
-            early.discountedOilVolume + early.discountedSalesGasVolume / 1000,
-            10,
-        );
-        // The early extraction must not shorten or rebase the full evaluation.
-        expect(result.annualProfile).toHaveLength(3);
-        expect(result.predictionStartYear).toBe(2030);
-        expect(result.evaluationEndYear).toBe(2032);
-    });
-
-    test("validates early values on their own horizon without moving the valuation date", () => {
-        const oilProfile = makeMonthlyProfile(2030, 1, new Array(36).fill(100));
-        oilProfile.months[35] = { ...oilProfile.months[35], coverage: MonthCoverage.PARTIAL };
-        const input = { realization: 1, oilProfile, salesGasProfile: makeZeroProfile(2030, 36) };
-        const costs = [{ year: 2030, capex: 50000, opex: 0 }];
-
-        const full = computeMonthlyRealizationEconomics(
-            input,
-            makeMonthlyAssumptions({
-                oilPricePerVolume: 50,
-                horizonEndMonthIndex: monthIndexOf(2032, 12),
-                earlyEndYear: 2031,
-            }),
-            costs,
-        );
-        const shorterHorizon = computeMonthlyRealizationEconomics(
-            input,
-            makeMonthlyAssumptions({ oilPricePerVolume: 50, horizonEndMonthIndex: monthIndexOf(2031, 12) }),
-            costs,
-        );
-
-        expect(full.hasOilData).toBe(false);
-        expect(full.npv).toBeNull();
-        expect(full.early?.hasOilData).toBe(true);
-        expect(full.early?.npv).toBeCloseTo(shorterHorizon.npv!, 10);
-        expect(full.early?.discountedOilVolume).toBeCloseTo(shorterHorizon.discountedOilVolume, 10);
-
-        const earlyInvalid = computeMonthlyRealizationEconomics(
-            { ...input, oilProfile: makeMonthlyProfile(2030, 1, new Array(36).fill(100)) },
-            makeMonthlyAssumptions({
-                oilPricePerVolume: 50,
-                horizonEndMonthIndex: monthIndexOf(2032, 12),
-                earlyEndYear: 2040,
-            }),
-            costs,
-        );
-        expect(earlyInvalid.early).toBeNull();
-        expect(earlyInvalid.npv).not.toBeNull();
-
-        const earlyPartial = computeMonthlyRealizationEconomics(
-            input,
-            makeMonthlyAssumptions({
-                oilPricePerVolume: 50,
-                horizonEndMonthIndex: monthIndexOf(2032, 12),
-                earlyEndYear: 2032,
-            }),
-            costs,
-        );
-        expect(earlyPartial.early?.hasOilData).toBe(false);
-        expect(earlyPartial.early?.npv).toBeNull();
     });
 
     test("requires a price when signed monthly volumes cancel to zero", () => {
@@ -826,7 +768,7 @@ describe("monthly screening model", () => {
             [{ year: 2030, capex: 100, opex: 0 }],
         );
 
-        expect(blankGasPrice.undiscountedSalesGasVolume).toBe(0);
+        expect(totalSalesGasVolume(blankGasPrice)).toBe(0);
         expect(blankGasPrice.npv).toBeNull();
         expect(blankGasPrice.financialIneligibility).toBe(Ineligibility.GAS_PRICE_MISSING);
         expect(blankGasPrice.breakEvenOilPrice).toBeNull();
@@ -907,7 +849,6 @@ describe("monthly screening model", () => {
         const assumptions = makeMonthlyAssumptions({
             oilPricePerVolume: 100,
             horizonEndMonthIndex: monthIndexOf(2031, 12),
-            earlyEndYear: 2030,
         });
 
         test("matches hand-calculated present values, NPV, break-even and cumulative profile", () => {
@@ -934,8 +875,10 @@ describe("monthly screening model", () => {
             expect(result.annualProfile.map((entry) => entry.opex)).toEqual([12000, 12000]);
             expect(result.annualProfile.map((entry) => entry.netCashFlow)).toEqual([-72000, 108000]);
             expect(result.annualProfile[1].cumulativeDiscountedCashFlow).toBeCloseTo(result.npv!, 10);
-            expect(result.early?.npv).toBeCloseTo(result.annualProfile[0].cumulativeDiscountedCashFlow!, 10);
-            expect(result.early?.npv).toBeCloseTo(-(60000 * Math.pow(1.1, -0.5) + 1000 * factorSum2030), 8);
+            expect(result.annualProfile[0].cumulativeDiscountedCashFlow).toBeCloseTo(
+                -(60000 * Math.pow(1.1, -0.5) + 1000 * factorSum2030),
+                8,
+            );
             expect(result.irrStatus).toBe(IrrStatus.CONVERGED);
         });
 
@@ -955,7 +898,7 @@ describe("monthly screening model", () => {
             expect(atZeroRate.npv).toBeCloseTo(100 * 1200 - 60000 - 24000, 8);
             const withOpex = computeMonthlyRealizationEconomics(input, assumptions, costs);
             expect(withOpex.discountedOilVolume).toBe(withoutOpex.discountedOilVolume);
-            expect(withOpex.undiscountedOilVolume).toBe(withoutOpex.undiscountedOilVolume);
+            expect(totalOilVolume(withOpex)).toBe(totalOilVolume(withoutOpex));
             expect(withoutOpex.npv! - withOpex.npv!).toBeCloseTo(
                 discountedAnnualOpex(12000, 2030, 2030, 0.1) + discountedAnnualOpex(12000, 2031, 2030, 0.1),
                 8,

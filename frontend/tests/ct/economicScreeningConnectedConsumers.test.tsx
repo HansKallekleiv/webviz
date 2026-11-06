@@ -1,11 +1,10 @@
 import type { Page } from "@playwright/test";
 
 import { PlotType } from "@modules/DistributionPlot/typesAndEnums";
-import { EARLY_MEASURE_CHANNEL_ID_MAP, MEASURE_CHANNEL_ID_MAP } from "@modules/EconomicScreening/channelDefs";
+import { MEASURE_CHANNEL_ID_MAP } from "@modules/EconomicScreening/channelDefs";
 import {
     CostDraftStatus,
     DistributionPlotType,
-    EarlyEconomicMeasure,
     EconomicMeasure,
     ResultMode,
 } from "@modules/EconomicScreening/typesAndEnums";
@@ -45,16 +44,13 @@ const discountFactor = (years: number, rate = RATE) => Math.pow(1 + rate, -years
 const monthRange = (first: number, lastExclusive: number) =>
     Array.from({ length: lastExclusive - first }, (_, index) => first + index);
 const FULL_PRODUCTION_MONTHS = monthRange(12, 36);
-const PRODUCTION_MONTHS_THROUGH_2031 = monthRange(12, 24);
 const discountedMonths = (months: number[], rate = RATE) =>
     months.reduce((sum, month) => sum + discountFactor((month + 0.5) / 12, rate), 0);
 const D_FULL = discountedMonths(FULL_PRODUCTION_MONTHS);
-const D_THROUGH_2031 = discountedMonths(PRODUCTION_MONTHS_THROUGH_2031);
 const CAPEX_PV = CAPEX_2030_USD * discountFactor(0.5);
 const REVENUE_PER_OIL_SM3 = OIL_PRICE_USD_PER_SM3 + GAS_PRICE_USD_PER_SM3 * GAS_SM3_PER_OIL_SM3;
 
 const expectedNpv = (oil: number) => REVENUE_PER_OIL_SM3 * oil * D_FULL - CAPEX_PV;
-const expectedDcfThrough2031 = (oil: number) => REVENUE_PER_OIL_SM3 * oil * D_THROUGH_2031 - CAPEX_PV;
 /** Undiscounted cash flow at a given rate; an IRR is a root of this. */
 const npvAtRate = (oil: number, rate: number) =>
     REVENUE_PER_OIL_SM3 * oil * discountedMonths(FULL_PRODUCTION_MONTHS, rate) -
@@ -76,8 +72,6 @@ function expectedByKey(realizations: number[], valueOf: (realization: number) =>
 const FULL_OIL_KEYS = DESIGN_REALIZATIONS.filter((realization) => realization !== PARTIAL_OIL_REALIZATION);
 
 const NPV_CHANNEL = MEASURE_CHANNEL_ID_MAP[EconomicMeasure.NPV];
-const EARLY_DCF_CHANNEL = EARLY_MEASURE_CHANNEL_ID_MAP[EarlyEconomicMeasure.DISCOUNTED_CASH_FLOW];
-const EARLY_OIL_CHANNEL = EARLY_MEASURE_CHANNEL_ID_MAP[EarlyEconomicMeasure.DISCOUNTED_OIL_VOLUME];
 const OIL_CHANNEL = MEASURE_CHANNEL_ID_MAP[EconomicMeasure.DISCOUNTED_OIL_VOLUME];
 const GAS_CHANNEL = MEASURE_CHANNEL_ID_MAP[EconomicMeasure.DISCOUNTED_SALES_GAS_VOLUME];
 const IRR_CHANNEL = MEASURE_CHANNEL_ID_MAP[EconomicMeasure.IRR];
@@ -86,7 +80,6 @@ const BREAK_EVEN_CHANNEL = MEASURE_CHANNEL_ID_MAP[EconomicMeasure.BREAK_EVEN_OIL
 const DEFAULT_PROPS: ConnectedConsumersHarnessProps = {
     producerEnsemble: "design",
     costDraftStatus: CostDraftStatus.COMMITTED,
-    early: { enabled: true, endYear: 2031 },
     distributionX: null,
     distributionY: null,
     distributionPlotType: PlotType.BarChart,
@@ -299,7 +292,7 @@ async function expectDistributionBars(page: Page, expected: [number, number][]) 
     expectPairsClose(await readBarValuesByKey(page), expected);
 }
 
-test("DistributionPlot receives regular full and early outputs keyed by actual realization with units", async ({
+test("DistributionPlot receives regular outputs keyed by actual realization with units", async ({
     mount,
     page,
     blockedExternalRequests,
@@ -307,18 +300,6 @@ test("DistributionPlot receives regular full and early outputs keyed by actual r
     const sources = await routeSources(page);
     await page.setViewportSize({ width: 1400, height: 900 });
     const component = await mount(
-        <EconomicScreeningConnectedConsumersHarness {...DEFAULT_PROPS} distributionX={EARLY_DCF_CHANNEL} />,
-    );
-
-    // Early output through 2031 is valid for the partial-oil realization; its full oil results are not.
-    await expectDistributionBars(
-        page,
-        expectedByKey(DESIGN_REALIZATIONS, (r) => expectedDcfThrough2031(DESIGN_MONTHLY_OIL[r])),
-    );
-    expect(await axisTitle(page, "Distribution consumer", "x")).toContain("Early discounted cash flow through 2031");
-    await expectVisibleUnit(page, "x", "USD");
-
-    await component.update(
         <EconomicScreeningConnectedConsumersHarness {...DEFAULT_PROPS} distributionX={NPV_CHANNEL} />,
     );
     const expectedNpvByKey = expectedByKey(FULL_OIL_KEYS, (r) => expectedNpv(DESIGN_MONTHLY_OIL[r]));
@@ -328,16 +309,16 @@ test("DistributionPlot receives regular full and early outputs keyed by actual r
     expect((await recordTitleClipping(page, "x", "regular NPV bars")).text).toMatch(/^NPV \(/);
     await page.screenshot({ path: `${SCREENSHOT_DIR}/distribution-regular-npv-bars.png` });
 
-    // X/Y: NPV lacks interior realization 5 while the early output has it, so zipping positions would misalign.
+    // X/Y: NPV lacks interior realization 5 while sales gas has it, so zipping positions would misalign.
     const npvKeys = FULL_OIL_KEYS;
-    const earlyKeys = DESIGN_REALIZATIONS;
-    const positionalPairs = npvKeys.map((key, index) => [key, earlyKeys[index]]);
-    expect(positionalPairs.some(([npvKey, earlyKey]) => npvKey !== earlyKey)).toBe(true);
+    const gasKeys = DESIGN_REALIZATIONS;
+    const positionalPairs = npvKeys.map((key, index) => [key, gasKeys[index]]);
+    expect(positionalPairs.some(([npvKey, gasKey]) => npvKey !== gasKey)).toBe(true);
     await component.update(
         <EconomicScreeningConnectedConsumersHarness
             {...DEFAULT_PROPS}
             distributionX={NPV_CHANNEL}
-            distributionY={EARLY_DCF_CHANNEL}
+            distributionY={GAS_CHANNEL}
             distributionPlotType={PlotType.Scatter}
         />,
     );
@@ -347,14 +328,14 @@ test("DistributionPlot receives regular full and early outputs keyed by actual r
     expect(scatterKeys).toEqual(FULL_OIL_KEYS);
     scatterKeys.forEach((key, index) => {
         expect(scatter.x[index]).toBeCloseTo(expectedNpv(DESIGN_MONTHLY_OIL[key]), 4);
-        expect(scatter.y[index] as number).toBeCloseTo(expectedDcfThrough2031(DESIGN_MONTHLY_OIL[key]), 4);
+        expect(scatter.y[index] as number).toBeCloseTo(GAS_SM3_PER_OIL_SM3 * DESIGN_MONTHLY_OIL[key] * D_FULL, 4);
     });
-    expect(await axisTitle(page, "Distribution consumer", "y")).toContain("Early discounted cash flow through 2031");
+    expect(await axisTitle(page, "Distribution consumer", "y")).toContain("Discounted sales gas volume");
     await expectVisibleUnit(page, "x", "USD");
-    await expectVisibleUnit(page, "y", "USD");
+    await expectVisibleUnit(page, "y", "Sm³");
     await recordTitleClipping(page, "x", "scatter X");
     await recordTitleClipping(page, "y", "scatter Y");
-    await page.screenshot({ path: `${SCREENSHOT_DIR}/distribution-regular-npv-vs-early-scatter.png` });
+    await page.screenshot({ path: `${SCREENSHOT_DIR}/distribution-regular-npv-vs-gas-scatter.png` });
 
     expect(sources.requests.sort()).toEqual(["design:FGST", "design:FOPT", `vector_list:${DESIGN_CASE_UUID}`]);
     expect(sources.unexpected).toEqual([]);
@@ -500,10 +481,7 @@ test("SensitivityPlot builds a regular designed-sensitivity tornado and rejects 
     expect(sources.unexpected).toEqual([]);
 });
 
-test("consumers withdraw and recover producer outputs for drafts, early settings and disconnects", async ({
-    mount,
-    page,
-}) => {
+test("consumers withdraw and recover producer outputs for drafts and disconnects", async ({ mount, page }) => {
     const sources = await routeSources(page);
     await page.setViewportSize({ width: 1400, height: 900 });
     const props: ConnectedConsumersHarnessProps = {
@@ -524,7 +502,7 @@ test("consumers withdraw and recover producer outputs for drafts, early settings
     await expectSensitivityWithoutTornado(page, "No data received on channel");
     await page.screenshot({ path: `${SCREENSHOT_DIR}/withdrawn-invalid-cost-draft.png` });
 
-    // Volumes, full and early, remain available with the draft still invalid.
+    // Volumes remain available with the draft still invalid.
     await component.update(
         <EconomicScreeningConnectedConsumersHarness
             {...props}
@@ -536,59 +514,15 @@ test("consumers withdraw and recover producer outputs for drafts, early settings
         page,
         expectedByKey(FULL_OIL_KEYS, (r) => DESIGN_MONTHLY_OIL[r] * D_FULL),
     );
-    await component.update(
-        <EconomicScreeningConnectedConsumersHarness
-            {...props}
-            costDraftStatus={CostDraftStatus.INVALID}
-            distributionX={EARLY_OIL_CHANNEL}
-        />,
-    );
-    await test.step("early oil volume remains with an invalid draft", () =>
-        expectDistributionBars(
-            page,
-            expectedByKey(DESIGN_REALIZATIONS, (r) => DESIGN_MONTHLY_OIL[r] * D_THROUGH_2031),
-        ));
-    await component.update(
-        <EconomicScreeningConnectedConsumersHarness
-            {...props}
-            costDraftStatus={CostDraftStatus.INVALID}
-            distributionX={EARLY_DCF_CHANNEL}
-        />,
-    );
-    await expectDistributionMessage(page, "No data on", "X axis");
 
     // Recovery republishes the same financial values.
     await component.update(<EconomicScreeningConnectedConsumersHarness {...props} />);
     await expectDistributionBars(page, expectedNpvByKey);
     await expectDesignNpvTornado(page);
 
-    // Early settings affect only the early output; the full-NPV tornado stays unchanged throughout.
-    const scatterProps = { ...props, distributionY: EARLY_DCF_CHANNEL, distributionPlotType: PlotType.Scatter };
+    const scatterProps = { ...props, distributionY: GAS_CHANNEL, distributionPlotType: PlotType.Scatter };
     await component.update(<EconomicScreeningConnectedConsumersHarness {...scatterProps} />);
     await expect.poll(async () => (await readScatterByKey(page)).map(([key]) => key)).toEqual(FULL_OIL_KEYS);
-    for (const early of [
-        { enabled: false, endYear: 2031 },
-        { enabled: true, endYear: 2040 },
-    ]) {
-        await component.update(<EconomicScreeningConnectedConsumersHarness {...scatterProps} early={early} />);
-        await expectDistributionMessage(page, "No data on", "Y axis");
-        await expectDesignNpvTornado(page);
-    }
-    await component.update(
-        <EconomicScreeningConnectedConsumersHarness {...scatterProps} early={{ enabled: true, endYear: 2030 }} />,
-    );
-    // Through 2030 only the mid-year CAPEX has occurred.
-    await expect.poll(async () => (await readScatterByKey(page))[0]?.[2]).toBeCloseTo(-CAPEX_PV, 4);
-    const through2030 = await readScatterByKey(page);
-    expect(through2030.map(([key]) => key)).toEqual(FULL_OIL_KEYS);
-    through2030.forEach(([key, x, y]) => {
-        expect(x).toBeCloseTo(expectedNpv(DESIGN_MONTHLY_OIL[key]), 4);
-        expect(y).toBeCloseTo(-CAPEX_PV, 4);
-    });
-    expect(await axisTitle(page, "Distribution consumer", "y")).toContain("Early discounted cash flow through 2030");
-    await expectDesignNpvTornado(page);
-    await component.update(<EconomicScreeningConnectedConsumersHarness {...scatterProps} />);
-    await expect.poll(async () => (await readScatterByKey(page))[0]?.[2]).toBeCloseTo(expectedDcfThrough2031(1000), 4);
 
     // Producer display choices change neither consumer values nor source requests.
     const scatterBefore = await readScatterByKey(page);
@@ -636,7 +570,7 @@ test("typing a valid cost keeps financial channels published until the debounced
             {...DEFAULT_PROPS}
             producerSettingsOpen
             distributionX={NPV_CHANNEL}
-            distributionY={EARLY_DCF_CHANNEL}
+            distributionY={BREAK_EVEN_CHANNEL}
             distributionPlotType={PlotType.Scatter}
         />,
     );
@@ -672,11 +606,11 @@ test("typing a valid cost keeps financial channels published until the debounced
                 ),
             };
         },
-        { from: marker, channelIds: [NPV_CHANNEL, IRR_CHANNEL, BREAK_EVEN_CHANNEL, EARLY_DCF_CHANNEL] },
+        { from: marker, channelIds: [NPV_CHANNEL, IRR_CHANNEL, BREAK_EVEN_CHANNEL] },
     );
     expect(pendingSample).toEqual({
         isCostCommitted: false,
-        keys: [FULL_OIL_KEYS.length, FULL_OIL_KEYS.length, FULL_OIL_KEYS.length, DESIGN_REALIZATIONS.length],
+        keys: [FULL_OIL_KEYS.length, FULL_OIL_KEYS.length, FULL_OIL_KEYS.length],
     });
 
     const newCapexPv = newCapex * discountFactor(0.5);
@@ -687,7 +621,10 @@ test("typing a valid cost keeps financial channels published until the debounced
     expect(scatter.map(([key]) => key)).toEqual(FULL_OIL_KEYS);
     scatter.forEach(([key, x, y]) => {
         expect(x).toBeCloseTo(expectedNpv(DESIGN_MONTHLY_OIL[key]) + CAPEX_PV - newCapexPv, 4);
-        expect(y).toBeCloseTo(expectedDcfThrough2031(DESIGN_MONTHLY_OIL[key]) + CAPEX_PV - newCapexPv, 4);
+        expect(y).toBeCloseTo(
+            expectedBreakEven(DESIGN_MONTHLY_OIL[key]) + (newCapexPv - CAPEX_PV) / (DESIGN_MONTHLY_OIL[key] * D_FULL),
+            4,
+        );
     });
 
     // No consumer ever received empty financial contents, and the status went pending before the cost committed.

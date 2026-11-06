@@ -17,8 +17,6 @@ export type CashFlowPlotProps = {
     gasUnit: string;
     profileType: CashFlowProfileType;
     selectedRealization: number | null;
-    /** Year-end marker for the early value; only drawn when the year is on the plotted axis. */
-    earlyMarkerYear?: number | null;
     color: string;
     width: number;
     height: number;
@@ -212,12 +210,6 @@ export function CashFlowPlot(props: CashFlowPlotProps): React.ReactNode {
     // Whole calendar years only, without thousands separators, in ticks and hover labels.
     const years = selectedProfile.aggregate.years;
     const yearTickStep = Math.max(1, Math.ceil(years.length / 12));
-    // Each plotted point is the cumulative value at the end of its year, so the marker sits on that point.
-    const markerYear =
-        props.earlyMarkerYear !== null && props.earlyMarkerYear !== undefined && years.includes(props.earlyMarkerYear)
-            ? props.earlyMarkerYear
-            : null;
-    const isMarkerInRightHalf = markerYear !== null && markerYear - years[0] > (years[years.length - 1] - years[0]) / 2;
     const layout: Partial<Layout> = {
         width: props.width,
         height: props.height,
@@ -232,39 +224,6 @@ export function CashFlowPlot(props: CashFlowPlotProps): React.ReactNode {
         showlegend: true,
         // Above the plot area, where it cannot cover the year ticks or axis title; the top margin grows to fit it.
         legend: { x: 0, xanchor: "left", y: 1, yanchor: "bottom" },
-        shapes:
-            markerYear === null
-                ? []
-                : [
-                      {
-                          type: "line",
-                          xref: "x",
-                          yref: "paper",
-                          x0: markerYear,
-                          x1: markerYear,
-                          y0: 0,
-                          y1: 1,
-                          line: { color: "#6b7280", width: 1, dash: "dot" },
-                      },
-                  ],
-        annotations:
-            markerYear === null
-                ? []
-                : [
-                      {
-                          xref: "x",
-                          yref: "paper",
-                          x: markerYear,
-                          y: 1,
-                          xanchor: isMarkerInRightHalf ? "right" : "left",
-                          xshift: isMarkerInRightHalf ? -4 : 4,
-                          yanchor: "top",
-                          text: `Early value through ${markerYear}`,
-                          showarrow: false,
-                          font: { size: 11, color: "#374151" },
-                          bgcolor: "rgba(255, 255, 255, 0.85)",
-                      },
-                  ],
     };
 
     return <Plot data={data} layout={layout} />;

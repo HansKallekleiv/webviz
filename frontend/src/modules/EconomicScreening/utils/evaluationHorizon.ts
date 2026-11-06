@@ -41,10 +41,6 @@ export function resolveEvaluationHorizon(
     return { status: "READY", horizon: { startYear: predictionStartYear, endYear, endMonthIndex } };
 }
 
-export function isYearInHorizon(year: number, horizon: EvaluationHorizon): boolean {
-    return year >= horizon.startYear && year <= horizon.endYear;
-}
-
 /** Why there is no evaluation; null when there is one or the source is still loading. */
 export function getEvaluationHorizonError(state: EvaluationHorizonState): string | null {
     switch (state.status) {

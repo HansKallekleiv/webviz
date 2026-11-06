@@ -108,46 +108,6 @@ The module calculates economics from these signed incremental profiles. A produc
 
 Incremental IRR and break-even oil price are calculated from the incremental cash flows and volumes; they are **not differences between the two projects' IRRs or break-even prices**. Negative discounted incremental oil volume reverses oil-price sensitivity: a higher oil price reduces incremental NPV.
 
-## Early value
-
-Early value answers a different question from the full-evaluation result: **how much discounted volume or cash flow has accumulated by a chosen year?**
-
-For example, suppose the evaluation start year is 2030 and the evaluation covers 2030 through 2050, with a valuation date of 1 January 2030:
-
-- **Full evaluation:** "What is the discounted value of the whole forecast, through 2050?"
-- **Early value through 2035:** "How much discounted value has accumulated from 2030 through the end of 2035?"
-
-Both use the same production data, prices, costs, discount rate, and valuation date. The early result includes only volumes and applicable cash flows through the end of 2035; it does not move the valuation date to 2035. Early discounted cash flow includes the entered costs in that period, so it can be negative while investment is being recovered. Discounted volume outputs do not require prices or costs.
-
-Early outputs are checked on their own period. Complete coverage through 2035 is enough for them, even if a later month is incomplete and the full-evaluation results are unavailable.
-
-This is useful when two development options produce similar total volumes but one delivers production sooner. Early outputs can also feed a connected analysis module, for example a tornado plot for a regular designed-sensitivity ensemble, to show which uncertainties affect early value.
-
-**Early value adds separate outputs; it does not shorten the main evaluation.** The full-evaluation results and channels still cover 2030 through 2050 in this example.
-
-### Setting it up
-
-Early value is off by default. In the Results settings, check **Early value** and enter **Calculate through year**, an inclusive calendar year within the evaluation. The view then shows early discounted cash flow beside the full NPV, and the cumulative discounted cash flow profile marks the chosen year. The value is the accumulated discounted cash flow from 1 January of the evaluation start year through the end of that year. It is not the remaining future value, and it is not a new valuation date.
-
-With one realization selected, the comparison shows that realization's early value and full NPV, or states that a side is unavailable. With Aggregate, it shows the P50 of each horizon and how many realizations are valid for it. The two horizons can have different valid realizations, so the two P50 values need not come from one realization.
-
-### Example: January 2018 to July 2020
-
-Suppose the source data runs from 1 January 2018 to 1 July 2020, the evaluation start year is 2018, and 2018 is an investment year with no production:
-
-- **Through 2018:** only 2018's discounted flows, here mostly the discounted CAPEX, so the early value is negative.
-- **Through 2019:** the discounted flows of 2018 and 2019.
-- **Through 2020:** equals the full NPV for a realization that is eligible for the whole evaluation.
-
-The 1 July 2020 source date closes June 2020, so the last production month is June. July is not counted as partly produced, and no July production is assumed. The full annual costs entered for 2020 are still included, paid as twelve monthly OPEX amounts and mid-year CAPEX; they are not prorated to six months.
-
-### Checking a value by hand
-
-1. Select one realization that is eligible for the whole evaluation.
-2. Show the cumulative discounted cash flow time profile.
-3. Set Calculate through year to 2019. The realization's plotted 2019 point equals its early discounted cash flow in the comparison. Optionally, connect a DistributionPlot to the Early discounted cash flow channel and compare that realization's value.
-4. Set Calculate through year to 2020. The early value now equals that realization's full NPV.
-
 ## Reading distributions and units
 
 Each valid realization contributes one calculated value. P90 is the lower 10th percentile and P10 the upper 90th percentile. The distribution plot marks P90, P50, P10 and the mean as vertical lines. An exceedance curve shows the fraction of valid realizations strictly above a value; it is not automatically a probability of commercial success.

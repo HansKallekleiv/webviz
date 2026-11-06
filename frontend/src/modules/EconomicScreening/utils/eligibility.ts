@@ -56,10 +56,8 @@ export function getMeasureRequirement(measure: EconomicMeasure): MeasureRequirem
         case EconomicMeasure.BREAK_EVEN_OIL_PRICE:
             return MeasureRequirement.BREAK_EVEN;
         case EconomicMeasure.DISCOUNTED_OIL_VOLUME:
-        case EconomicMeasure.UNDISCOUNTED_OIL_VOLUME:
             return MeasureRequirement.OIL_VOLUME;
         case EconomicMeasure.DISCOUNTED_SALES_GAS_VOLUME:
-        case EconomicMeasure.UNDISCOUNTED_SALES_GAS_VOLUME:
             return MeasureRequirement.GAS_VOLUME;
         case EconomicMeasure.DISCOUNTED_OIL_EQUIVALENTS:
             return MeasureRequirement.OIL_AND_GAS_VOLUME;
@@ -96,11 +94,6 @@ export function revenueNeeds(
     isConfirmedAbsent: boolean,
 ): { needsSourceCoverage: boolean; needsPrice: boolean } {
     return { needsSourceCoverage: price !== 0, needsPrice: price === null && !isConfirmedAbsent };
-}
-
-export function isRevenueResolved(price: number | null, isEstablished: boolean, isConfirmedAbsent: boolean): boolean {
-    const needs = revenueNeeds(price, isConfirmedAbsent);
-    return (!needs.needsSourceCoverage || isEstablished) && !needs.needsPrice;
 }
 
 export enum Ineligibility {

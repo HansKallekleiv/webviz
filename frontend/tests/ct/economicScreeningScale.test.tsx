@@ -1,8 +1,8 @@
 import type { Page } from "@playwright/test";
 
 import { PlotType } from "@modules/DistributionPlot/typesAndEnums";
-import { EARLY_MEASURE_CHANNEL_ID_MAP, MEASURE_CHANNEL_ID_MAP } from "@modules/EconomicScreening/channelDefs";
-import { CostDraftStatus, EarlyEconomicMeasure, EconomicMeasure } from "@modules/EconomicScreening/typesAndEnums";
+import { MEASURE_CHANNEL_ID_MAP } from "@modules/EconomicScreening/channelDefs";
+import { CostDraftStatus, EconomicMeasure } from "@modules/EconomicScreening/typesAndEnums";
 
 import {
     EconomicScreeningConnectedConsumersHarness,
@@ -32,18 +32,14 @@ const NPV_CHANNEL = MEASURE_CHANNEL_ID_MAP[EconomicMeasure.NPV];
 const IRR_CHANNEL = MEASURE_CHANNEL_ID_MAP[EconomicMeasure.IRR];
 const BREAK_EVEN_CHANNEL = MEASURE_CHANNEL_ID_MAP[EconomicMeasure.BREAK_EVEN_OIL_PRICE];
 const OIL_CHANNEL = MEASURE_CHANNEL_ID_MAP[EconomicMeasure.DISCOUNTED_OIL_VOLUME];
-const EARLY_DCF_CHANNEL = EARLY_MEASURE_CHANNEL_ID_MAP[EarlyEconomicMeasure.DISCOUNTED_CASH_FLOW];
-const EARLY_OIL_CHANNEL = EARLY_MEASURE_CHANNEL_ID_MAP[EarlyEconomicMeasure.DISCOUNTED_OIL_VOLUME];
-const INITIAL_EARLY_END_YEAR = 2034;
 
 const PROPS: ConnectedConsumersHarnessProps = {
     producerEnsemble: "scale",
     producerSettingsOpen: true,
     initialEconomics: SCALE_BASE_INPUTS,
     costDraftStatus: CostDraftStatus.COMMITTED,
-    early: { enabled: true, endYear: INITIAL_EARLY_END_YEAR },
     distributionX: NPV_CHANNEL,
-    distributionY: EARLY_DCF_CHANNEL,
+    distributionY: BREAK_EVEN_CHANNEL,
     distributionPlotType: PlotType.Scatter,
     sensitivityResponse: null,
 };
@@ -103,7 +99,7 @@ async function routeScaleSources(page: Page) {
 }
 
 // --- Independent expectations from the fixture's reference formulas. ---
-type ScaleState = { inputs: ScaleEconomicInputs; earlyEndYear: number; filtered: number[] | null };
+type ScaleState = { inputs: ScaleEconomicInputs; filtered: number[] | null };
 
 function expectedByRealization(state: ScaleState) {
     return (state.filtered ?? REALIZATIONS).map((realization) => ({
@@ -113,18 +109,17 @@ function expectedByRealization(state: ScaleState) {
             scaleServedMonthlyVolumes(REALIZATIONS, realization, "oil"),
             scaleServedMonthlyVolumes(REALIZATIONS, realization, "gas"),
             state.inputs,
-            state.earlyEndYear,
         ),
     }));
 }
 
-/** Scatter of full NPV against early DCF: keys present in both channels, identified by count and sums. */
+/** Scatter of NPV against break-even oil price: keys present in both channels, identified by count and sums. */
 function expectedScatter(state: ScaleState) {
     const plotted = expectedByRealization(state).filter((expected) => expected.hasFullOil);
     return {
         count: plotted.length,
         sumX: plotted.reduce((sum, expected) => sum + expected.npv, 0),
-        sumY: plotted.reduce((sum, expected) => sum + expected.earlyDcf, 0),
+        sumY: plotted.reduce((sum, expected) => sum + expected.breakEvenOilPrice, 0),
     };
 }
 
@@ -229,7 +224,6 @@ const inputs = {
     oilPrice: (page: Page) => settingsRegion(page).getByRole("textbox", { name: /^Oil price/ }),
     gasPrice: (page: Page) => settingsRegion(page).getByRole("textbox", { name: /^Gas price/ }),
     discountRate: (page: Page) => settingsRegion(page).getByRole("textbox", { name: /^Discount rate/ }),
-    earlyYear: (page: Page) => settingsRegion(page).getByRole("textbox", { name: /^Calculate through year/ }),
     cost: (page: Page, kind: "CAPEX" | "OPEX", year: number) =>
         settingsRegion(page).getByRole("textbox", { name: `${kind} ${year}`, exact: true }),
 };
@@ -263,9 +257,9 @@ function withInputs(state: ScaleState, change: Partial<ScaleEconomicInputs>): Sc
     return { ...state, inputs: { ...state.inputs, ...change } };
 }
 
-const BASE_STATE: ScaleState = { inputs: SCALE_BASE_INPUTS, earlyEndYear: INITIAL_EARLY_END_YEAR, filtered: null };
+const BASE_STATE: ScaleState = { inputs: SCALE_BASE_INPUTS, filtered: null };
 
-/** Checks every published full and early key against the reference, plus units and assumption context. */
+/** Checks every published key against the reference, plus units and assumption context. */
 async function expectPublishedState(page: Page, state: ScaleState, options: { financial: boolean }) {
     const channels = await readProducerChannels(page);
     const expected = expectedByRealization(state);
@@ -290,13 +284,10 @@ async function expectPublishedState(page: Page, state: ScaleState, options: { fi
 
     const oil = expectKeyedValues(OIL_CHANNEL, fullOil, (entry) => entry.discountedOil);
     expect(oil.metaData.unit).toBe("Sm³");
-    const earlyOil = expectKeyedValues(EARLY_OIL_CHANNEL, expected, (entry) => entry.earlyDiscountedOil);
-    expect(earlyOil.metaData.displayString).toContain(`Early discounted oil volume through ${state.earlyEndYear}`);
     if (!options.financial) {
         expect(contentOf(NPV_CHANNEL)).toBeNull();
         expect(contentOf(IRR_CHANNEL)).toBeNull();
         expect(contentOf(BREAK_EVEN_CHANNEL)).toBeNull();
-        expect(contentOf(EARLY_DCF_CHANNEL)).toBeNull();
         return;
     }
     const npv = expectKeyedValues(NPV_CHANNEL, fullOil, (entry) => entry.npv);
@@ -306,10 +297,6 @@ async function expectPublishedState(page: Page, state: ScaleState, options: { fi
     expect(npv.metaData.displayString!.endsWith(inputsLabel)).toBe(true);
     const breakEven = expectKeyedValues(BREAK_EVEN_CHANNEL, fullOil, (entry) => entry.breakEvenOilPrice);
     expect(breakEven.metaData.unit).toBe("USD per Sm³");
-    const earlyDcf = expectKeyedValues(EARLY_DCF_CHANNEL, expected, (entry) => entry.earlyDcf);
-    expect(earlyDcf.metaData.unit).toBe("USD");
-    expect(earlyDcf.metaData.displayString).toContain(`Early discounted cash flow through ${state.earlyEndYear} (`);
-    expect(earlyDcf.metaData.displayString!.endsWith(inputsLabel)).toBe(true);
 
     // Every regular IRR is finite; each published rate is a root of that realization's own cash flow.
     const irr = contentOf(IRR_CHANNEL)!;
@@ -322,15 +309,12 @@ async function expectPublishedState(page: Page, state: ScaleState, options: { fi
             scaleServedMonthlyVolumes(REALIZATIONS, realization, "oil"),
             scaleServedMonthlyVolumes(REALIZATIONS, realization, "gas"),
             state.inputs,
-            null,
             irrPercent / 100,
         ).npv;
         expect(Math.abs(residual) / 4_000_000).toBeLessThan(1e-6);
     }
     expect(
-        [npv, breakEven, earlyDcf, irr].every((content) =>
-            content.metaData.ensembleIdentString.includes(SCALE_CASE_UUID),
-        ),
+        [npv, breakEven, irr].every((content) => content.metaData.ensembleIdentString.includes(SCALE_CASE_UUID)),
     ).toBe(true);
 }
 
@@ -353,15 +337,11 @@ test("500 realizations: rapid Settings edits, invalid draft, display changes and
     await typeValue(page, inputs.discountRate(page), "7");
     await typeValue(page, inputs.cost(page, "OPEX", 2040), "50000");
     await typeValue(page, inputs.cost(page, "CAPEX", SCALE_FIRST_YEAR), "4200000");
-    // Intermediate years 2, 20 and 203 are outside the horizon and withdraw only the early outputs.
-    await typeValue(page, inputs.earlyYear(page), "2036");
     await typeValue(page, inputs.oilPrice(page), "46");
     let state: ScaleState = withCost(
-        withCost(
-            withInputs({ ...BASE_STATE, earlyEndYear: 2036 }, { oilPrice: 46, gasPrice: 0.18, discountRatePercent: 7 }),
-            2040,
-            { opex: 50_000 },
-        ),
+        withCost(withInputs(BASE_STATE, { oilPrice: 46, gasPrice: 0.18, discountRatePercent: 7 }), 2040, {
+            opex: 50_000,
+        }),
         SCALE_FIRST_YEAR,
         { capex: 4_200_000 },
     );
@@ -388,7 +368,7 @@ test("500 realizations: rapid Settings edits, invalid draft, display changes and
     expect(draftEvents.at(-1)).toMatchObject({ event: "received:channelX", keys: REALIZATIONS.length - 1 });
     await expectPublishedState(page, state, { financial: true });
 
-    // A held invalid draft withdraws financial outputs but keeps full and early volumes; validity recovers them.
+    // A held invalid draft withdraws financial outputs but keeps volumes; validity recovers them.
     await component.update(
         <EconomicScreeningConnectedConsumersHarness {...PROPS} costDraftStatus={CostDraftStatus.INVALID} />,
     );

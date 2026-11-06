@@ -18,7 +18,6 @@ import {
     currencyAtom,
     discountRatePercentAtom,
     distributionPlotTypeAtom,
-    earlyValueConfigurationAtom,
     gasPriceAtom,
     gasPriceBasisAtom,
     missingComponentAssumptionsAtom,
@@ -106,7 +105,6 @@ function populate(
         { year: 2020, capex: 900, opex: 0 },
         { year: 2031, capex: 100, opex: -12 },
     ]);
-    store.set(earlyValueConfigurationAtom, { enabled: true, endYear: 2035 });
     store.set(resultModeAtom, overrides.resultMode ?? ResultMode.TIME_PROFILE);
     store.set(selectedMeasureAtom, EconomicMeasure.NPV);
     store.set(distributionPlotTypeAtom, DistributionPlotType.HISTOGRAM);
@@ -129,7 +127,6 @@ function snapshot(store: Store) {
         gasPrice: store.get(gasPriceAtom),
         gasPriceBasis: store.get(gasPriceBasisAtom),
         costProfile: store.get(costProfileAtom),
-        earlyValue: store.get(earlyValueConfigurationAtom),
         resultMode: store.get(resultModeAtom),
         selectedMeasure: store.get(selectedMeasureAtom),
         distributionPlotType: store.get(distributionPlotTypeAtom),
@@ -176,8 +173,6 @@ describe("Economic Screening current-state persistence", () => {
                 "currency",
                 "discountRatePercent",
                 "distributionPlotType",
-                "earlyValueEnabled",
-                "earlyValueEndYear",
                 "gasPrice",
                 "gasPriceBasis",
                 "missingComponentAssumptionsByEnsemble",

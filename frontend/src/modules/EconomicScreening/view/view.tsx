@@ -13,7 +13,6 @@ import { ContentInfo } from "@modules/_shared/components/ContentMessage";
 import {
     CashFlowProfileType,
     CostDraftStatus,
-    EarlyEconomicMeasure,
     EconomicMeasure,
     ResultMode,
 } from "@modules/EconomicScreening/typesAndEnums";
@@ -32,7 +31,6 @@ import {
     cashFlowProfileTypeAtom,
     costDraftStatusAtom,
     distributionPlotTypeAtom,
-    earlyValueConfigurationAtom,
     economicAssumptionsAtom,
     evaluationHorizonAtom,
     priceAssumptionsAtom,
@@ -44,8 +42,6 @@ import {
 import { economicScreeningResultsAtom } from "./atoms/derivedAtoms";
 import { CashFlowPlot, hasRealizationProfile } from "./components/cashFlowPlot";
 import { DistributionSummary } from "./components/distributionSummary";
-import { EarlyMeasureChannelPublisher } from "./components/earlyMeasureChannelPublisher";
-import { EarlyValueComparison } from "./components/earlyValueComparison";
 import { MeasureChannelPublisher } from "./components/measureChannelPublisher";
 import { MeasureDistributionPlot } from "./components/measureDistributionPlot";
 import { RealizationResultsTable } from "./components/realizationResultsTable";
@@ -76,12 +72,9 @@ export function View(props: ModuleViewProps<Interfaces>): React.ReactNode {
     const selectedRealization = useAtomValue(selectedRealizationAtom);
     const economicAssumptions = useAtomValue(economicAssumptionsAtom);
     const evaluationHorizon = useAtomValue(evaluationHorizonAtom);
-    const earlyValueConfiguration = useAtomValue(earlyValueConfigurationAtom);
-    const earlyValueEndYear = earlyValueConfiguration.endYear;
     const isCostDraftInvalid = useAtomValue(costDraftStatusAtom) === CostDraftStatus.INVALID;
     const priceAssumptions = useAtomValue(priceAssumptionsAtom);
-    const { results, oilUnit, gasUnit, isEarlyValueConfigurationValid, horizon } =
-        useAtomValue(economicScreeningResultsAtom);
+    const { results, oilUnit, gasUnit, horizon } = useAtomValue(economicScreeningResultsAtom);
 
     const isFetching = sourceSnapshot.isFetching || sourceSnapshot.status === SourceStatus.LOADING;
     useMakeViewStatusWriterMessages(statusWriter);
@@ -137,10 +130,6 @@ export function View(props: ModuleViewProps<Interfaces>): React.ReactNode {
             : sourceSnapshot.status === SourceStatus.READY
               ? getEvaluationHorizonError(evaluationHorizon)
               : null;
-    const shownEarlyEndYear =
-        earlyValueConfiguration.enabled && isEarlyValueConfigurationValid && horizon !== null
-            ? earlyValueEndYear
-            : null;
 
     return (
         <div className="h-full w-full overflow-auto">
@@ -155,35 +144,6 @@ export function View(props: ModuleViewProps<Interfaces>): React.ReactNode {
                     ensembleDisplayName={ensembleDisplayName}
                     color={ensembleColor}
                     enabled={!isFetching && hasResults && (!isCostDraftInvalid || !isFinancialMeasure(measure))}
-                    discountRatePercent={economicAssumptions.discountRatePercent}
-                    predictionStartYear={horizon?.startYear ?? null}
-                />
-            ))}
-            {Object.values(EarlyEconomicMeasure).map((measure) => (
-                <EarlyMeasureChannelPublisher
-                    key={measure}
-                    viewContext={props.viewContext}
-                    measure={measure}
-                    results={results}
-                    endYear={earlyValueEndYear ?? 0}
-                    unit={
-                        measure === EarlyEconomicMeasure.DISCOUNTED_OIL_VOLUME
-                            ? oilUnit
-                            : measure === EarlyEconomicMeasure.DISCOUNTED_SALES_GAS_VOLUME
-                              ? gasUnit
-                              : currency
-                    }
-                    ensembleIdentString={ensembleIdent?.toString() ?? ""}
-                    ensembleDisplayName={ensembleDisplayName}
-                    color={ensembleColor}
-                    enabled={
-                        !isFetching &&
-                        hasResults &&
-                        (!isCostDraftInvalid || measure !== EarlyEconomicMeasure.DISCOUNTED_CASH_FLOW) &&
-                        earlyValueConfiguration.enabled &&
-                        isEarlyValueConfigurationValid &&
-                        earlyValueEndYear !== null
-                    }
                     discountRatePercent={economicAssumptions.discountRatePercent}
                     predictionStartYear={horizon?.startYear ?? null}
                 />
@@ -206,16 +166,6 @@ export function View(props: ModuleViewProps<Interfaces>): React.ReactNode {
             {!isFetching && hasResults && (
                 <div className="gap-y-sm flex h-full min-h-0 flex-col p-2">
                     <div className="text-body-xs text-subtle">{activeAssumptions.join(" | ")}</div>
-                    {shownEarlyEndYear !== null && horizon !== null && (
-                        <EarlyValueComparison
-                            results={results}
-                            horizon={horizon}
-                            endYear={shownEarlyEndYear}
-                            currency={currency}
-                            selectedRealization={resultMode === ResultMode.DISTRIBUTION ? null : selectedRealization}
-                            isDelta={isDeltaEnsemble}
-                        />
-                    )}
                     {resultMode === ResultMode.DISTRIBUTION && (
                         <>
                             <DistributionSummary
@@ -262,14 +212,9 @@ export function View(props: ModuleViewProps<Interfaces>): React.ReactNode {
                                         currency={currency}
                                         profileType={cashFlowProfileType}
                                         selectedRealization={selectedRealization}
-                                        earlyMarkerYear={
-                                            cashFlowProfileType === CashFlowProfileType.CUMULATIVE_DISCOUNTED_CASH_FLOW
-                                                ? shownEarlyEndYear
-                                                : null
-                                        }
-                                        oilUnit={getMeasureUnit(EconomicMeasure.UNDISCOUNTED_OIL_VOLUME, unitContext)}
+                                        oilUnit={getMeasureUnit(EconomicMeasure.DISCOUNTED_OIL_VOLUME, unitContext)}
                                         gasUnit={getMeasureUnit(
-                                            EconomicMeasure.UNDISCOUNTED_SALES_GAS_VOLUME,
+                                            EconomicMeasure.DISCOUNTED_SALES_GAS_VOLUME,
                                             unitContext,
                                         )}
                                         color={ensembleColor}

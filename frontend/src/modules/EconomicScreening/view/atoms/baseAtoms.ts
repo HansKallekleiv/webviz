@@ -1,11 +1,6 @@
 import { atom } from "jotai";
 
-import type {
-    CostProfileEntry,
-    EarlyValueConfiguration,
-    EconomicAssumptions,
-    PriceAssumptions,
-} from "@modules/EconomicScreening/typesAndEnums";
+import type { CostProfileEntry, EconomicAssumptions, PriceAssumptions } from "@modules/EconomicScreening/typesAndEnums";
 import {
     DEFAULT_DISCOUNT_RATE_PERCENT,
     CashFlowProfileType,
@@ -40,8 +35,6 @@ export const priceAssumptionsAtom = atom<PriceAssumptions>({
 
 export const costProfileAtom = atom<CostProfileEntry[]>([]);
 export const costDraftStatusAtom = atom<CostDraftStatus>(CostDraftStatus.COMMITTED);
-
-export const earlyValueConfigurationAtom = atom<EarlyValueConfiguration>({ enabled: false, endYear: null });
 
 export const resultModeAtom = atom<ResultMode>(ResultMode.DISTRIBUTION);
 export const selectedMeasureAtom = atom<EconomicMeasure>(EconomicMeasure.DISCOUNTED_OIL_VOLUME);
