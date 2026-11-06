@@ -18,6 +18,7 @@ export const gasPriceAtom = atom<number | null>(null);
 
 export const costProfileAtom = atom<CostProfileEntry[]>([]);
 export const costDraftStatusAtom = atom<CostDraftStatus>(CostDraftStatus.COMMITTED);
+export const stopOpexAfterLastProductionAtom = atom<boolean>(false);
 
 export const resultModeAtom = atom<ResultMode>(ResultMode.DISTRIBUTION);
 export const selectedMeasureAtom = atom<EconomicMeasure>(EconomicMeasure.DISCOUNTED_OIL_VOLUME);

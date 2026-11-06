@@ -560,6 +560,26 @@ test("consumers withdraw and recover producer outputs for drafts and disconnects
     expect(sources.unexpected).toEqual([]);
 });
 
+test("offers stopping OPEX after last production only for a regular ensemble", async ({ mount, page }) => {
+    const sources = await routeSources(page);
+    await page.setViewportSize({ width: 1400, height: 1000 });
+    const component = await mount(
+        <EconomicScreeningConnectedConsumersHarness {...DEFAULT_PROPS} producerSettingsOpen />,
+    );
+    const stopOpex = region(page, "Producer settings").getByRole("checkbox", {
+        name: "Stop OPEX after last production",
+    });
+
+    await expect(stopOpex).toHaveCount(1);
+    await component.update(
+        <EconomicScreeningConnectedConsumersHarness {...DEFAULT_PROPS} producerSettingsOpen producerEnsemble="delta" />,
+    );
+    await expect(stopOpex).toHaveCount(0);
+    await component.update(<EconomicScreeningConnectedConsumersHarness {...DEFAULT_PROPS} producerSettingsOpen />);
+    await expect(stopOpex).toHaveCount(1);
+    expect(sources.unexpected).toEqual([]);
+});
+
 test("typing a valid cost keeps financial channels published until the debounced commit updates them", async ({
     mount,
     page,

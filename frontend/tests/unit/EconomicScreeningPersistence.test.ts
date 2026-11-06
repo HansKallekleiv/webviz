@@ -22,6 +22,7 @@ import {
     predictionStartYearAtom,
     resultModeAtom,
     selectedMeasureAtom,
+    stopOpexAfterLastProductionAtom,
 } from "@modules/EconomicScreening/settings/atoms/baseAtoms";
 import { displayedRealizationAtom } from "@modules/EconomicScreening/settings/atoms/derivedAtoms";
 import {
@@ -94,6 +95,7 @@ function populate(
         { year: 2020, capex: 900, opex: 0 },
         { year: 2031, capex: 100, opex: -12 },
     ]);
+    store.set(stopOpexAfterLastProductionAtom, true);
     store.set(resultModeAtom, overrides.resultMode ?? ResultMode.TIME_PROFILE);
     store.set(selectedMeasureAtom, EconomicMeasure.NPV);
     store.set(distributionPlotTypeAtom, DistributionPlotType.HISTOGRAM);
@@ -112,6 +114,7 @@ function snapshot(store: Store) {
         oilPrice: store.get(oilPriceAtom),
         gasPrice: store.get(gasPriceAtom),
         costProfile: store.get(costProfileAtom),
+        stopOpexAfterLastProduction: store.get(stopOpexAfterLastProductionAtom),
         resultMode: store.get(resultModeAtom),
         selectedMeasure: store.get(selectedMeasureAtom),
         distributionPlotType: store.get(distributionPlotTypeAtom),
@@ -164,6 +167,7 @@ describe("Economic Screening current-state persistence", () => {
                 "selectedMeasure",
                 "selectedRealization",
                 "stateFormat",
+                "stopOpexAfterLastProduction",
             ].sort(),
         );
         expect(serialized.selectedRealization).toBe(21);

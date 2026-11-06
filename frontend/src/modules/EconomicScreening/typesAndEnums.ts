@@ -103,6 +103,8 @@ export type PriceAssumptions = {
 
 export type EconomicAssumptions = {
     discountRatePercent: number;
+    /** Not applied to delta ensembles. */
+    stopOpexAfterLastProduction: boolean;
 };
 
 export const DEFAULT_DISCOUNT_RATE_PERCENT = 8;

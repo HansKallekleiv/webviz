@@ -10,6 +10,7 @@ import {
     oilPriceAtom,
     resultModeAtom,
     selectedMeasureAtom,
+    stopOpexAfterLastProductionAtom,
 } from "./settings/atoms/baseAtoms";
 import { displayedRealizationAtom } from "./settings/atoms/derivedAtoms";
 import { validRealizationNumbersAtom } from "./settings/atoms/sourceQueryAtoms";
@@ -69,6 +70,7 @@ export const settingsToViewInterfaceInitialization: InterfaceInitialization<Sett
     economicAssumptions: (get) => {
         return {
             discountRatePercent: get(discountRatePercentAtom),
+            stopOpexAfterLastProduction: get(stopOpexAfterLastProductionAtom),
         };
     },
     priceAssumptions: (get) => {

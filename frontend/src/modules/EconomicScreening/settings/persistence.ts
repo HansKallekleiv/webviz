@@ -20,6 +20,7 @@ import {
     predictionStartYearAtom,
     resultModeAtom,
     selectedMeasureAtom,
+    stopOpexAfterLastProductionAtom,
 } from "./atoms/baseAtoms";
 import { displayedRealizationAtom } from "./atoms/derivedAtoms";
 import { selectedEnsembleIdentAtom, selectedRealizationAtom } from "./atoms/persistableFixableAtoms";
@@ -38,6 +39,7 @@ export type SerializedSettings = {
     oilPrice: number | null;
     gasPrice: number | null;
     costProfile: CostProfileEntry[];
+    stopOpexAfterLastProduction: boolean;
     resultMode: ResultMode;
     selectedMeasure: EconomicMeasure;
     distributionPlotType: DistributionPlotType;
@@ -63,6 +65,7 @@ const schemaBuilder = new SchemaBuilder<SerializedSettings>(() => ({
                 },
             },
         },
+        stopOpexAfterLastProduction: { type: "boolean" },
         resultMode: { enum: Object.values(ResultMode) },
         selectedMeasure: { enum: Object.values(EconomicMeasure) },
         distributionPlotType: { enum: Object.values(DistributionPlotType) },
@@ -82,6 +85,7 @@ export const serializeSettings: SerializeStateFunction<SerializedSettings> = (ge
         oilPrice: get(oilPriceAtom),
         gasPrice: get(gasPriceAtom),
         costProfile: get(costProfileAtom),
+        stopOpexAfterLastProduction: get(stopOpexAfterLastProductionAtom),
         resultMode: get(resultModeAtom),
         selectedMeasure: get(selectedMeasureAtom),
         distributionPlotType: get(distributionPlotTypeAtom),
@@ -113,6 +117,7 @@ export const deserializeSettings: DeserializeStateFunction<SerializedSettings> =
     setIfDefined(set, oilPriceAtom, raw.oilPrice);
     setIfDefined(set, gasPriceAtom, raw.gasPrice);
     setIfDefined(set, costProfileAtom, raw.costProfile);
+    setIfDefined(set, stopOpexAfterLastProductionAtom, raw.stopOpexAfterLastProduction);
     setIfDefined(set, resultModeAtom, raw.resultMode);
     setIfDefined(set, selectedMeasureAtom, raw.selectedMeasure);
     setIfDefined(set, distributionPlotTypeAtom, raw.distributionPlotType);

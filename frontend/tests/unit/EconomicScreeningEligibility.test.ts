@@ -256,6 +256,7 @@ describe("readiness and calculation parity", () => {
                                         gasToOilEquivalentDivisor: 1000,
                                         oilPricePerVolume: oilPrice,
                                         gasPricePerVolume: gasPrice,
+                                        stopOpexAfterLastProduction: false,
                                     },
                                     costProfile,
                                 ),

@@ -282,9 +282,124 @@ function makeMonthlyAssumptions(overrides: Partial<ResolvedMonthlyAssumptions> =
         gasToOilEquivalentDivisor: 1000,
         oilPricePerVolume: null,
         gasPricePerVolume: null,
+        stopOpexAfterLastProduction: false,
         ...overrides,
     };
 }
+
+describe("OPEX after last production", () => {
+    const halfYearOil = [...new Array(6).fill(100), ...new Array(18).fill(0)];
+    const run = (
+        stopOpexAfterLastProduction: boolean,
+        costs = [2030, 2031].map((year) => ({ year, capex: 0, opex: 120 })),
+    ) =>
+        computeMonthlyRealizationEconomics(
+            {
+                realization: 1,
+                oilProfile: makeMonthlyProfile(2030, 1, halfYearOil),
+                salesGasProfile: makeZeroProfile(2030, 24),
+            },
+            makeMonthlyAssumptions({
+                horizonEndMonthIndex: monthIndexOf(2031, 12),
+                oilPricePerVolume: 10,
+                stopOpexAfterLastProduction,
+            }),
+            costs,
+        );
+    const discountedOil = Array.from({ length: 6 }, (_, index) => 100 * Math.pow(1.1, -((index + 0.5) / 12))).reduce(
+        (sum, value) => sum + value,
+        0,
+    );
+
+    test("is paid through every year by default", () => {
+        const result = run(false);
+        const opexPv = discountedAnnualOpex(120, 2030, 2030, 0.1) + discountedAnnualOpex(120, 2031, 2030, 0.1);
+        expect(result.npv).toBeCloseTo(10 * discountedOil - opexPv, 9);
+        expect(result.annualProfile.map((entry) => entry.opex)).toEqual([120, 120]);
+    });
+
+    test("stops after the last month with production when the option is on", () => {
+        const result = run(true);
+        const opexPv = discountedAnnualOpex(120, 2030, 2030, 0.1, 6);
+        expect(opexPv).toBeCloseTo(
+            Array.from({ length: 6 }, (_, index) => 10 * Math.pow(1.1, -((index + 0.5) / 12))).reduce(
+                (sum, value) => sum + value,
+                0,
+            ),
+            12,
+        );
+        expect(result.npv).toBeCloseTo(10 * discountedOil - opexPv, 9);
+        expect(result.annualProfile.map((entry) => entry.opex)).toEqual([60, 0]);
+        expect(result.annualProfile.map((entry) => entry.netCashFlow)).toEqual([6000 - 60, 0]);
+        expect(result.annualProfile.at(-1)!.cumulativeDiscountedCashFlow).toBeCloseTo(result.npv!, 10);
+        // Break-even uses the OPEX actually paid.
+        const breakEven = run(true, [
+            { year: 2031, capex: 0, opex: 120 },
+            { year: 2030, capex: 500, opex: 120 },
+        ]);
+        const paidCostPv = 500 * Math.pow(1.1, -0.5) + opexPv;
+        expect(breakEven.breakEvenOilPrice).toBeCloseTo(paidCostPv / discountedOil, 9);
+    });
+
+    test("pays the full final year when production continues through an evaluation that ends mid-year", () => {
+        const result = computeMonthlyRealizationEconomics(
+            {
+                realization: 1,
+                oilProfile: makeMonthlyProfile(2030, 1, new Array(6).fill(100)),
+                salesGasProfile: makeZeroProfile(2030, 6),
+            },
+            makeMonthlyAssumptions({
+                horizonEndMonthIndex: monthIndexOf(2030, 6),
+                oilPricePerVolume: 10,
+                stopOpexAfterLastProduction: true,
+            }),
+            [{ year: 2030, capex: 0, opex: 120 }],
+        );
+
+        expect(result.annualProfile[0].opex).toBe(120);
+        expect(result.npv).toBeCloseTo(10 * discountedOil - discountedAnnualOpex(120, 2030, 2030, 0.1), 9);
+    });
+
+    test("leaves CAPEX unchanged and stops all OPEX without production in the evaluation", () => {
+        const extended = { zeroProductionAfterMonthIndex: monthIndexOf(2028, 12) };
+        const result = computeMonthlyRealizationEconomics(
+            {
+                realization: 1,
+                oilProfile: makeMonthlyProfile(2028, 1, new Array(12).fill(100), extended),
+                salesGasProfile: makeMonthlyProfile(2028, 1, new Array(12).fill(0), extended),
+            },
+            makeMonthlyAssumptions({ stopOpexAfterLastProduction: true }),
+            [{ year: 2030, capex: 1000, opex: 120 }],
+        );
+
+        expect(result.npv).toBeCloseTo(-1000 * Math.pow(1.1, -0.5), 9);
+    });
+
+    test("gives a unique IRR when OPEX after production would add a second root", () => {
+        const oil = [...new Array(12).fill(0), ...new Array(12).fill(100), ...new Array(12).fill(0)];
+        const irrOf = (stopOpexAfterLastProduction: boolean) =>
+            computeMonthlyRealizationEconomics(
+                {
+                    realization: 1,
+                    oilProfile: makeMonthlyProfile(2030, 1, oil),
+                    salesGasProfile: makeZeroProfile(2030, 36),
+                },
+                makeMonthlyAssumptions({
+                    horizonEndMonthIndex: monthIndexOf(2032, 12),
+                    oilPricePerVolume: 10,
+                    stopOpexAfterLastProduction,
+                }),
+                [
+                    { year: 2030, capex: 10_000, opex: 0 },
+                    { year: 2031, capex: 0, opex: 1200 },
+                    { year: 2032, capex: 0, opex: 1200 },
+                ],
+            );
+
+        expect(irrOf(false).irrStatus).toBe(IrrStatus.MULTIPLE_ROOTS);
+        expect(irrOf(true).irrStatus).toBe(IrrStatus.CONVERGED);
+    });
+});
 
 describe("monthly screening model", () => {
     test("discounts production and OPEX allocations at month midpoints and CAPEX at mid-year", () => {

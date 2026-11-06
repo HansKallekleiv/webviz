@@ -143,6 +143,7 @@ const unmaskedResultsAtom = atom<EconomicScreeningResults>((get) => {
         gasToOilEquivalentDivisor: gasToOilEquivalentDivisor ?? DEFAULT_GAS_TO_OIL_EQUIVALENT_FACTOR,
         oilPricePerVolume,
         gasPricePerVolume,
+        stopOpexAfterLastProduction: economicAssumptions.stopOpexAfterLastProduction && !isDeltaEnsemble,
     };
 
     const selectedRealizations = new Set(validRealizationNumbers);

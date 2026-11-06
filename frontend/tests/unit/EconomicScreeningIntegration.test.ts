@@ -14,6 +14,7 @@ import {
     gasPriceAtom,
     oilPriceAtom,
     predictionStartYearAtom,
+    stopOpexAfterLastProductionAtom,
 } from "@modules/EconomicScreening/settings/atoms/baseAtoms";
 import type * as SettingsDerivedAtoms from "@modules/EconomicScreening/settings/atoms/derivedAtoms";
 import { salesGasStrategyAtom } from "@modules/EconomicScreening/settings/atoms/derivedAtoms";
@@ -437,6 +438,40 @@ describe("Economic Screening query results to channel data", () => {
         expect(store.get(economicScreeningResultsAtom).warnings).toContain(
             "1 of 2 realizations end before Dec 2021; their production after their end is taken as zero.",
         );
+    });
+
+    test("stops OPEX after an extended realization's last production only when chosen and only for regular ensembles", async () => {
+        const opex2021 = { year: 2021, capex: 0, opex: 1200 };
+        const opex2021Pv = discounted(new Array(12).fill(100), 2021);
+        const shortened = (sourceKind?: SourceKind) => [
+            query([series(7, 2020, OIL_7, { sourceKind }), series(42, 2020, OIL_42.slice(0, 12), { sourceKind })]),
+            query([series(7, 2020, GAS, { sourceKind }), series(42, 2020, GAS.slice(0, 12), { sourceKind })]),
+        ];
+
+        const { store } = await setup();
+        const [oil, gas] = shortened();
+        setQueries(store, oil, gas);
+        store.set(costProfileAtom, [opex2021]);
+        const withOpex = metricData(store, EconomicMeasure.NPV);
+        store.set(stopOpexAfterLastProductionAtom, true);
+        const stopped = metricData(store, EconomicMeasure.NPV);
+        // Realization 7 produces through 2021; realization 42 ends after 2020 and pays no OPEX in 2021.
+        expect(stopped[0].value).toBeCloseTo(withOpex[0].value, 8);
+        expect(stopped[1].value).toBeCloseTo(withOpex[1].value + opex2021Pv, 8);
+
+        const { store: deltaStore } = await setup({ sourceKind: SourceKind.DELTA });
+        setQueries(
+            deltaStore,
+            // Incremental production stops after 2020, which would stop OPEX if the option applied to deltas.
+            query([
+                series(7, 2020, [...OIL_7.slice(0, 12), ...new Array(12).fill(0)], { sourceKind: SourceKind.DELTA }),
+            ]),
+            query([series(7, 2020, new Array(24).fill(0), { sourceKind: SourceKind.DELTA })]),
+        );
+        deltaStore.set(costProfileAtom, [opex2021]);
+        const deltaBefore = metricData(deltaStore, EconomicMeasure.NPV);
+        deltaStore.set(stopOpexAfterLastProductionAtom, true);
+        expect(metricData(deltaStore, EconomicMeasure.NPV)).toEqual(deltaBefore);
     });
 
     test("does not extend a shorter delta realization, since a constituent can still produce", async () => {

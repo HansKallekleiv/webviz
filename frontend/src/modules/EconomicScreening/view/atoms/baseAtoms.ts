@@ -20,6 +20,7 @@ export const constituentGasConsumptionWarningAtom = atom<string | null>(null);
 
 export const economicAssumptionsAtom = atom<EconomicAssumptions>({
     discountRatePercent: DEFAULT_DISCOUNT_RATE_PERCENT,
+    stopOpexAfterLastProduction: false,
 });
 
 export const priceAssumptionsAtom = atom<PriceAssumptions>({

@@ -116,6 +116,7 @@ export function View(props: ModuleViewProps<Interfaces>): React.ReactNode {
         horizon ? `Reference date 1 Jan ${horizon.startYear}` : null,
         horizon ? `Evaluation ${horizon.startYear}-${horizon.endYear}` : null,
         "Monthly production, revenue and OPEX; mid-year CAPEX",
+        economicAssumptions.stopOpexAfterLastProduction && !isDeltaEnsemble ? "No OPEX after last production" : null,
     ].filter((assumption): assumption is string => assumption !== null);
     const pendingMessage =
         evaluationHorizon.status === "NO_START"

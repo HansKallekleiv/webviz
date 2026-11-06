@@ -21,6 +21,9 @@ export const ANNUAL_COSTS_DELTA_HELP =
 export const ANNUAL_COSTS_HELP =
     "One row per year from the reference date through the simulation end. Blank cells are zero. Each year's OPEX is paid in twelve equal monthly amounts and CAPEX at mid-year; the full annual amount applies even in a final year that ends early.";
 
+export const STOP_OPEX_HELP =
+    "Per realization, OPEX is zero after its last month with oil or sales-gas production in the evaluation, for example when a realization ends early. A realization still producing in the last evaluated month pays the full year. CAPEX is unchanged. Off by default: production can stop while the field still has operating costs. Not available for delta ensembles.";
+
 export const RESULTS_HELP =
     "Chooses what the view displays. Display choices do not change calculations or published channels.";
 

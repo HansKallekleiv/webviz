@@ -476,7 +476,7 @@ for (const layout of [
         ).toBeVisible();
         await expect(settings.getByText("Calculated (FGPT - FGIT)", { exact: true })).toBeVisible();
         await expect(settings.getByText(DERIVED_WITHOUT_FGCT_WARNING, { exact: true })).toBeVisible();
-        await expect(settings.getByRole("checkbox")).toHaveCount(0);
+        await expect(settings.getByRole("checkbox", { name: /^Assume no gas/ })).toHaveCount(0);
 
         for (const label of ["Discount rate [%]", "Oil price [USD/bbl]", "Gas price [USD/Sm³]"]) {
             const input = settings.getByRole("textbox", { name: label, exact: true });
@@ -960,6 +960,63 @@ test("plots and publishes full discounted cash flow from the computed results", 
         expect(Math.abs(entry.value - referenceDiscountedCashFlow(entry.key, 2020))).toBeLessThan(1e-6);
     }
     await expectNoConfigurationInputsInView(page);
+    expect(fixtures.vectorDataRequests.sort()).toEqual(["FGST", "FOPT"]);
+    expect(fixtures.unexpectedApiRequests).toEqual([]);
+});
+
+/** As the delayed source, but realization 21's sales gas also stops after 2019, so all its production ends. */
+function endedProductionSeriesFor(vectorName: string) {
+    if (vectorName !== "FGST") {
+        return delayedSeriesFor(vectorName);
+    }
+    return REALIZATIONS.map((realization) =>
+        makeSeriesFromMonthlyVolumes(
+            realization,
+            2018,
+            realization === DELAYED_SHORT_OIL_REALIZATION
+                ? delayedMonthlyOil(realization).map((volume) => 100 * volume)
+                : delayedMonthlyGas(realization),
+            ["REGULAR"],
+            monthStartUtcMs(2020, 7),
+        ),
+    );
+}
+
+test("stops OPEX after a realization's last production only when chosen", async ({ mount, page }) => {
+    const fixtures = await routeSourceFixtures(page, { seriesFor: endedProductionSeriesFor });
+    await mount(
+        <EconomicScreeningModuleHarness
+            settingsOpen
+            viewWidth={900}
+            viewHeight={640}
+            initialState={{ ...DELAYED_INPUTS, selectedMeasure: EconomicMeasure.NPV }}
+        />,
+    );
+    const npvByKey = async () =>
+        new Map(
+            channelEntries(await readPublishedChannels(page), NPV_CHANNEL).map((entry) => [entry.key, entry.value]),
+        );
+    await expect.poll(async () => (await npvByKey()).size).toBe(3);
+    const before = await npvByKey();
+
+    const settings = settingsRegion(page);
+    const costsTrigger = settings.getByRole("button", { name: "Costs", exact: true });
+    if ((await costsTrigger.getAttribute("aria-expanded")) !== "true") await costsTrigger.click();
+    const stopOpex = settings.getByRole("checkbox", { name: "Stop OPEX after last production" });
+    await expect(stopOpex).not.toBeChecked();
+    await expect(viewRegion(page).getByText(/No OPEX after last production/)).toHaveCount(0);
+    await stopOpex.check();
+
+    // Realization 21 last produces in December 2019, so none of the 2020 OPEX is paid.
+    const opex2020Pv = Array.from({ length: 12 }, (_, month) => 1_200 / 12 / 1.1 ** (2 + (month + 0.5) / 12)).reduce(
+        (total, value) => total + value,
+        0,
+    );
+    await expect.poll(async () => (await npvByKey()).get(21)).toBeCloseTo(before.get(21)! + opex2020Pv, 6);
+    const after = await npvByKey();
+    expect(after.get(3)).toBeCloseTo(before.get(3)!, 9);
+    expect(after.get(8)).toBeCloseTo(before.get(8)!, 9);
+    await expect(viewRegion(page).getByText(/No OPEX after last production/)).toBeVisible();
     expect(fixtures.vectorDataRequests.sort()).toEqual(["FGST", "FOPT"]);
     expect(fixtures.unexpectedApiRequests).toEqual([]);
 });

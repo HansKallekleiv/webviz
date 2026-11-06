@@ -37,6 +37,8 @@ export type ResolvedMonthlyAssumptions = {
     /** Null means unspecified. Zero intentionally omits the product's revenue. */
     oilPricePerVolume: number | null;
     gasPricePerVolume: number | null;
+    /** OPEX is zero after the realization's last month with oil or sales-gas production. */
+    stopOpexAfterLastProduction: boolean;
 };
 
 export type MonthlyRealizationInput = {
@@ -53,7 +55,10 @@ export type AnnualEconomicProfileEntry = {
     discountedOilVolume: number;
     discountedSalesGasVolume: number;
     capex: number;
-    /** The entered annual amount; it is paid as twelve equal monthly-midpoint allocations. */
+    /**
+     * OPEX paid in the year: one twelfth of the entered annual amount at each month midpoint, or only for
+     * the months through the last production when OPEX stops after it.
+     */
     opex: number;
     /** Undiscounted revenue minus costs. Null when full-horizon financial results are unavailable. */
     netCashFlow: number | null;
@@ -104,17 +109,18 @@ export function capexDiscountFactor(year: number, predictionStartYear: number, d
 }
 
 /**
- * Present value of one year's OPEX, paid as twelve equal allocations at the month midpoints. The full
- * annual amount is always allocated to all twelve months, independent of production in that year.
+ * Present value of one year's OPEX, paid as twelve equal allocations at the month midpoints. Only the
+ * first `paidMonthCount` allocations are paid; by default all twelve, independent of production.
  */
 export function discountedAnnualOpex(
     annualOpex: number,
     year: number,
     predictionStartYear: number,
     discountRateFraction: number,
+    paidMonthCount = 12,
 ): number {
     let factorSum = 0;
-    for (let month = 1; month <= 12; month++) {
+    for (let month = 1; month <= paidMonthCount; month++) {
         factorSum += monthlyDiscountFactor(year, month, predictionStartYear, discountRateFraction);
     }
     return (annualOpex / 12) * factorSum;
@@ -214,7 +220,10 @@ type AnnualComponents = {
     discountedOilVolume: number;
     discountedSalesGasVolume: number;
     capex: number;
+    /** The entered annual OPEX. */
     opex: number;
+    /** Leading months of the year whose OPEX allocation is paid. */
+    paidOpexMonthCount: number;
     discountedCosts: number;
 };
 
@@ -247,6 +256,10 @@ function sumDiscountedVolumes(
     );
 }
 
+function paidOpexOf(entry: AnnualComponents): number {
+    return (entry.opex * entry.paidOpexMonthCount) / 12;
+}
+
 function discountedNetCashFlowOf(entry: AnnualComponents, oilPrice: number, gasPrice: number): number {
     return oilPrice * entry.discountedOilVolume + gasPrice * entry.discountedSalesGasVolume - entry.discountedCosts;
 }
@@ -269,11 +282,28 @@ function makeCashFlowEvents(
         }
         const yearOffset = entry.year - predictionStartYear;
         revenueByMonth.forEach((revenue, index) => {
-            events.push({ time: yearOffset + (index + 0.5) / 12, value: revenue - entry.opex / 12 });
+            const opex = index < entry.paidOpexMonthCount ? entry.opex / 12 : 0;
+            events.push({ time: yearOffset + (index + 0.5) / 12, value: revenue - opex });
         });
         events.push({ time: yearOffset + 0.5, value: -entry.capex });
     }
     return events;
+}
+
+/** Last evaluated month with oil or sales-gas production; one before the start when there is none. */
+function lastProductionMonthIndex(
+    products: EvaluatedProduct[],
+    startMonthIndex: number,
+    endMonthIndex: number,
+): number {
+    for (let monthIndex = endMonthIndex; monthIndex >= startMonthIndex; monthIndex--) {
+        if (
+            products.some((product) => Math.abs(product.monthByIndex.get(monthIndex)?.volume ?? 0) >= VOLUME_TOLERANCE)
+        ) {
+            return monthIndex;
+        }
+    }
+    return startMonthIndex - 1;
 }
 
 /**
@@ -297,12 +327,19 @@ export function computeMonthlyRealizationEconomics(
         years.push(year);
     }
     const excludedCostYears = getCostYearsOutsideRange(costProfile, predictionStartYear, evaluationEndYear);
+    // A realization still producing in the last evaluated month has not stopped, so it pays the full final year.
+    const lastProduction = assumptions.stopOpexAfterLastProduction
+        ? lastProductionMonthIndex([oil, gas], startMonthIndex, horizonEndMonthIndex)
+        : null;
+    const opexEndMonthIndex = lastProduction !== null && lastProduction < horizonEndMonthIndex ? lastProduction : null;
 
     const annualComponents: AnnualComponents[] = years.map((year) => {
         const oilMonths = monthsOfYear(oil, year);
         const gasMonths = monthsOfYear(gas, year);
         const capex = costLookup.get(year)?.capex ?? 0;
         const opex = costLookup.get(year)?.opex ?? 0;
+        const paidOpexMonthCount =
+            opexEndMonthIndex === null ? 12 : Math.min(12, Math.max(0, opexEndMonthIndex - monthIndexOf(year, 1) + 1));
         return {
             year,
             months: { oil: oilMonths, gas: gasMonths },
@@ -312,9 +349,10 @@ export function computeMonthlyRealizationEconomics(
             discountedSalesGasVolume: sumDiscountedVolumes(gasMonths, predictionStartYear, discountRateFraction),
             capex,
             opex,
+            paidOpexMonthCount,
             discountedCosts:
                 capex * capexDiscountFactor(year, predictionStartYear, discountRateFraction) +
-                discountedAnnualOpex(opex, year, predictionStartYear, discountRateFraction),
+                discountedAnnualOpex(opex, year, predictionStartYear, discountRateFraction, paidOpexMonthCount),
         };
     });
 
@@ -342,7 +380,7 @@ export function computeMonthlyRealizationEconomics(
             discountedOilVolume: entry.discountedOilVolume,
             discountedSalesGasVolume: entry.discountedSalesGasVolume,
             capex: entry.capex,
-            opex: entry.opex,
+            opex: paidOpexOf(entry),
         };
         if (!canComputeFinancialNpv) {
             return {
@@ -360,7 +398,7 @@ export function computeMonthlyRealizationEconomics(
                 effectiveOilPrice * entry.oilVolume +
                 effectiveGasPrice * entry.salesGasVolume -
                 entry.capex -
-                entry.opex,
+                paidOpexOf(entry),
             discountedNetCashFlow,
             cumulativeDiscountedCashFlow: runningCumulative,
         };

@@ -54,6 +54,8 @@ Results are discounted to the **reference date**, 1 January of the year you choo
 
 The full annual OPEX you enter applies to every included year, even when the evaluation ends before December in the final year. In that case the remaining monthly OPEX amounts are still paid after the last revenue month; they do not extend production coverage.
 
+With **Stop OPEX after last production** (in Costs, off by default), each realization pays no OPEX after its last month with oil or sales-gas production in the evaluation, for example after a realization that ends early. A realization that still produces in the last evaluated month pays the full final year as above. CAPEX is unchanged. This changes NPV, IRR, break-even oil price and the cash-flow profiles. It is not available for delta ensembles, whose incremental production can be zero while both cases still operate.
+
 Annual profile values are sums of monthly discounted values. Annual totals are not discounted again at mid-year.
 
 Discounted volumes are **timing-weighted screening indicators, not reserves or recoverable volumes**. Discounting changes their weighting for comparison, not the simulated physical production.
@@ -101,7 +103,7 @@ IRR is a return on an investment: money goes out first and comes back later. The
 
 - **Income covers costs from the start, so there's no investment to recover.** NPV is positive at every rate, or the costs come after the income, for example an abandonment cost at the end of production.
 - **Income never covers the costs, so the investment is never recovered.** NPV is negative at every rate.
-- **More than one rate makes NPV zero, so no IRR is shown.** This can happen when costs return after the investment is recovered, for example OPEX after production ends.
+- **More than one rate makes NPV zero, so no IRR is shown.** This can happen when costs return after the investment is recovered, for example OPEX after production ends; Stop OPEX after last production removes that case.
 - **IRR could not be calculated within the supported rate range.**
 
 The view shows how many realizations have no IRR and the most common reason. IRR is most meaningful when the costs come before the production, for example for a delta ensemble or a reference date before production starts. A field that already produces at the reference date usually has no investment to recover.
