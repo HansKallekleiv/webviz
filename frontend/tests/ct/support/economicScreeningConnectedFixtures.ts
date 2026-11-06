@@ -10,7 +10,7 @@ export const BASE_ENSEMBLE_NAME = "Base";
 export const DESIGN_REALIZATIONS = [2, 5, 9, 14, 20, 33, 40];
 export const BASE_REALIZATIONS = [2, 5, 9, 14, 20, 33, 41];
 export const DELTA_REALIZATIONS = [2, 5, 9, 14, 20, 33];
-/** Its oil source ends mid-December of the final year, so only full-horizon oil results are unavailable. */
+/** Its oil source starts mid-January of the reference year, so only full-horizon oil results are unavailable. */
 export const PARTIAL_OIL_REALIZATION = 5;
 
 export const DESIGN_SENSITIVITIES: Sensitivity[] = [
@@ -88,21 +88,28 @@ export function makeMonthlySeries(
     realization: number,
     productionMonthlyVolume: number,
     roles: string[],
-    partialLastMonth = false,
+    partialFirstMonth = false,
 ) {
     const firstProductionMonth = (FIRST_PRODUCTION_YEAR - PREDICTION_START_YEAR) * 12;
     const monthlyVolumes = Array.from({ length: NUM_MONTHS }, (_, month) =>
         month >= firstProductionMonth ? productionMonthlyVolume : 0,
     );
-    const sourceEnd = partialLastMonth
-        ? monthStartUtcMs(PREDICTION_START_YEAR, NUM_MONTHS) + 15 * DAY_MS
-        : monthStartUtcMs(PREDICTION_START_YEAR, NUM_MONTHS + 1);
-    return makeSeriesFromMonthlyVolumes(realization, PREDICTION_START_YEAR, monthlyVolumes, roles, sourceEnd);
+    const sourceEnd = monthStartUtcMs(PREDICTION_START_YEAR, NUM_MONTHS + 1);
+    const sourceStart = partialFirstMonth ? monthStartUtcMs(PREDICTION_START_YEAR, 1) + 15 * DAY_MS : undefined;
+    return makeSeriesFromMonthlyVolumes(
+        realization,
+        PREDICTION_START_YEAR,
+        monthlyVolumes,
+        roles,
+        sourceEnd,
+        sourceStart,
+    );
 }
 
 /**
  * Cumulative series from January of `firstYear`, one boundary per month start. Intervals are source-aligned
- * up to `sourceEndUtcMs`, partial across it and unsupported after it; values are used as given.
+ * from `sourceStartUtcMs` (default: the first boundary) up to `sourceEndUtcMs`, partial across either and
+ * unsupported outside them; values are used as given.
  */
 export function makeSeriesFromMonthlyVolumes(
     realization: number,
@@ -110,10 +117,12 @@ export function makeSeriesFromMonthlyVolumes(
     monthlyVolumes: number[],
     roles: string[],
     sourceEndUtcMs: number,
+    sourceStartUtcMs?: number,
 ) {
     const timestampsUtcMs = Array.from({ length: monthlyVolumes.length + 1 }, (_, index) =>
         monthStartUtcMs(firstYear, index + 1),
     );
+    const sourceStart = sourceStartUtcMs ?? timestampsUtcMs[0];
     const values = [0];
     for (const volume of monthlyVolumes) {
         values.push(values[values.length - 1] + volume);
@@ -128,22 +137,24 @@ export function makeSeriesFromMonthlyVolumes(
             interpolationMethod: "LINEAR",
             sources: roles.map((role) => ({
                 role,
-                firstTimestampUtcMs: timestampsUtcMs[0],
+                firstTimestampUtcMs: sourceStart,
                 lastTimestampUtcMs: sourceEndUtcMs,
-                sampleCount: timestampsUtcMs.filter((timestamp) => timestamp <= sourceEndUtcMs).length,
+                sampleCount: timestampsUtcMs.filter(
+                    (timestamp) => timestamp >= sourceStart && timestamp <= sourceEndUtcMs,
+                ).length,
                 maxSampleGapMs: 31 * DAY_MS,
             })),
             intervals: monthlyVolumes.map((_, index) => {
                 const start = timestampsUtcMs[index];
                 const end = timestampsUtcMs[index + 1];
-                if (start >= sourceEndUtcMs) {
+                if (start >= sourceEndUtcMs || end <= sourceStart) {
                     return { status: "UNSUPPORTED", supportedStartUtcMs: null, supportedEndUtcMs: null };
                 }
-                const isPartial = end > sourceEndUtcMs;
+                const isPartial = start < sourceStart || end > sourceEndUtcMs;
                 return {
                     status: isPartial ? "PARTIAL" : "SOURCE_ALIGNED",
-                    supportedStartUtcMs: start,
-                    supportedEndUtcMs: isPartial ? sourceEndUtcMs : end,
+                    supportedStartUtcMs: Math.max(start, sourceStart),
+                    supportedEndUtcMs: Math.min(end, sourceEndUtcMs),
                 };
             }),
         },
@@ -156,7 +167,7 @@ export const SCALE_ENSEMBLE_NAME = "Scale";
 export const SCALE_FIRST_YEAR = 2025;
 export const SCALE_MONTH_COUNT = 360;
 export const SCALE_LAST_YEAR = SCALE_FIRST_YEAR + SCALE_MONTH_COUNT / 12 - 1;
-/** Its oil source ends on 1 January 2050, so its full-horizon oil results are excluded. */
+/** Its oil source ends on 1 January 2050, so it is extended with zero oil production after 2049. */
 export const SCALE_SHORT_OIL_INDEX = 7;
 const SCALE_SHORT_OIL_END_MONTH = (2050 - SCALE_FIRST_YEAR) * 12;
 

@@ -42,6 +42,7 @@ import {
     CostDraftStatus,
     DistributionPlotType,
     EconomicMeasure,
+    IrrStatus,
     ResultMode,
 } from "@modules/EconomicScreening/typesAndEnums";
 import { Ineligibility } from "@modules/EconomicScreening/utils/eligibility";
@@ -918,7 +919,6 @@ describe("Economic Screening at scale", () => {
     test("500 realizations x 360 months: rapid edits across turns settle to the expected channels without source work", async () => {
         resetRequests();
         const realizations = makeScaleRealizationIds(500);
-        const shortOil = realizations[SCALE_SHORT_OIL_INDEX];
         const ensemble = makeEnsemble(SCALE_CASE_UUID, "Scale", realizations);
         EnsembleFingerprintStore.setAll(new Map([[ensemble.getIdent().toString(), "scale-fingerprint"]]));
         const { store, queryClient } = makeStore(new EnsembleSet([ensemble]));
@@ -961,7 +961,6 @@ describe("Economic Screening at scale", () => {
                 inputs,
             ),
         }));
-        const fullOil = expected.filter((entry) => entry.realization !== shortOil);
         const expectChannel = (
             actual: { key: unknown; value: unknown }[],
             entries: typeof expected,
@@ -970,15 +969,25 @@ describe("Economic Screening at scale", () => {
             expect(actual.map((entry) => entry.key)).toEqual(entries.map((entry) => entry.realization));
             actual.forEach((entry, index) => expect(entry.value).toBeCloseTo(valueOf(entries[index]), 4));
         };
-        expectChannel(publishedNpv(store), fullOil, (entry) => entry.npv);
+        expectChannel(publishedNpv(store), expected, (entry) => entry.npv);
+        expect(store.get(economicScreeningResultsAtom).warnings).toContain(
+            "1 of 500 realizations end before Dec 2054; their production after their end is taken as zero.",
+        );
         expectChannel(
             publishedThroughChannel(store, EconomicMeasure.BREAK_EVEN_OIL_PRICE),
-            fullOil,
+            expected,
             // The reference is per Sm³; the channel publishes USD/bbl.
             (entry) => perBbl(entry.breakEvenOilPrice),
         );
         const irr = publishedThroughChannel(store, EconomicMeasure.IRR);
-        expect(irr.map((entry) => entry.key)).toEqual(fullOil.map((entry) => entry.realization));
+        // The extended realization keeps paying OPEX after its oil ends, so NPV has two roots and no IRR.
+        const shortOil = realizations[SCALE_SHORT_OIL_INDEX];
+        expect(irr.map((entry) => entry.key)).toEqual(
+            expected.filter((entry) => entry.realization !== shortOil).map((entry) => entry.realization),
+        );
+        expect(store.get(economicScreeningResultsAtom).results.find((r) => r.realization === shortOil)!.irrStatus).toBe(
+            IrrStatus.MULTIPLE_ROOTS,
+        );
         for (const { key, value } of [irr[0], irr[250], irr[irr.length - 1]]) {
             const oil = scaleServedMonthlyVolumes(realizations, key as number, "oil");
             const gas = scaleServedMonthlyVolumes(realizations, key as number, "gas");
@@ -1008,7 +1017,7 @@ describe("Economic Screening at scale", () => {
         await waitFor(() => store.get(economicScreeningResultsAtom).results.length === filtered.length);
         expectChannel(
             publishedNpv(store),
-            fullOil.filter((entry) => filtered.includes(entry.realization)),
+            expected.filter((entry) => filtered.includes(entry.realization)),
             (entry) => entry.npv,
         );
 

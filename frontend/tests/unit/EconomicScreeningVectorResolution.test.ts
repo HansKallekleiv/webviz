@@ -249,15 +249,17 @@ const DELTA_PARTIAL_END = makeCoveredVectorData(
 );
 
 function profileOf(data: VectorRealizationData_api, sourceKind = SourceKind.REGULAR) {
+    const adapted = adaptSourceCoverage(data, sourceKind);
     return computeMonthlyVolumesFromCumulative(
         data.timestampsUtcMs,
         data.values,
-        adaptSourceCoverage(data, sourceKind).intervalCoverage,
+        adapted.intervalCoverage,
+        sourceKind === SourceKind.REGULAR ? adapted.supportEndUtcMs : null,
     );
 }
 
 describe("adaptSourceCoverage", () => {
-    test("maps backend statuses and keeps partial edge volumes visible and conserved", () => {
+    test("maps backend statuses, marks the month with the source end and keeps edge volumes conserved", () => {
         const adapted = adaptSourceCoverage(REGULAR_PARTIAL_EDGES, SourceKind.REGULAR);
         const profile = profileOf(REGULAR_PARTIAL_EDGES);
 
@@ -265,14 +267,16 @@ describe("adaptSourceCoverage", () => {
         expect(adapted.intervalCoverage).toEqual([
             MonthCoverage.PARTIAL,
             MonthCoverage.SOURCE_ALIGNED,
-            MonthCoverage.PARTIAL,
+            MonthCoverage.AFTER_SOURCE_END,
         ]);
         expect(profile.months.map((entry) => entry.volume)).toEqual([160, 290, 150]);
         expect(profile.months.reduce((sum, entry) => sum + entry.volume, 0)).toBe(600);
-        expect(profile.months.map((entry) => isMonthCoverageEstablished(entry.coverage))).toEqual([false, true, false]);
+        // The first month starts before the source data; the last contains its end and is held after it.
+        expect(profile.months.map((entry) => isMonthCoverageEstablished(entry.coverage))).toEqual([false, true, true]);
         // Support ends on 16 March, not at the padded 1 April sample; the partial month is March.
         expect(adapted.supportEndUtcMs).toBe(ms("2020-03-16"));
         expect(lastSupportedMonthIndex(adapted.supportEndUtcMs!)).toBe(monthIndexOf(2020, 3));
+        expect(profile.zeroProductionAfterMonthIndex).toBe(monthIndexOf(2020, 3));
     });
 
     test("treats a 1 January terminal sample as closing December without inventing January", () => {
@@ -330,12 +334,15 @@ describe("adaptSourceCoverage", () => {
         expect(adapted.intervalCoverage).toEqual([MonthCoverage.SOURCE_ALIGNED, MonthCoverage.PARTIAL]);
         expect(adapted.supportEndUtcMs).toBe(ms("2020-02-15"));
         // The February increment keeps the legacy subtraction; it is not relabeled as a 1-15 February volume.
-        expect(profileOf(DELTA_PARTIAL_END, SourceKind.DELTA).months[1]).toEqual({
+        // The other constituent can still produce after the earlier end, so the delta is not extended.
+        const deltaProfile = profileOf(DELTA_PARTIAL_END, SourceKind.DELTA);
+        expect(deltaProfile.months[1]).toEqual({
             year: 2020,
             month: 2,
             volume: 20,
             coverage: MonthCoverage.PARTIAL,
         });
+        expect(deltaProfile.zeroProductionAfterMonthIndex).toBeNull();
     });
 
     test.each<[string, (data: VectorRealizationData_api) => VectorRealizationData_api, SourceKind?]>([
@@ -445,7 +452,7 @@ describe("derived sales-gas coverage", () => {
     const dates = ["2030-01-01", "2030-02-01", "2030-03-01"];
     const fullSource = [source("REGULAR", "2030-01-01", "2030-03-01", 3, 31 * DAY_MS)];
 
-    test("keeps a partial component interval after subtraction and takes the earliest support end", () => {
+    test("keeps a component's source end after subtraction and takes the earliest support end", () => {
         const production = makeCoveredVectorData(4, dates, [0, 100, 200], fullSource, [
             "SOURCE_ALIGNED",
             "SOURCE_ALIGNED",
@@ -463,7 +470,7 @@ describe("derived sales-gas coverage", () => {
         }).series;
 
         expect(series.values).toEqual([0, 90, 185]);
-        expect(series.intervalCoverage).toEqual([MonthCoverage.SOURCE_ALIGNED, MonthCoverage.PARTIAL]);
+        expect(series.intervalCoverage).toEqual([MonthCoverage.SOURCE_ALIGNED, MonthCoverage.AFTER_SOURCE_END]);
         expect(series.supportEndUtcMs).toBe(ms("2030-02-20"));
     });
 

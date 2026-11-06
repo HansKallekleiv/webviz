@@ -17,6 +17,11 @@ export enum MonthCoverage {
     SOURCE_ALIGNED = "SOURCE_ALIGNED",
     /** Fully inside the source range, but at least one boundary is linearly interpolated. */
     INTERPOLATED = "INTERPOLATED",
+    /**
+     * A regular realization's source ends in or before this month. The cumulative is held after the end,
+     * so the month contains the production up to the end and none after it.
+     */
+    AFTER_SOURCE_END = "AFTER_SOURCE_END",
     /** Only part of the month lies inside the common source range. */
     PARTIAL = "PARTIAL",
     /** No positive-duration overlap with the common source range; the value is held padding. */
@@ -29,6 +34,7 @@ export enum MonthCoverage {
 const COVERAGE_STRENGTH_ORDER = [
     MonthCoverage.SOURCE_ALIGNED,
     MonthCoverage.INTERPOLATED,
+    MonthCoverage.AFTER_SOURCE_END,
     MonthCoverage.PARTIAL,
     MonthCoverage.UNSUPPORTED,
     MonthCoverage.UNVERIFIED,
@@ -60,6 +66,11 @@ export type MonthlyProductionProfile = {
     months: MonthlyVolumeSample[];
     /** Null when the samples form a valid monthly series. */
     rejection: MonthlySamplingRejection | null;
+    /**
+     * Last month with source data when the realization is extended after its end: later months, including
+     * months past the resampled series, have zero production. Null when later months are unknown.
+     */
+    zeroProductionAfterMonthIndex: number | null;
 };
 
 export type AdaptedSourceCoverage = {
@@ -186,7 +197,9 @@ const STATUS_TO_MONTH_COVERAGE: Record<SourceCoverageIntervalStatus_api, MonthCo
 
 /**
  * Converts the backend's `sourceCoverage` into per-interval module coverage. Missing, malformed or
- * internally inconsistent metadata leaves the whole series unverified.
+ * internally inconsistent metadata leaves the whole series unverified. For a regular realization, a month
+ * that starts inside the source range and ends after it is `AFTER_SOURCE_END`. A delta series is not: after
+ * the earlier constituent ends, the other can still produce.
  */
 export function adaptSourceCoverage(
     data: Pick<VectorRealizationData_api, "timestampsUtcMs" | "sourceCoverage">,
@@ -213,6 +226,7 @@ export function adaptSourceCoverage(
 
     const commonStartUtcMs = Math.max(...coverage.sources.map((source) => source.firstTimestampUtcMs));
     const commonEndUtcMs = Math.min(...coverage.sources.map((source) => source.lastTimestampUtcMs));
+    const hasSupport = commonStartUtcMs < commonEndUtcMs;
     const intervalCoverage: MonthCoverage[] = [];
     for (let index = 0; index < coverage.intervals.length; index++) {
         const interval = coverage.intervals[index];
@@ -221,12 +235,19 @@ export function adaptSourceCoverage(
         ) {
             return unverifiedCoverage(timestamps.length);
         }
-        intervalCoverage.push(STATUS_TO_MONTH_COVERAGE[interval.status]);
+        const isAfterSourceEnd =
+            sourceKind === SourceKind.REGULAR &&
+            hasSupport &&
+            timestamps[index] >= commonStartUtcMs &&
+            timestamps[index + 1] > commonEndUtcMs;
+        intervalCoverage.push(
+            isAfterSourceEnd ? MonthCoverage.AFTER_SOURCE_END : STATUS_TO_MONTH_COVERAGE[interval.status],
+        );
     }
 
     return {
         intervalCoverage,
-        supportEndUtcMs: commonStartUtcMs < commonEndUtcMs ? commonEndUtcMs : null,
+        supportEndUtcMs: hasSupport ? commonEndUtcMs : null,
         isVerified: true,
     };
 }
@@ -236,15 +257,18 @@ export function adaptSourceCoverage(
  *
  * `intervalCoverage` comes from `adaptSourceCoverage`. Without it, or with a length that does not match
  * the increments, the increments are still conserved but their coverage is unverified.
+ * `zeroProductionAfterUtcMs` is the source end of a realization that is extended with zero production.
  */
 export function computeMonthlyVolumesFromCumulative(
     timestampsUtcMs: number[],
     cumulativeValues: number[],
     intervalCoverage?: MonthCoverage[] | null,
+    zeroProductionAfterUtcMs?: number | null,
 ): MonthlyProductionProfile {
     const empty = (rejection: MonthlySamplingRejection): MonthlyProductionProfile => ({
         months: [],
         rejection,
+        zeroProductionAfterMonthIndex: null,
     });
 
     if (timestampsUtcMs.length !== cumulativeValues.length) {
@@ -280,7 +304,12 @@ export function computeMonthlyVolumesFromCumulative(
         });
     }
 
-    return { months, rejection: null };
+    return {
+        months,
+        rejection: null,
+        zeroProductionAfterMonthIndex:
+            hasCoverage && zeroProductionAfterUtcMs != null ? lastSupportedMonthIndex(zeroProductionAfterUtcMs) : null,
+    };
 }
 
 /** Coverage states that make a month's volume unusable as a complete observation of that month. */

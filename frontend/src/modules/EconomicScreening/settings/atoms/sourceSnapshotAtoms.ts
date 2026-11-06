@@ -175,13 +175,23 @@ const salesGasDataAtom = atom<SalesGasData>((get) => {
     return { series: [], unit: "", diagnostics: NO_SALES_GAS_DIAGNOSTICS };
 });
 
-function toProfile(series: RealizationCumulativeSeries | undefined): MonthlyProductionProfile | null {
+/** A regular realization is extended with zero production after its source end; a delta one is not. */
+function toProfile(
+    series: RealizationCumulativeSeries | undefined,
+    sourceKind: SourceKind,
+): MonthlyProductionProfile | null {
     return series
-        ? computeMonthlyVolumesFromCumulative(series.timestampsUtcMs, series.values, series.intervalCoverage)
+        ? computeMonthlyVolumesFromCumulative(
+              series.timestampsUtcMs,
+              series.values,
+              series.intervalCoverage,
+              sourceKind === SourceKind.REGULAR ? series.supportEndUtcMs : null,
+          )
         : null;
 }
 
 const realizationProfilesAtom = atom<RealizationProfiles[]>((get) => {
+    const sourceKind = get(sourceKindAtom);
     const oilSeriesByRealization = new Map(get(oilProductionSeriesAtom).map((series) => [series.realization, series]));
     const gasSeriesByRealization = new Map(get(salesGasDataAtom).series.map((series) => [series.realization, series]));
     const realizations = [...new Set([...oilSeriesByRealization.keys(), ...gasSeriesByRealization.keys()])].sort(
@@ -189,8 +199,8 @@ const realizationProfilesAtom = atom<RealizationProfiles[]>((get) => {
     );
     return realizations.map((realization) => ({
         realization,
-        oilProfile: toProfile(oilSeriesByRealization.get(realization)),
-        salesGasProfile: toProfile(gasSeriesByRealization.get(realization)),
+        oilProfile: toProfile(oilSeriesByRealization.get(realization), sourceKind),
+        salesGasProfile: toProfile(gasSeriesByRealization.get(realization), sourceKind),
     }));
 });
 

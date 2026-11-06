@@ -163,6 +163,10 @@ enum ProductState {
     ESTABLISHED = "ESTABLISHED",
     CONFIRMED_ABSENT = "CONFIRMED_ABSENT",
     NOT_ESTABLISHED = "NOT_ESTABLISHED",
+    /** Produces in the first year, then ends and is extended with zero production. */
+    ENDS_EARLY = "ENDS_EARLY",
+    /** Ends before the reference date, so it is extended with zero production throughout. */
+    ENDS_BEFORE_START = "ENDS_BEFORE_START",
 }
 
 const START_YEAR = 2030;
@@ -170,15 +174,25 @@ const END_MONTH_INDEX = monthIndexOf(2031, 12);
 
 function productProfile(state: ProductState, volume: number): MonthlyProductionProfile {
     // Not established: the source starts a year after the reference date.
-    const firstYear = state === ProductState.NOT_ESTABLISHED ? START_YEAR + 1 : START_YEAR;
-    const monthCount = state === ProductState.NOT_ESTABLISHED ? 12 : 24;
+    const firstYear =
+        state === ProductState.NOT_ESTABLISHED
+            ? START_YEAR + 1
+            : state === ProductState.ENDS_BEFORE_START
+              ? START_YEAR - 1
+              : START_YEAR;
+    const monthCount = state === ProductState.ESTABLISHED || state === ProductState.CONFIRMED_ABSENT ? 24 : 12;
     const months = Array.from({ length: monthCount }, (_, index) => ({
         year: firstYear + Math.floor(index / 12),
         month: (index % 12) + 1,
         volume: state === ProductState.CONFIRMED_ABSENT ? 0 : volume,
         coverage: MonthCoverage.SOURCE_ALIGNED,
     }));
-    return { months, rejection: null };
+    const isExtended = state === ProductState.ENDS_EARLY || state === ProductState.ENDS_BEFORE_START;
+    return {
+        months,
+        rejection: null,
+        zeroProductionAfterMonthIndex: isExtended ? monthIndexOf(firstYear, 12) : null,
+    };
 }
 
 /** The same financial mask the View applies for an invalid cost draft. */
@@ -291,6 +305,6 @@ describe("readiness and calculation parity", () => {
                 }
             }
         }
-        expect(caseCount).toBe(1620);
+        expect(caseCount).toBe(4500);
     });
 });

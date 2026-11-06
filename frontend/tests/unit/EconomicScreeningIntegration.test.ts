@@ -380,20 +380,22 @@ describe("Economic Screening query results to channel data", () => {
         expect(metricData(uncovered, EconomicMeasure.NPV)).toEqual([]);
     });
 
-    test("withholds the full results when only a later month is partial", async () => {
+    test("includes a realization whose source ends inside the last evaluated month", async () => {
         const { store } = await setup();
         const partialOil = series(7, 2020, OIL_7, { partialLastMonthDays: 15 });
         const partialGas = series(7, 2020, GAS, { partialLastMonthDays: 15 });
         setQueries(store, query([partialOil, series(42, 2020, OIL_42)]), query([partialGas, series(42, 2020, GAS)]));
 
-        expect(metricData(store, EconomicMeasure.NPV).map((entry) => entry.key)).toEqual([42]);
-        expect(metricData(store, EconomicMeasure.DISCOUNTED_OIL_VOLUME).map((entry) => entry.key)).toEqual([42]);
-        expect(store.get(economicScreeningResultsAtom).warnings).toContain(
-            "Oil source coverage is incomplete over Jan 2020-Dec 2021 for 1 of 2 realizations; their results that need oil are withheld.",
+        expect(metricData(store, EconomicMeasure.NPV).map((entry) => entry.key)).toEqual([7, 42]);
+        expect(metricData(store, EconomicMeasure.DISCOUNTED_OIL_VOLUME)[0].value).toBeCloseTo(
+            discounted(OIL_7, 2020),
+            8,
         );
+        // Its last data month is the evaluation's last month, so it does not count as ending early.
+        expect(store.get(economicScreeningResultsAtom).warnings.join(" ")).not.toContain("end before");
     });
 
-    test("validates a shorter realization against the full-ensemble horizon instead of zero-filling it", async () => {
+    test("extends a shorter regular realization with zero production through the full-ensemble horizon", async () => {
         const { store } = await setup();
         setQueries(
             store,
@@ -402,8 +404,31 @@ describe("Economic Screening query results to channel data", () => {
         );
 
         expect(store.get(sourceHorizonAtom).endYear).toBe(2021);
+        const npv = metricData(store, EconomicMeasure.NPV);
+        expect(npv.map((entry) => entry.key)).toEqual([7, 42]);
+        expect(npv[1].value).toBeCloseTo(
+            2 * discounted(OIL_42.slice(0, 12), 2020) + 0.1 * discounted(GAS.slice(0, 12), 2020),
+            8,
+        );
+        expect(store.get(economicScreeningResultsAtom).warnings).toContain(
+            "1 of 2 realizations end before Dec 2021; their production after their end is taken as zero.",
+        );
+    });
+
+    test("does not extend a shorter delta realization, since a constituent can still produce", async () => {
+        const deltaKind = { sourceKind: SourceKind.DELTA };
+        const { store } = await setup(deltaKind);
+        setQueries(
+            store,
+            query([series(7, 2020, OIL_7, deltaKind), series(42, 2020, OIL_42.slice(0, 12), deltaKind)]),
+            query([series(7, 2020, GAS, deltaKind), series(42, 2020, GAS.slice(0, 12), deltaKind)]),
+        );
+
         expect(metricData(store, EconomicMeasure.NPV).map((entry) => entry.key)).toEqual([7]);
-        expect(metricData(store, EconomicMeasure.DISCOUNTED_OIL_VOLUME).map((entry) => entry.key)).toEqual([7]);
+        expect(store.get(economicScreeningResultsAtom).warnings).toContain(
+            "Oil source coverage is incomplete over Jan 2020-Dec 2021 for 1 of 2 realizations; their results that need oil are withheld.",
+        );
+        expect(store.get(economicScreeningResultsAtom).warnings.join(" ")).not.toContain("end before");
     });
 
     test("withholds every result when the server omits source coverage", async () => {

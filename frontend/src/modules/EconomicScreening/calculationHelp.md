@@ -22,12 +22,15 @@ Monthly values are resampled from the simulator's own report dates, so the modul
 
 - **Source-aligned:** both month boundaries are source report dates.
 - **Interpolated:** the month lies inside the source dates, but at least one boundary is interpolated linearly, for example from annual reports.
-- **Partial:** only part of the month is covered, for example when the simulation ends on 15 June.
+- **Source end:** the realization's source data ends in or before the month. The cumulative is held at its last value after the end, so the month contains the production up to the end and none after it.
+- **Partial:** only part of the month is covered, for example when the source data starts on 15 June.
 - **Unsupported:** the month lies outside the source dates; its value is held padding.
 
-Source-aligned and interpolated months are used. A partial, unsupported, or unverified month anywhere in the evaluation makes that product's full-evaluation totals and the financial results that need it unavailable for the realization. The months are not trimmed, prorated, or treated as zero. For a delta ensemble, a month is supported only when both the comparison and the reference cover it. When the server provides no coverage information, nothing is published.
+Source-aligned, interpolated and source-end months are used. A partial, unsupported, or unverified month anywhere in the evaluation makes that product's full-evaluation totals and the financial results that need it unavailable for the realization. The months are not trimmed, prorated, or treated as zero. When the server provides no coverage information, nothing is published.
 
-The evaluation runs from the reference date, 1 January of the year you choose, through the last supported month of the full ensemble. A source ending on 1 January closes the previous December; it does not add production in the new year. Each realization and product must be covered for every month of this common evaluation. A realization that ends earlier is not extended with zeros. Months before a realization's first source date are not assumed to be zero, even when the first cumulative value is zero, so a reference date before the source data makes financial results unavailable. Source coverage describes the source dates only; it is not proof of a successful simulation or of the intended forecast period.
+The evaluation runs from the reference date, 1 January of the year you choose, through the last supported month of the full ensemble. A source ending on 1 January closes the previous December; it does not add production in the new year. A realization that ends earlier is extended: its production after its own last source date is taken as zero, and the view says how many realizations this applies to. Months before a realization's first source date are not assumed to be zero, even when the first cumulative value is zero, so a reference date before the source data makes financial results unavailable. Source coverage describes the source dates only; it is not proof of a successful simulation or of the intended forecast period, so a simulation that stopped early also counts as ending early.
+
+For a delta ensemble, a month is supported only when both the comparison and the reference cover it, and a realization that ends early is not extended. The delta series stops when the first of the two ends, and the other can still produce after that, so its later months are unknown rather than zero.
 
 ## Realizations and ensemble results
 

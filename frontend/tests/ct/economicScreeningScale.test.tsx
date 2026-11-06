@@ -106,7 +106,6 @@ type ScaleState = { inputs: ScaleEconomicInputs; filtered: number[] | null };
 function expectedByRealization(state: ScaleState) {
     return (state.filtered ?? REALIZATIONS).map((realization) => ({
         realization,
-        hasFullOil: realization !== SHORT_OIL_REALIZATION,
         ...scaleReferenceEconomics(
             scaleServedMonthlyVolumes(REALIZATIONS, realization, "oil"),
             scaleServedMonthlyVolumes(REALIZATIONS, realization, "gas"),
@@ -117,7 +116,7 @@ function expectedByRealization(state: ScaleState) {
 
 /** Scatter of NPV against break-even oil price: keys present in both channels, identified by count and sums. */
 function expectedScatter(state: ScaleState) {
-    const plotted = expectedByRealization(state).filter((expected) => expected.hasFullOil);
+    const plotted = expectedByRealization(state);
     return {
         count: plotted.length,
         sumX: plotted.reduce((sum, expected) => sum + expected.npv, 0),
@@ -265,7 +264,6 @@ const BASE_STATE: ScaleState = { inputs: SCALE_BASE_INPUTS, filtered: null };
 async function expectPublishedState(page: Page, state: ScaleState, options: { financial: boolean }) {
     const channels = await readProducerChannels(page);
     const expected = expectedByRealization(state);
-    const fullOil = expected.filter((entry) => entry.hasFullOil);
     const contentOf = (channelIdString: string) => {
         const contents = channels.get(channelIdString)!;
         return contents.length === 0 ? null : contents[0];
@@ -284,7 +282,7 @@ async function expectPublishedState(page: Page, state: ScaleState, options: { fi
         return content;
     };
 
-    const oil = expectKeyedValues(OIL_CHANNEL, fullOil, (entry) => entry.discountedOil);
+    const oil = expectKeyedValues(OIL_CHANNEL, expected, (entry) => entry.discountedOil);
     expect(oil.metaData.unit).toBe("Sm³");
     if (!options.financial) {
         expect(contentOf(NPV_CHANNEL)).toBeNull();
@@ -292,18 +290,21 @@ async function expectPublishedState(page: Page, state: ScaleState, options: { fi
         expect(contentOf(BREAK_EVEN_CHANNEL)).toBeNull();
         return;
     }
-    const npv = expectKeyedValues(NPV_CHANNEL, fullOil, (entry) => entry.npv);
+    const npv = expectKeyedValues(NPV_CHANNEL, expected, (entry) => entry.npv);
     expect(npv.metaData.unit).toBe("USD");
     const inputsLabel = `; ${state.inputs.discountRatePercent}%, from ${state.inputs.predictionStartYear})`;
     expect(npv.metaData.displayString).toMatch(/^NPV \(.+; /);
     expect(npv.metaData.displayString!.endsWith(inputsLabel)).toBe(true);
-    const breakEven = expectKeyedValues(BREAK_EVEN_CHANNEL, fullOil, (entry) => perBbl(entry.breakEvenOilPrice));
+    const breakEven = expectKeyedValues(BREAK_EVEN_CHANNEL, expected, (entry) => perBbl(entry.breakEvenOilPrice));
     expect(breakEven.metaData.unit).toBe("USD/bbl");
 
-    // Every regular IRR is finite; each published rate is a root of that realization's own cash flow.
+    // Each published rate is a root of that realization's own cash flow. The short-oil realization keeps paying
+    // OPEX after its oil ends, so its NPV has two roots and no IRR.
     const irr = contentOf(IRR_CHANNEL)!;
     expect(irr.metaData.unit).toBe("%");
-    expect(irr.data.map(([key]) => key)).toEqual(fullOil.map((entry) => entry.realization));
+    expect(irr.data.map(([key]) => key)).toEqual(
+        expected.map((entry) => entry.realization).filter((realization) => realization !== SHORT_OIL_REALIZATION),
+    );
     for (const index of [0, 1, 200, irr.data.length - 1]) {
         const [realization, irrPercent] = irr.data[index];
         expect(Number.isFinite(irrPercent)).toBe(true);
@@ -368,7 +369,7 @@ test("500 realizations: rapid Settings edits, invalid draft, display changes and
     );
     expect(draftEvents.filter((entry) => entry.event === "received:channelX" && entry.keys === 0)).toEqual([]);
     expect(draftEvents.findIndex((entry) => entry.event === "commit:costProfileAtom")).toBeGreaterThan(-1);
-    expect(draftEvents.at(-1)).toMatchObject({ event: "received:channelX", keys: REALIZATIONS.length - 1 });
+    expect(draftEvents.at(-1)).toMatchObject({ event: "received:channelX", keys: REALIZATIONS.length });
     await expectPublishedState(page, state, { financial: true });
 
     // A held invalid draft withdraws financial outputs but keeps volumes; validity recovers them.

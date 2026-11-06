@@ -24,15 +24,15 @@ function monthStartUtcMs(year: number, month: number): number {
 
 /**
  * API-shaped monthly cumulative series for 2030-2031 with source-aligned coverage. With
- * `partialLastMonth`, the source ends mid-December 2031, so that month is only partly covered.
+ * `partialFirstMonth`, the source starts mid-January 2030, so that month is only partly covered.
  */
-function monthlySeries(realization: number, monthlyVolume: number, partialLastMonth = false) {
+function monthlySeries(realization: number, monthlyVolume: number, partialFirstMonth = false) {
     const timestampsUtcMs = Array.from({ length: 25 }, (_, index) => monthStartUtcMs(2030, index + 1));
     const values = [0];
     for (let month = 0; month < 24; month++) {
         values.push(values[month] + monthlyVolume * (1 + (month % 12) / 24));
     }
-    const sourceEnd = partialLastMonth ? timestampsUtcMs[23] + 15 * 86_400_000 : timestampsUtcMs[24];
+    const sourceStart = partialFirstMonth ? timestampsUtcMs[0] + 15 * 86_400_000 : timestampsUtcMs[0];
     return {
         realization,
         unit: "SM3",
@@ -44,18 +44,18 @@ function monthlySeries(realization: number, monthlyVolume: number, partialLastMo
             sources: [
                 {
                     role: "REGULAR",
-                    firstTimestampUtcMs: timestampsUtcMs[0],
-                    lastTimestampUtcMs: sourceEnd,
-                    sampleCount: 25,
+                    firstTimestampUtcMs: sourceStart,
+                    lastTimestampUtcMs: timestampsUtcMs[24],
+                    sampleCount: partialFirstMonth ? 24 : 25,
                     maxSampleGapMs: 31 * 86_400_000,
                 },
             ],
             intervals: timestampsUtcMs.slice(0, 24).map((start, index) => {
-                const isPartial = partialLastMonth && index === 23;
+                const isPartial = partialFirstMonth && index === 0;
                 return {
                     status: isPartial ? "PARTIAL" : "SOURCE_ALIGNED",
-                    supportedStartUtcMs: start,
-                    supportedEndUtcMs: isPartial ? sourceEnd : timestampsUtcMs[index + 1],
+                    supportedStartUtcMs: isPartial ? sourceStart : start,
+                    supportedEndUtcMs: timestampsUtcMs[index + 1],
                 };
             }),
         },
@@ -612,7 +612,8 @@ test("applies an explicit missing-component assumption to gas revenue without au
 });
 
 // Deterministic source from 1 January 2018 to 1 July 2020: 2018 is covered with zero production, and the
-// 1 July terminal boundary closes June 2020. Realization 21's oil ends on 1 January 2020.
+// 1 July terminal boundary closes June 2020. Realization 21's oil ends on 1 January 2020 and is extended with
+// zero oil production.
 const DELAYED_MONTH_COUNT = 30;
 const DELAYED_MONTHLY_OIL: Record<number, number> = { 3: 100, 8: 150, 21: 120 };
 const DELAYED_SHORT_OIL_REALIZATION = 21;
@@ -888,9 +889,9 @@ test("reports missing source coverage for the selected realizations in the setup
 
     await typeAndTabAway(page, settings.getByRole("combobox", { name: "Reference date" }), "2018");
     await expect(setupStatus(page)).toHaveText("Setup ready");
-    await expect.poll(npvCount).toBe(2);
+    await expect.poll(npvCount).toBe(3);
 
-    // Only realization 21 is selected, and its oil ends in January 2020.
+    // Only realization 21 is selected; its oil ends in January 2020 and is extended with zero production.
     await component.update(
         <EconomicScreeningModuleHarness
             settingsOpen
@@ -900,24 +901,23 @@ test("reports missing source coverage for the selected realizations in the setup
             filteredRealizations={[21]}
         />,
     );
-    await expect
-        .poll(() => setupItems(page))
-        .toEqual(["Oil source coverage is incomplete between Jan 2018 and Jun 2020 for every selected realization."]);
-    await expect.poll(npvCount).toBe(0);
+    await expect(setupStatus(page)).toHaveText("Setup ready");
+    await expect.poll(npvCount).toBe(1);
     expect(fixtures.vectorDataRequests.sort()).toEqual(["FGST", "FOPT"]);
     expect(fixtures.unexpectedApiRequests).toEqual([]);
 });
 
-/** Realization 3 lacks complete gas and 8 lacks complete oil; 21 is complete and sets the ensemble horizon. */
+/** Realization 3 lacks complete gas and 8 lacks complete oil: those sources start mid-January 2018. */
 function disjointCoverageSeriesFor(vectorName: string) {
     return REALIZATIONS.map((realization) => {
-        const isShort = vectorName === "FOPT" ? realization === 8 : realization === 3;
+        const isLate = vectorName === "FOPT" ? realization === 8 : realization === 3;
         return makeSeriesFromMonthlyVolumes(
             realization,
             2018,
             vectorName === "FOPT" ? delayedMonthlyOil(3) : delayedMonthlyGas(3),
             ["REGULAR"],
-            isShort ? monthStartUtcMs(2020, 1) : monthStartUtcMs(2020, 7),
+            monthStartUtcMs(2020, 7),
+            isLate ? monthStartUtcMs(2018, 1) + 15 * 86_400_000 : undefined,
         );
     });
 }
@@ -972,7 +972,7 @@ test("plots and publishes full discounted cash flow from the computed results", 
     const expected2019 = referenceDiscountedCashFlow(3, 2019);
     expect(Math.abs((await plottedValue(page, "Realization 3", 2019))! - expected2019)).toBeLessThan(1e-6);
     const fullNpv = channelEntries(await readPublishedChannels(page), NPV_CHANNEL);
-    expect(fullNpv.map((entry) => entry.key)).toEqual([3, 8]);
+    expect(fullNpv.map((entry) => entry.key)).toEqual([3, 8, 21]);
     for (const entry of fullNpv) {
         expect(Math.abs(entry.value - referenceDiscountedCashFlow(entry.key, 2020))).toBeLessThan(1e-6);
     }
@@ -1132,7 +1132,7 @@ test("cost paste preserves channels until Apply and matches independent cash flo
             initialState={initialState}
         />,
     );
-    await expect.poll(async () => channelEntries(await readPublishedChannels(page), NPV_CHANNEL).length).toBe(2);
+    await expect.poll(async () => channelEntries(await readPublishedChannels(page), NPV_CHANNEL).length).toBe(3);
     const original = await readPublishedChannels(page);
     const readCosts = () =>
         page.evaluate(() =>

@@ -42,6 +42,7 @@ function profile(
             coverage: coverageOf(index),
         })),
         rejection: null,
+        zeroProductionAfterMonthIndex: null,
     };
 }
 

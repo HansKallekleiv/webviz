@@ -255,7 +255,7 @@ function makeMonthlyProfile(
     startYear: number,
     startMonth: number,
     volumes: number[],
-    options: { coverage?: MonthCoverage } = {},
+    options: { coverage?: MonthCoverage; zeroProductionAfterMonthIndex?: number } = {},
 ): MonthlyProductionProfile {
     const coverage = options.coverage ?? MonthCoverage.SOURCE_ALIGNED;
     const months = volumes.map((volume, index) => {
@@ -267,7 +267,7 @@ function makeMonthlyProfile(
             coverage,
         };
     });
-    return { months, rejection: null };
+    return { months, rejection: null, zeroProductionAfterMonthIndex: options.zeroProductionAfterMonthIndex ?? null };
 }
 
 function makeZeroProfile(startYear: number, monthCount: number): MonthlyProductionProfile {
@@ -402,7 +402,46 @@ describe("monthly screening model", () => {
         expect(result.annualProfile[0].oilVolume).toBe(0);
     });
 
-    test("withholds a realization whose source ends before the common horizon instead of zero-filling it", () => {
+    test("extends a realization that ends early with zero production through the common horizon", () => {
+        const extended = { zeroProductionAfterMonthIndex: monthIndexOf(2030, 12) };
+        const result = computeMonthlyRealizationEconomics(
+            {
+                realization: 5,
+                oilProfile: makeMonthlyProfile(2030, 1, new Array(12).fill(100), extended),
+                salesGasProfile: makeMonthlyProfile(2030, 1, new Array(12).fill(0), extended),
+            },
+            makeMonthlyAssumptions({ horizonEndMonthIndex: monthIndexOf(2031, 12), oilPricePerVolume: 10 }),
+            [{ year: 2031, capex: 0, opex: 120 }],
+        );
+
+        const firstYearFactors = Array.from({ length: 12 }, (_, index) => Math.pow(1.1, -((index + 0.5) / 12)));
+        const discountedOil = firstYearFactors.reduce((sum, factor) => sum + 100 * factor, 0);
+        expect(result.hasOilData).toBe(true);
+        expect(result.hasSalesGasData).toBe(true);
+        expect(result.annualProfile.map((entry) => entry.oilVolume)).toEqual([1200, 0]);
+        expect(result.discountedOilVolume).toBeCloseTo(discountedOil, 9);
+        expect(result.npv).toBeCloseTo(10 * discountedOil - discountedAnnualOpex(120, 2031, 2030, 0.1), 8);
+    });
+
+    test("treats a realization that ends before the reference date as confirmed zero production", () => {
+        const extended = { zeroProductionAfterMonthIndex: monthIndexOf(2028, 12) };
+        const result = computeMonthlyRealizationEconomics(
+            {
+                realization: 5,
+                oilProfile: makeMonthlyProfile(2028, 1, new Array(12).fill(100), extended),
+                salesGasProfile: makeMonthlyProfile(2028, 1, new Array(12).fill(50), extended),
+            },
+            makeMonthlyAssumptions(),
+            [{ year: 2030, capex: 0, opex: 120 }],
+        );
+
+        expect(result.hasOilData).toBe(true);
+        expect(result.discountedOilVolume).toBe(0);
+        // Both products are confirmed zero, so blank prices do not block NPV.
+        expect(result.npv).toBeCloseTo(-discountedAnnualOpex(120, 2030, 2030, 0.1), 10);
+    });
+
+    test("withholds a realization whose months after its source data are unknown instead of zero-filling it", () => {
         const result = computeMonthlyRealizationEconomics(
             {
                 realization: 5,

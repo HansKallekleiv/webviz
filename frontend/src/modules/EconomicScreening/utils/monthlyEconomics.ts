@@ -14,6 +14,7 @@ import {
 import { getBreakEvenIneligibility, getRevenueIneligibility, type Ineligibility } from "./eligibility";
 import {
     isMonthCoverageEstablished,
+    MonthCoverage,
     monthIndexOf,
     type MonthlyProductionProfile,
     type MonthlyVolumeSample,
@@ -138,9 +139,22 @@ function evaluateProduct(
                 monthByIndex.set(monthIndex, monthSample);
             }
         }
+        const zeroAfter = profile.zeroProductionAfterMonthIndex;
+        if (zeroAfter !== null) {
+            for (let monthIndex = Math.max(startMonthIndex, zeroAfter + 1); monthIndex <= endMonthIndex; monthIndex++) {
+                if (!monthByIndex.has(monthIndex)) {
+                    monthByIndex.set(monthIndex, {
+                        year: Math.floor(monthIndex / 12),
+                        month: (monthIndex % 12) + 1,
+                        volume: 0,
+                        coverage: MonthCoverage.AFTER_SOURCE_END,
+                    });
+                }
+            }
+        }
     }
 
-    // No zero production is inferred for months the source does not cover, including pre-source months.
+    // Zero production is only inferred after a realization's source end, never before its first source date.
     let monthIndex = startMonthIndex;
     while (monthIndex <= endMonthIndex) {
         const monthSample = monthByIndex.get(monthIndex);

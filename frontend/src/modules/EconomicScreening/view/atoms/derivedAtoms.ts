@@ -154,11 +154,25 @@ const unmaskedResultsAtom = atom<EconomicScreeningResults>((get) => {
     };
 
     const selectedRealizations = new Set(validRealizationNumbers);
-    const results = realizationProfiles
-        .filter((profiles) => selectedRealizations.has(profiles.realization))
-        .map((profiles) => computeMonthlyRealizationEconomics(profiles, assumptions, costProfile));
+    const selectedProfiles = realizationProfiles.filter((profiles) => selectedRealizations.has(profiles.realization));
+    const results = selectedProfiles.map((profiles) =>
+        computeMonthlyRealizationEconomics(profiles, assumptions, costProfile),
+    );
 
-    const horizonLabel = `Jan ${horizon.startYear}-${formatMonthIndex(horizon.endMonthIndex)}`;
+    const horizonEndLabel = formatMonthIndex(horizon.endMonthIndex);
+    const horizonLabel = `Jan ${horizon.startYear}-${horizonEndLabel}`;
+    const endsEarlyCount = selectedProfiles.filter((profiles) =>
+        [profiles.oilProfile, profiles.salesGasProfile].some(
+            (profile) =>
+                profile?.zeroProductionAfterMonthIndex != null &&
+                profile.zeroProductionAfterMonthIndex < horizon.endMonthIndex,
+        ),
+    ).length;
+    if (endsEarlyCount > 0) {
+        warnings.push(
+            `${endsEarlyCount} of ${results.length} realizations end before ${horizonEndLabel}; their production after their end is taken as zero.`,
+        );
+    }
     const incompleteOilCount = results.filter((result) => !result.hasOilData).length;
     const incompleteGasCount = results.filter((result) => !result.hasSalesGasData).length;
     if (snapshot.hasOilSeries && incompleteOilCount > 0) {
