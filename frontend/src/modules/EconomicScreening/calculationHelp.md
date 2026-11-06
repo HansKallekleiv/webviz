@@ -27,17 +27,17 @@ Monthly values are resampled from the simulator's own report dates, so the modul
 
 Source-aligned and interpolated months are used. A partial, unsupported, or unverified month anywhere in the evaluation makes that product's full-evaluation totals and the financial results that need it unavailable for the realization. The months are not trimmed, prorated, or treated as zero. For a delta ensemble, a month is supported only when both the comparison and the reference cover it. When the server provides no coverage information, nothing is published.
 
-The evaluation runs from 1 January of the evaluation start year through the last supported month of the full ensemble. A source ending on 1 January closes the previous December; it does not add production in the new year. Each realization and product must be covered for every month of this common evaluation. A realization that ends earlier is not extended with zeros. Months before a realization's first source date are not assumed to be zero, even when the first cumulative value is zero, so an evaluation start before the source data makes financial results unavailable. Source coverage describes the source dates only; it is not proof of a successful simulation or of the intended forecast period.
+The evaluation runs from the reference date, 1 January of the year you choose, through the last supported month of the full ensemble. A source ending on 1 January closes the previous December; it does not add production in the new year. Each realization and product must be covered for every month of this common evaluation. A realization that ends earlier is not extended with zeros. Months before a realization's first source date are not assumed to be zero, even when the first cumulative value is zero, so a reference date before the source data makes financial results unavailable. Source coverage describes the source dates only; it is not proof of a successful simulation or of the intended forecast period.
 
 ## Realizations and ensemble results
 
-The module calculates each realization separately. It does not first average production profiles and then calculate one economic result. A realization with incomplete oil or sales-gas coverage is excluded only from measures that need that product; an available volume measure can still be shown.
+The module calculates each realization separately. It does not first average production profiles and then calculate one economic result. A realization with incomplete oil or sales-gas coverage is excluded only from responses that need that product; an available volume response can still be shown.
 
-Charts, percentiles, and output channels use one finite calculated value from each eligible realization. The table count shows how many realizations are valid for the selected measure out of the selected realizations. Missing, unavailable, and undefined values are excluded, not set to zero.
+Charts, percentiles, and output channels use one finite calculated value from each eligible realization. The table count shows how many realizations are valid for the selected response out of the selected realizations. Missing, unavailable, and undefined values are excluded, not set to zero.
 
-Filtering changes the realizations shown in the chart and statistics. It does not move the evaluation start, the valuation date, the simulation end, or the generated cost years, which are found from the full selected ensemble.
+Filtering changes the realizations shown in the chart and statistics. It does not move the reference date, the simulation end, or the generated cost years, which are found from the full selected ensemble.
 
-## Discounting and evaluation start
+## Discounting and reference date
 
 Volumes and money received later contribute less at a positive discount rate. An 8% rate is written as 0.08 in the calculation.
 
@@ -47,7 +47,7 @@ t for a month = year - start year + (month - 0.5) / 12
 t for annual CAPEX = year - start year + 0.5
 ```
 
-Results are valued at **1 January of the evaluation start year**, which you enter. Production volumes and their revenue are discounted at the midpoint of each month. Each year's OPEX is paid as twelve equal monthly amounts, one twelfth at each month midpoint, using the same factors as that year's production. Annual CAPEX is discounted at mid-year. These are screening conventions chosen for this module. R-90150 specifies that total expected cost estimates are expressed in mid-year cost; that is related cost-basis context, not a requirement for all of these timing choices, and this module does not claim R-90150 compliance.
+Results are discounted to the **reference date**, 1 January of the year you choose. Production volumes and their revenue are discounted at the midpoint of each month. Each year's OPEX is paid as twelve equal monthly amounts, one twelfth at each month midpoint, using the same factors as that year's production. Annual CAPEX is discounted at mid-year. These are screening conventions chosen for this module. R-90150 specifies that total expected cost estimates are expressed in mid-year cost; that is related cost-basis context, not a requirement for all of these timing choices, and this module does not claim R-90150 compliance.
 
 The full annual OPEX you enter applies to every included year, even when the evaluation ends before December in the final year. In that case the remaining monthly OPEX amounts are still paid after the last revenue month; they do not extend production coverage.
 
@@ -70,7 +70,7 @@ NPV = revenue PV - cost PV
 
 Prices and costs use the selected currency, NOK or USD. Changing the currency does not convert entered values. A blank price is unspecified, so NPV is unavailable unless that product is confirmed zero in every month of the evaluation. A price of 0 intentionally omits that product's revenue; it does not turn missing volume data into zero volume.
 
-Cost years are generated from the evaluation start year through the simulation end. Blank cost cells are zero, so an operating cost does not repeat through the remaining years. Costs stored for years outside these rows are kept and listed, but not used. Zero entered costs means the NPV is discounted revenue, not a complete project-profitability estimate.
+Cost years are generated from the year of the reference date through the simulation end. Blank cost cells are zero, so an operating cost does not repeat through the remaining years. Costs stored for years outside these rows are kept and listed, but not used. Zero entered costs means the NPV is discounted revenue, not a complete project-profitability estimate.
 
 ## Break-even oil price
 
@@ -104,7 +104,7 @@ Discounted oil equivalents add discounted oil to discounted gas divided by 1000 
 
 Delta vectors represent **comparison minus reference** for matching realizations. Enter incremental costs using the same convention: positive costs are additional expenditure and negative costs are savings relative to the reference.
 
-The module calculates economics from these signed incremental profiles. A product is confirmed zero only if every monthly delta is zero; positive and negative months that cancel still need a price. For each matching realization, incremental NPV equals comparison NPV minus reference NPV when valuation date, timing, prices, discount rate, evaluation, and source coverage are the same and costs are comparison minus reference. This identity does not generally hold for differences between distribution percentiles.
+The module calculates economics from these signed incremental profiles. A product is confirmed zero only if every monthly delta is zero; positive and negative months that cancel still need a price. For each matching realization, incremental NPV equals comparison NPV minus reference NPV when reference date, timing, prices, discount rate, evaluation, and source coverage are the same and costs are comparison minus reference. This identity does not generally hold for differences between distribution percentiles.
 
 Incremental IRR and break-even oil price are calculated from the incremental cash flows and volumes; they are **not differences between the two projects' IRRs or break-even prices**. Negative discounted incremental oil volume reverses oil-price sensitivity: a higher oil price reduces incremental NPV.
 
@@ -120,7 +120,7 @@ This illustrative example covers 2020 and 2021, with source-aligned monthly cove
 
 - Monthly production: 10 Sm3 oil and 100 Sm3 sales gas in every month.
 - Prices: 2 USD/Sm3 oil and 0.1 USD/Sm3 gas, so monthly revenue is 30 USD.
-- Discount rate: 10%, with evaluation start year 2020, valued at 1 January 2020.
+- Discount rate: 10%, with reference date 1 January 2020.
 - Costs: CAPEX of 100 USD in 2020, discounted at mid-2020, and OPEX of 60 USD in each of 2020 and 2021, paid as 5 USD per month.
 
 ### Monthly and annual values

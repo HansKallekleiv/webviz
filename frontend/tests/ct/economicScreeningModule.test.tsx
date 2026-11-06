@@ -232,7 +232,7 @@ test("keeps every result control in Settings and plots data in a configuration-f
     for (const label of MODE_LABELS) {
         await expect(modeRadio(page, label)).toHaveAccessibleName(label);
     }
-    await expect(settings.getByText("Measure", { exact: true })).toBeVisible();
+    await expect(settings.getByText("Response", { exact: true })).toBeVisible();
     await expect(settings.getByText("Plot type", { exact: true })).toBeVisible();
     // Cost years are generated from the Settings-side horizon without locale grouping.
     await expect(settings.getByRole("cell", { name: "2031", exact: true })).toBeVisible();
@@ -431,8 +431,8 @@ test("keeps compact setup status visible and reveals a closed field section", as
     });
     await expect(status).toBeInViewport();
     await status.locator("summary").click();
-    await status.getByRole("button", { name: "Enter an evaluation start year." }).click();
-    const year = settings.getByRole("combobox", { name: "Evaluation start", exact: true });
+    await status.getByRole("button", { name: "Enter a reference date." }).click();
+    const year = settings.getByRole("combobox", { name: "Reference date", exact: true });
     await expect(year).toBeFocused();
     await expect(year).toBeInViewport();
     await page.keyboard.type("2030");
@@ -527,7 +527,7 @@ test("lists every known NPV setup requirement together before any price edit", a
     await expect
         .poll(() => setupItems(page))
         .toEqual([
-            "Enter an evaluation start year.",
+            "Enter a reference date.",
             "Enter an oil price, or 0 to omit oil revenue.",
             "Enter a gas price, or 0 to omit gas revenue.",
             "Gas consumption (FGCT) is missing: accept “Assume no gas consumption” or enter a gas price of 0.",
@@ -542,7 +542,7 @@ test("lists every known NPV setup requirement together before any price edit", a
     await expect
         .poll(() => setupItems(page))
         .toEqual([
-            "Enter an evaluation start year.",
+            "Enter a reference date.",
             "Enter a gas price, or 0 to omit gas revenue.",
             "Gas consumption (FGCT) is missing: accept “Assume no gas consumption” or enter a gas price of 0.",
         ]);
@@ -550,22 +550,22 @@ test("lists every known NPV setup requirement together before any price edit", a
     // Zero gas price resolves gas revenue only; sales-gas volume still needs the missing component.
     await gasPrice.fill("0");
     await gasPrice.blur();
-    await expect.poll(() => setupItems(page)).toEqual(["Enter an evaluation start year."]);
+    await expect.poll(() => setupItems(page)).toEqual(["Enter a reference date."]);
     await expect(settings.getByRole("checkbox", { name: "Assume no gas consumption" })).not.toBeChecked();
 
-    await settings.getByRole("combobox", { name: "Measure" }).click();
+    await settings.getByRole("combobox", { name: "Response" }).click();
     await page.getByRole("option", { name: "Discounted sales gas volume" }).click();
     await expect(setupStatus(page)).toContainText("Needed for discounted sales gas volume");
     await expect
         .poll(() => setupItems(page))
         .toEqual([
-            "Enter an evaluation start year.",
+            "Enter a reference date.",
             "Gas consumption (FGCT) is missing: accept “Assume no gas consumption” to calculate sales gas.",
         ]);
-    await settings.getByRole("combobox", { name: "Measure" }).click();
+    await settings.getByRole("combobox", { name: "Response" }).click();
     await page.getByRole("option", { name: "Break-even oil price" }).click();
     await expect(setupStatus(page)).toContainText("Needed for break-even oil price");
-    await expect.poll(() => setupItems(page)).toEqual(["Enter an evaluation start year."]);
+    await expect.poll(() => setupItems(page)).toEqual(["Enter a reference date."]);
     expect(fixtures.vectorDataRequests.sort()).toEqual(["FGIT", "FGPT", "FOPT"]);
     expect(fixtures.unexpectedApiRequests).toEqual([]);
 });
@@ -736,7 +736,7 @@ test("suggests covered years, accepts typed years and keeps the choice under fil
         />,
     );
     const settings = settingsRegion(page);
-    const year = settings.getByRole("combobox", { name: "Evaluation start" });
+    const year = settings.getByRole("combobox", { name: "Reference date" });
     await expect(year).toHaveValue("");
 
     // Keyboard search: covered zero-production 2018 is suggested; no history is selected automatically.
@@ -758,20 +758,20 @@ test("suggests covered years, accepts typed years and keeps the choice under fil
     await expect(year).toHaveValue("1 Jan 2031");
     await expectPopupClosed(page);
     await expect(setupStatus(page)).toContainText(
-        "The evaluation start year 2031 is after the supported simulation end (Jun 2020).",
+        "The reference date 1 Jan 2031 is after the supported simulation end (Jun 2020).",
     );
     await expect(
-        viewRegion(page).getByText("The evaluation start year 2031 is after the supported simulation end (Jun 2020)."),
+        viewRegion(page).getByText("The reference date 1 Jan 2031 is after the supported simulation end (Jun 2020)."),
     ).toBeVisible();
 
     // Pointer selection, then clearing back to blank.
-    await settings.getByRole("button", { name: "Evaluation start" }).click();
+    await settings.getByRole("button", { name: "Reference date" }).click();
     await page.getByRole("option", { name: "1 Jan 2018", exact: true }).click();
     await expect(year).toHaveValue("1 Jan 2018");
     await expectPopupClosed(page);
     await settings.getByRole("button", { name: "Clear selection" }).first().click();
     await expect(year).toHaveValue("");
-    await expect.poll(() => setupItems(page)).toContain("Enter an evaluation start year.");
+    await expect.poll(() => setupItems(page)).toContain("Enter a reference date.");
 
     await year.click();
     await page.keyboard.type("2019");
@@ -790,7 +790,7 @@ test("suggests covered years, accepts typed years and keeps the choice under fil
         channelEntries(await readPublishedChannels(page), NPV_CHANNEL).map((entry) => entry.key);
     await expect.poll(npvKeys).toEqual([8]);
     await expect(year).toHaveValue("1 Jan 2019");
-    await settings.getByRole("button", { name: "Evaluation start" }).click();
+    await settings.getByRole("button", { name: "Reference date" }).click();
     await expect(page.getByRole("option")).toHaveText(["1 Jan 2018", "1 Jan 2019", "1 Jan 2020"]);
     await page.keyboard.press("Escape");
     await expect(year).toHaveValue("1 Jan 2019");
@@ -798,7 +798,7 @@ test("suggests covered years, accepts typed years and keeps the choice under fil
     expect(fixtures.unexpectedApiRequests).toEqual([]);
 });
 
-test("keeps a stored evaluation start year that is outside the suggestions", async ({ mount, page }) => {
+test("keeps a stored reference date that is outside the suggestions", async ({ mount, page }) => {
     await routeSourceFixtures(page, { seriesFor: delayedSeriesFor });
     await mount(
         <EconomicScreeningModuleHarness
@@ -808,7 +808,7 @@ test("keeps a stored evaluation start year that is outside the suggestions", asy
             initialState={{ predictionStartYear: 2016 }}
         />,
     );
-    const year = settingsRegion(page).getByRole("combobox", { name: "Evaluation start" });
+    const year = settingsRegion(page).getByRole("combobox", { name: "Reference date" });
     await expect(settingsRegion(page).getByRole("cell", { name: "2016", exact: true })).toBeVisible();
     await expect(year).toHaveValue("1 Jan 2016");
     await year.click();
@@ -831,7 +831,7 @@ test("commits a typed whole year when focus leaves, and Escape cancels the edit"
         />,
     );
     const settings = settingsRegion(page);
-    const year = settings.getByRole("combobox", { name: "Evaluation start" });
+    const year = settings.getByRole("combobox", { name: "Reference date" });
 
     await typeAndTabAway(page, year, "2018");
     await expectPopupClosed(page);
@@ -886,14 +886,14 @@ test("reports missing source coverage for the selected realizations in the setup
     await expect(setupStatus(page)).toContainText("Source data:");
     await expect(setupStatus(page)).not.toContainText("Setup ready");
     expect(await npvCount()).toBe(0);
-    await expect(settings.getByRole("combobox", { name: "Evaluation start" })).toHaveValue("1 Jan 2016");
+    await expect(settings.getByRole("combobox", { name: "Reference date" })).toHaveValue("1 Jan 2016");
 
     // A zero price removes only that product's coverage requirement.
     const gasPrice = settings.getByRole("textbox", { name: /^Gas price/ });
     await typeAndTabAway(page, gasPrice, "0");
     await expect.poll(() => setupItems(page)).toEqual([coverageBefore("Oil")]);
 
-    await typeAndTabAway(page, settings.getByRole("combobox", { name: "Evaluation start" }), "2018");
+    await typeAndTabAway(page, settings.getByRole("combobox", { name: "Reference date" }), "2018");
     await expect(setupStatus(page)).toHaveText("Setup ready");
     await expect.poll(npvCount).toBe(2);
 
@@ -1035,13 +1035,13 @@ test("starts prices and costs closed for volumes and opens them once a result ne
     const prices = settings.getByRole("button", { name: "Prices", exact: true });
     const costs = settings.getByRole("button", { name: "Costs", exact: true });
     const selectMeasure = async (name: string) => {
-        await settings.getByRole("combobox", { name: "Measure" }).click();
+        await settings.getByRole("combobox", { name: "Response" }).click();
         // Options are named by their label followed by the description.
         await page.getByRole("option", { name: new RegExp(`^${name}`) }).click();
     };
 
-    await expect(settings.getByRole("combobox", { name: "Measure" })).toHaveValue("Discounted oil volume");
-    await settings.getByRole("combobox", { name: "Measure" }).click();
+    await expect(settings.getByRole("combobox", { name: "Response" })).toHaveValue("Discounted oil volume");
+    await settings.getByRole("combobox", { name: "Response" }).click();
     await expect(page.getByRole("group", { name: "Financial" })).toContainText("Needs prices.");
     await expect(page.getByRole("option", { name: /^Net present value/ })).toContainText(
         "Discounted revenue minus discounted costs.",

@@ -61,14 +61,12 @@ describe("resolveEvaluationHorizon", () => {
 
 describe("getEvaluationHorizonError", () => {
     test("names why there is no evaluation, and nothing while loading or ready", () => {
-        expect(getEvaluationHorizonError({ status: "NO_START" })).toBe(
-            "Enter an evaluation start year to calculate results.",
-        );
+        expect(getEvaluationHorizonError({ status: "NO_START" })).toBe("Enter a reference date to calculate results.");
         expect(getEvaluationHorizonError({ status: "UNAVAILABLE" })).toBe(
             "Source coverage is unavailable, so the simulation end cannot be established.",
         );
         expect(getEvaluationHorizonError(resolveEvaluationHorizon(2032, READY_THROUGH_JUNE_2031))).toBe(
-            "The evaluation start year 2032 is after the supported simulation end (Jun 2031).",
+            "The reference date 1 Jan 2032 is after the supported simulation end (Jun 2031).",
         );
         expect(getEvaluationHorizonError({ status: "LOADING" })).toBeNull();
         expect(getEvaluationHorizonError(resolveEvaluationHorizon(2030, READY_THROUGH_JUNE_2031))).toBeNull();

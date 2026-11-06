@@ -254,7 +254,7 @@ function metricData(store: Store, measure: EconomicMeasure) {
 }
 
 describe("Economic Screening query results to channel data", () => {
-    test("retains the valuation date, horizon and exact realization keys after filtering", async () => {
+    test("retains the reference date, horizon and exact realization keys after filtering", async () => {
         const { store } = await setup();
         const before = metricData(store, EconomicMeasure.NPV).find((entry) => entry.key === 42)!;
         expect(before.value).toBeCloseTo(2 * discounted(OIL_42, 2020) + 0.1 * discounted(GAS, 2020), 8);
@@ -345,7 +345,7 @@ describe("Economic Screening query results to channel data", () => {
         expect(metricData(store, EconomicMeasure.DISCOUNTED_OIL_VOLUME)).toEqual([]);
     });
 
-    test("withdraws every value while the evaluation start is missing or after the simulation end", async () => {
+    test("withdraws every value while the reference date is missing or after the simulation end", async () => {
         const { store } = await setup();
         expect(metricData(store, EconomicMeasure.NPV)).toHaveLength(2);
 

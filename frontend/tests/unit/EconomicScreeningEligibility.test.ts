@@ -174,7 +174,7 @@ const START_YEAR = 2030;
 const END_MONTH_INDEX = monthIndexOf(2031, 12);
 
 function productProfile(state: ProductState, volume: number): MonthlyProductionProfile {
-    // Not established: the source starts a year after the valuation date.
+    // Not established: the source starts a year after the reference date.
     const firstYear = state === ProductState.NOT_ESTABLISHED ? START_YEAR + 1 : START_YEAR;
     const monthCount = state === ProductState.NOT_ESTABLISHED ? 12 : 24;
     const months = Array.from({ length: monthCount }, (_, index) => ({

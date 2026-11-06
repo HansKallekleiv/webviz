@@ -3,10 +3,10 @@ import { simulationVectorDescription } from "@modules/_shared/reservoirSimulatio
 import { EconomicMeasure } from "../typesAndEnums";
 import type { SalesGasStrategy } from "../utils/vectorResolution";
 
-export const EVALUATION_START_HELP =
-    "Required. The evaluation runs from 1 January of this year through the supported simulation end, and results are valued at that date. It does not have to match the simulation's switch from history to prediction, and it may precede production to include forecast investment. Suggestions are years with source data from 1 January for the full ensemble, including covered years without production; any whole year can be typed. The historical simulation start is not suggested as a default.";
+export const REFERENCE_DATE_HELP =
+    "Required. The evaluation runs from this date through the supported simulation end, and all results are discounted to it. It does not have to match the simulation's switch from history to prediction, and it may precede production to include forecast investment. Suggestions are years with source data from 1 January for the full ensemble, including covered years without production; any whole year can be typed. The historical simulation start is not suggested as a default.";
 
-export const DISCOUNT_RATE_HELP = "Annual rate used to discount future volumes and cash flow to the valuation date.";
+export const DISCOUNT_RATE_HELP = "Annual rate used to discount future volumes and cash flow to the reference date.";
 
 export const CURRENCY_HELP =
     "Enter all prices and costs in this currency. Changing it does not convert entered values.";
@@ -32,10 +32,10 @@ function makeSalesGasDescription(kind: SalesGasStrategy["kind"]): string {
 }
 
 export const ANNUAL_COSTS_DELTA_HELP =
-    "One row per year from the evaluation start through the simulation end. For a delta ensemble, costs are comparison minus reference; negative values are savings. Blank cells are zero. OPEX is paid in twelve equal monthly amounts; CAPEX at mid-year. The full annual amount applies even in a final year that ends early.";
+    "One row per year from the reference date through the simulation end. For a delta ensemble, costs are comparison minus reference; negative values are savings. Blank cells are zero. OPEX is paid in twelve equal monthly amounts; CAPEX at mid-year. The full annual amount applies even in a final year that ends early.";
 
 export const ANNUAL_COSTS_HELP =
-    "One row per year from the evaluation start through the simulation end. Blank cells are zero. Each year's OPEX is paid in twelve equal monthly amounts and CAPEX at mid-year; the full annual amount applies even in a final year that ends early.";
+    "One row per year from the reference date through the simulation end. Blank cells are zero. Each year's OPEX is paid in twelve equal monthly amounts and CAPEX at mid-year; the full annual amount applies even in a final year that ends early.";
 
 export const RESULTS_HELP =
     "Chooses what the view displays. Display choices do not change calculations or published channels.";

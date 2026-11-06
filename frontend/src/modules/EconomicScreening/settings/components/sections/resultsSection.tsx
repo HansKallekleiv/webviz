@@ -97,7 +97,7 @@ export function ResultsSection(props: ResultsSectionProps): ReactNode {
             </Setting.Field>
             {resultMode === ResultMode.DISTRIBUTION && (
                 <>
-                    <Setting.Field label="Measure" stacked>
+                    <Setting.Field label="Response" stacked>
                         <Combobox<EconomicMeasure>
                             items={MEASURE_ITEMS}
                             value={selectedMeasure}

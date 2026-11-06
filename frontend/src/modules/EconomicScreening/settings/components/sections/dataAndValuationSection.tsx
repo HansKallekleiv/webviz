@@ -18,7 +18,7 @@ import { CalculationHelpDialog } from "../../../view/components/calculationHelpD
 import { discountRatePercentAtom, predictionStartYearAtom } from "../../atoms/baseAtoms";
 import { selectedEnsembleIdentAtom, selectedRealizationAtom } from "../../atoms/persistableFixableAtoms";
 import { isSourceLoadingAtom, predictionStartYearSuggestionsAtom } from "../../atoms/sourceSnapshotAtoms";
-import { DISCOUNT_RATE_HELP, EVALUATION_START_HELP } from "../../helpTexts";
+import { DISCOUNT_RATE_HELP, REFERENCE_DATE_HELP } from "../../helpTexts";
 import { NUMBER_INPUT_DEBOUNCE_MS, setupFieldClassName, type SettingsSectionProps } from "../../settingsSections";
 import { PredictionYearSelector } from "../predictionYearSelector";
 
@@ -73,8 +73,8 @@ export function DataAndValuationSection(props: DataAndValuationSectionProps): Re
                 />
             </Setting.Field>
             <Setting.Field
-                label="Evaluation start"
-                help={{ title: "Evaluation start", content: EVALUATION_START_HELP }}
+                label="Reference date"
+                help={{ title: "Reference date", content: REFERENCE_DATE_HELP }}
                 contentClassName={setupFieldClassName("predictionYear")}
                 warningAnnotation={getFieldIssueText(props.readiness, "predictionYear")}
                 stacked

@@ -2,7 +2,7 @@ import { formatMonthIndex } from "./calendar";
 import { monthIndexOf } from "./monthlyProduction";
 import { SourceStatus, type EconomicSourceSnapshot } from "./sourceSnapshot";
 
-/** 1 January of the evaluation start year through the source envelope end month. */
+/** The reference date (1 January of the start year) through the source envelope end month. */
 export type EvaluationHorizon = {
     startYear: number;
     endYear: number;
@@ -45,11 +45,11 @@ export function resolveEvaluationHorizon(
 export function getEvaluationHorizonError(state: EvaluationHorizonState): string | null {
     switch (state.status) {
         case "NO_START":
-            return "Enter an evaluation start year to calculate results.";
+            return "Enter a reference date to calculate results.";
         case "UNAVAILABLE":
             return "Source coverage is unavailable, so the simulation end cannot be established.";
         case "START_AFTER_END":
-            return `The evaluation start year ${state.startYear} is after the supported simulation end (${formatMonthIndex(state.envelopeEndMonthIndex)}).`;
+            return `The reference date 1 Jan ${state.startYear} is after the supported simulation end (${formatMonthIndex(state.envelopeEndMonthIndex)}).`;
         case "LOADING":
         case "READY":
             return null;

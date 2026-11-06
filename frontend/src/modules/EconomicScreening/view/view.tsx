@@ -119,14 +119,14 @@ export function View(props: ModuleViewProps<Interfaces>): React.ReactNode {
         selectedRealization !== null && !hasRealizationProfile(results, cashFlowProfileType, selectedRealization);
     const activeAssumptions = [
         `Discount rate ${economicAssumptions.discountRatePercent}%`,
-        horizon ? `Valuation 1 Jan ${horizon.startYear}` : null,
+        horizon ? `Reference date 1 Jan ${horizon.startYear}` : null,
         horizon ? `Evaluation ${horizon.startYear}-${horizon.endYear}` : null,
         "Monthly production, revenue and OPEX; mid-year CAPEX",
         `Currency ${currency}`,
     ].filter((assumption): assumption is string => assumption !== null);
     const pendingMessage =
         evaluationHorizon.status === "NO_START"
-            ? "Enter an evaluation start year in the settings to calculate results."
+            ? "Enter a reference date in the settings to calculate results."
             : sourceSnapshot.status === SourceStatus.READY
               ? getEvaluationHorizonError(evaluationHorizon)
               : null;

@@ -184,12 +184,12 @@ export function CostProfileEditor(props: CostProfileEditorProps): React.ReactNod
             <div className="gap-y-xs flex flex-col items-start">
                 <span className="text-sm font-light">
                     {horizon.status === "NO_START"
-                        ? "Enter an evaluation start year to generate cost years."
+                        ? "Enter a reference date to generate cost years."
                         : isSourceLoading || horizon.status === "LOADING"
                           ? "Cost years are generated when the simulation data has loaded."
                           : endYear === null
                             ? "Cost years are unavailable until source coverage establishes the simulation end."
-                            : `The evaluation start year is after the simulation end (${endYear}).`}
+                            : `The reference date is after the simulation end (${endYear}).`}
                 </span>
                 {excludedNotice}
             </div>
