@@ -1,6 +1,5 @@
 import { describe, expect, test } from "vitest";
 
-import { GasPriceBasis, OilPriceBasis } from "@modules/EconomicScreening/typesAndEnums";
 import {
     convertGasPriceToSimulatorUnit,
     convertGasToOilEquivalentFactorToSimulatorUnit,
@@ -21,36 +20,38 @@ describe("volumeUnitInSm3", () => {
 });
 
 describe("convertOilPriceToSimulatorUnit", () => {
-    test("passes the price through when the bases match", () => {
-        expect(convertOilPriceToSimulatorUnit(70, OilPriceBasis.PER_SM3, "SM3")).toBeCloseTo(70, 10);
+    test("passes a per-barrel price through for a barrel simulator unit", () => {
+        expect(convertOilPriceToSimulatorUnit(70, "STB")).toBeCloseTo(70, 10);
     });
 
     test("scales a per-barrel price up to a per-Sm³ price", () => {
-        const result = convertOilPriceToSimulatorUnit(70, OilPriceBasis.PER_BBL, "SM3");
+        const result = convertOilPriceToSimulatorUnit(70, "SM3");
 
         expect(result).toBeCloseTo(70 * 6.2898, 2);
     });
 
     test("returns null for an unrecognised simulator unit", () => {
-        expect(convertOilPriceToSimulatorUnit(70, OilPriceBasis.PER_BBL, "???")).toBeNull();
+        expect(convertOilPriceToSimulatorUnit(70, "???")).toBeNull();
     });
 });
 
 describe("convertOilPriceFromSimulatorUnit", () => {
-    test("converts a per-Sm³ break-even price to the selected per-barrel basis", () => {
-        expect(convertOilPriceFromSimulatorUnit(70 * 6.2898, OilPriceBasis.PER_BBL, "SM3")).toBeCloseTo(70, 2);
+    test("converts a per-Sm³ break-even price to a per-barrel price", () => {
+        expect(convertOilPriceFromSimulatorUnit(70 * 6.2898, "SM3")).toBeCloseTo(70, 2);
     });
 
     test("returns null for an unrecognised simulator unit", () => {
-        expect(convertOilPriceFromSimulatorUnit(70, OilPriceBasis.PER_BBL, "???")).toBeNull();
+        expect(convertOilPriceFromSimulatorUnit(70, "???")).toBeNull();
     });
 });
 
 describe("convertGasPriceToSimulatorUnit", () => {
-    test("scales a per-Mscf price down to a per-Sm³ price", () => {
-        const result = convertGasPriceToSimulatorUnit(3, GasPriceBasis.PER_MSCF, "SM3");
+    test("passes a per-Sm³ price through for an Sm³ simulator unit", () => {
+        expect(convertGasPriceToSimulatorUnit(0.3, "SM3")).toBeCloseTo(0.3, 10);
+    });
 
-        expect(result).toBeCloseTo(3 / 28.3168, 4);
+    test("scales a per-Sm³ price up to a per-Mscf price for an Mscf simulator unit", () => {
+        expect(convertGasPriceToSimulatorUnit(0.3, "MSCF")).toBeCloseTo(0.3 * 28.3168, 3);
     });
 });
 

@@ -68,7 +68,7 @@ cost PV = CAPEX PV + OPEX PV
 NPV = revenue PV - cost PV
 ```
 
-Prices and costs use the selected currency, NOK or USD. Changing the currency does not convert entered values. A blank price is unspecified, so NPV is unavailable unless that product is confirmed zero in every month of the evaluation. A price of 0 intentionally omits that product's revenue; it does not turn missing volume data into zero volume.
+Prices and costs are in USD: oil per barrel, gas per Sm³. A blank price is unspecified, so NPV is unavailable unless that product is confirmed zero in every month of the evaluation. A price of 0 intentionally omits that product's revenue; it does not turn missing volume data into zero volume.
 
 Cost years are generated from the year of the reference date through the simulation end. Blank cost cells are zero, so an operating cost does not repeat through the remaining years. Costs stored for years outside these rows are kept and listed, but not used. Zero entered costs means the NPV is discounted revenue, not a complete project-profitability estimate.
 
@@ -119,7 +119,7 @@ Displayed values share one scale per plot or table column, with three significan
 This illustrative example covers 2020 and 2021, with source-aligned monthly coverage for both years:
 
 - Monthly production: 10 Sm3 oil and 100 Sm3 sales gas in every month.
-- Prices: 2 USD/Sm3 oil and 0.1 USD/Sm3 gas, so monthly revenue is 30 USD.
+- Prices: 2 USD/Sm3 oil (entered as 0.318 USD/bbl) and 0.1 USD/Sm3 gas, so monthly revenue is 30 USD.
 - Discount rate: 10%, with reference date 1 January 2020.
 - Costs: CAPEX of 100 USD in 2020, discounted at mid-2020, and OPEX of 60 USD in each of 2020 and 2021, paid as 5 USD per month.
 
@@ -147,7 +147,7 @@ discounted costs = 95.35 + 57.23 + 52.03 = 204.60 USD
 
 net cost = discounted costs - 0.1 * discounted gas
 break-even oil price = net cost / discounted oil
-break-even oil price = -0.06366 USD/Sm3
+break-even oil price = -0.06366 USD/Sm3 = -0.01012 USD/bbl
 ```
 
-Substituting **-0.06366 USD/Sm3** as the oil price gives NPV approximately zero with the same gas price. The price is negative because discounted gas revenue already exceeds discounted costs. IRR is not selected for this profile: net monthly inflows from January to June 2020 are received before the mid-2020 CAPEX, so the cash flow changes sign more than once. These prices are illustrative, not recommended asset assumptions.
+Substituting **-0.01012 USD/bbl** as the oil price gives NPV approximately zero with the same gas price. The price is negative because discounted gas revenue already exceeds discounted costs. IRR is not selected for this profile: net monthly inflows from January to June 2020 are received before the mid-2020 CAPEX, so the cash flow changes sign more than once. These prices are illustrative, not recommended asset assumptions.

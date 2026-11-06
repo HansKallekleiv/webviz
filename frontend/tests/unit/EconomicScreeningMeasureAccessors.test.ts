@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { EconomicMeasure, IrrStatus, OilPriceBasis } from "@modules/EconomicScreening/typesAndEnums";
+import { EconomicMeasure, IrrStatus } from "@modules/EconomicScreening/typesAndEnums";
 import { Ineligibility } from "@modules/EconomicScreening/utils/eligibility";
 import {
     getMeasureDisplayName,
@@ -115,14 +115,10 @@ describe("getMeasureDisplayName", () => {
 });
 
 describe("getMeasureUnit", () => {
-    test("labels the break-even price with currency and volume basis like the price inputs", () => {
-        const context = { oilUnit: "SM3", gasUnit: "SM3", currency: "USD" };
-        expect(
-            getMeasureUnit(EconomicMeasure.BREAK_EVEN_OIL_PRICE, { ...context, oilPriceBasis: OilPriceBasis.PER_SM3 }),
-        ).toBe("USD per Sm³");
-        expect(
-            getMeasureUnit(EconomicMeasure.BREAK_EVEN_OIL_PRICE, { ...context, oilPriceBasis: OilPriceBasis.PER_BBL }),
-        ).toBe("USD per bbl");
+    test("labels the break-even price in USD/bbl like the oil price input, and money in USD", () => {
+        const context = { oilUnit: "SM3", gasUnit: "SM3" };
+        expect(getMeasureUnit(EconomicMeasure.BREAK_EVEN_OIL_PRICE, context)).toBe("USD/bbl");
+        expect(getMeasureUnit(EconomicMeasure.NPV, context)).toBe("USD");
     });
 });
 

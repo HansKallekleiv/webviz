@@ -23,12 +23,9 @@ import { MODULE_NAME } from "@modules/EconomicScreening/registerModule";
 import {
     cashFlowProfileTypeAtom,
     costProfileAtom,
-    currencyAtom,
     discountRatePercentAtom,
     gasPriceAtom,
-    gasPriceBasisAtom,
     oilPriceAtom,
-    oilPriceBasisAtom,
     predictionStartYearAtom,
     resultModeAtom,
     selectedMeasureAtom,
@@ -43,7 +40,8 @@ import type {
     EconomicMeasure,
     ResultMode,
 } from "@modules/EconomicScreening/typesAndEnums";
-import { Currency, GasPriceBasis, OilPriceBasis } from "@modules/EconomicScreening/typesAndEnums";
+
+import { perBbl } from "./economicScreeningConnectedFixtures";
 
 /** Serializable overrides of the harness defaults; an absent key keeps the default. */
 export type EconomicScreeningHarnessInitialState = {
@@ -117,13 +115,10 @@ function makeModuleInstance(initialState: EconomicScreeningHarnessInitialState =
     store.set(EnsembleSetAtom, ENSEMBLE_SET);
     store.set(selectedEnsembleIdentAtom, ENSEMBLE.getIdent());
     store.set(predictionStartYearAtom, 2030);
-    store.set(currencyAtom, Currency.USD);
-    store.set(oilPriceAtom, 50);
-    store.set(oilPriceBasisAtom, OilPriceBasis.PER_SM3);
+    store.set(oilPriceAtom, perBbl(50));
     store.set(gasPriceAtom, 0.2);
-    store.set(gasPriceBasisAtom, GasPriceBasis.PER_SM3);
     if ("predictionStartYear" in initialState) store.set(predictionStartYearAtom, initialState.predictionStartYear!);
-    if ("oilPrice" in initialState) store.set(oilPriceAtom, initialState.oilPrice!);
+    if ("oilPrice" in initialState) store.set(oilPriceAtom, perBbl(initialState.oilPrice!));
     if ("gasPrice" in initialState) store.set(gasPriceAtom, initialState.gasPrice!);
     if (initialState.discountRatePercent !== undefined) {
         store.set(discountRatePercentAtom, initialState.discountRatePercent);

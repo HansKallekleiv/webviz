@@ -325,23 +325,16 @@ test("shows an unavailable state, not zero results, when a source request fails"
     await expectNoConfigurationInputsInView(page);
 });
 
-test("names currency options by their values and selects them with arrow keys", async ({ mount, page }) => {
+test("prices in fixed USD units without currency or unit choices", async ({ mount, page }) => {
     await routeSourceFixtures(page);
     await mount(<EconomicScreeningModuleHarness settingsOpen viewWidth={900} viewHeight={640} />);
+    const settings = settingsRegion(page);
+    await settings.getByRole("button", { name: "Prices", exact: true }).click();
 
-    const currency = settingsRegion(page).getByRole("radiogroup", { name: "Currency" });
-    const nok = currency.getByRole("radio", { name: "NOK" });
-    const usd = currency.getByRole("radio", { name: "USD" });
-    await expect(currency.getByRole("radio")).toHaveCount(2);
-    await expect(nok).toHaveAccessibleName("NOK");
-    await expect(usd).toHaveAccessibleName("USD");
-    await expect(usd).toBeChecked();
-
-    await usd.focus();
-    await page.keyboard.press("ArrowLeft");
-    await expect(nok).toBeChecked();
-    await expect(nok).toBeFocused();
-    await expect(settingsRegion(page).getByText("Oil price [NOK per Sm³]")).toBeVisible();
+    await expect(settings.getByRole("textbox", { name: "Oil price [USD/bbl]", exact: true })).toBeVisible();
+    await expect(settings.getByRole("textbox", { name: "Gas price [USD/Sm³]", exact: true })).toBeVisible();
+    await expect(settings.getByRole("radiogroup", { name: "Currency" })).toHaveCount(0);
+    await expect(settings.getByRole("combobox", { name: /per bbl|per Sm³|per Mscf/ })).toHaveCount(0);
 });
 
 test("keeps the time-profile legend clear of the year axis in a narrow view", async ({ mount, page }) => {
@@ -481,7 +474,7 @@ for (const layout of [
         ).toBeVisible();
         await expect(settings.getByRole("checkbox", { name: "Assume no gas consumption" })).not.toBeChecked();
 
-        for (const label of ["Discount rate [%]", "Oil price [USD per Sm³]", "Gas price [USD per Sm³]"]) {
+        for (const label of ["Discount rate [%]", "Oil price [USD/bbl]", "Gas price [USD/Sm³]"]) {
             const input = settings.getByRole("textbox", { name: label, exact: true });
             await input.scrollIntoViewIfNeeded();
             const labelBox = (await settings.getByText(label, { exact: true }).boundingBox())!;

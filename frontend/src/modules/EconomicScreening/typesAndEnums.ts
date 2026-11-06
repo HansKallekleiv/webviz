@@ -28,30 +28,10 @@ export enum IrrStatus {
     OUT_OF_DOMAIN = "OUT_OF_DOMAIN",
 }
 
-export enum Currency {
-    NOK = "NOK",
-    USD = "USD",
-}
-
-export enum OilPriceBasis {
-    PER_SM3 = "PER_SM3",
-    PER_BBL = "PER_BBL",
-}
-
-export const OilPriceBasisEnumToStringMapping: Record<OilPriceBasis, string> = {
-    [OilPriceBasis.PER_SM3]: "per Sm³",
-    [OilPriceBasis.PER_BBL]: "per bbl",
-};
-
-export enum GasPriceBasis {
-    PER_SM3 = "PER_SM3",
-    PER_MSCF = "PER_MSCF",
-}
-
-export const GasPriceBasisEnumToStringMapping: Record<GasPriceBasis, string> = {
-    [GasPriceBasis.PER_SM3]: "per Sm³",
-    [GasPriceBasis.PER_MSCF]: "per Mscf",
-};
+/** All prices and costs are in USD; oil is priced per bbl and gas per Sm³. */
+export const CURRENCY = "USD";
+export const OIL_PRICE_UNIT = "USD/bbl";
+export const GAS_PRICE_UNIT = "USD/Sm³";
 
 export enum DistributionPlotType {
     EXCEEDANCE = "EXCEEDANCE",
@@ -110,13 +90,10 @@ export enum CostDraftStatus {
 }
 
 export type PriceAssumptions = {
-    currency: Currency;
-    /** Null means unspecified. Zero intentionally omits oil revenue. */
+    /** USD/bbl. Null means unspecified. Zero intentionally omits oil revenue. */
     oilPrice: number | null;
-    oilPriceBasis: OilPriceBasis;
-    /** Null means unspecified. Zero intentionally omits gas revenue. */
+    /** USD/Sm³. Null means unspecified. Zero intentionally omits gas revenue. */
     gasPrice: number | null;
-    gasPriceBasis: GasPriceBasis;
 };
 
 export type EconomicAssumptions = {

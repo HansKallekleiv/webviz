@@ -5,25 +5,19 @@ import { SchemaBuilder } from "@modules/_shared/jtd-schemas/SchemaBuilder";
 import type { CostProfileEntry } from "@modules/EconomicScreening/typesAndEnums";
 import {
     CashFlowProfileType,
-    Currency,
     DistributionPlotType,
     EconomicMeasure,
-    GasPriceBasis,
-    OilPriceBasis,
     ResultMode,
 } from "@modules/EconomicScreening/typesAndEnums";
 
 import {
     costProfileAtom,
     cashFlowProfileTypeAtom,
-    currencyAtom,
     discountRatePercentAtom,
     distributionPlotTypeAtom,
     gasPriceAtom,
-    gasPriceBasisAtom,
     missingComponentAssumptionsAtom,
     oilPriceAtom,
-    oilPriceBasisAtom,
     predictionStartYearAtom,
     resultModeAtom,
     selectedMeasureAtom,
@@ -42,11 +36,8 @@ export type SerializedSettings = {
     selectedEnsembleIdentString: string | null;
     discountRatePercent: number;
     predictionStartYear: number | null;
-    currency: Currency;
     oilPrice: number | null;
-    oilPriceBasis: OilPriceBasis;
     gasPrice: number | null;
-    gasPriceBasis: GasPriceBasis;
     costProfile: CostProfileEntry[];
     resultMode: ResultMode;
     selectedMeasure: EconomicMeasure;
@@ -66,11 +57,8 @@ const schemaBuilder = new SchemaBuilder<SerializedSettings>(() => ({
         selectedEnsembleIdentString: { type: "string", nullable: true },
         discountRatePercent: { type: "float64" },
         predictionStartYear: { type: "int32", nullable: true },
-        currency: { enum: Object.values(Currency) },
         oilPrice: { type: "float64", nullable: true },
-        oilPriceBasis: { enum: Object.values(OilPriceBasis) },
         gasPrice: { type: "float64", nullable: true },
-        gasPriceBasis: { enum: Object.values(GasPriceBasis) },
         costProfile: {
             elements: {
                 properties: {
@@ -104,11 +92,8 @@ export const serializeSettings: SerializeStateFunction<SerializedSettings> = (ge
         selectedEnsembleIdentString: get(selectedEnsembleIdentAtom).value?.toString() ?? null,
         discountRatePercent: get(discountRatePercentAtom),
         predictionStartYear: get(predictionStartYearAtom),
-        currency: get(currencyAtom),
         oilPrice: get(oilPriceAtom),
-        oilPriceBasis: get(oilPriceBasisAtom),
         gasPrice: get(gasPriceAtom),
-        gasPriceBasis: get(gasPriceBasisAtom),
         costProfile: get(costProfileAtom),
         resultMode: get(resultModeAtom),
         selectedMeasure: get(selectedMeasureAtom),
@@ -139,11 +124,8 @@ export const deserializeSettings: DeserializeStateFunction<SerializedSettings> =
     setIfDefined(set, selectedEnsembleIdentAtom, selectedEnsembleIdent);
     setIfDefined(set, discountRatePercentAtom, raw.discountRatePercent);
     setIfDefined(set, predictionStartYearAtom, raw.predictionStartYear);
-    setIfDefined(set, currencyAtom, raw.currency);
     setIfDefined(set, oilPriceAtom, raw.oilPrice);
-    setIfDefined(set, oilPriceBasisAtom, raw.oilPriceBasis);
     setIfDefined(set, gasPriceAtom, raw.gasPrice);
-    setIfDefined(set, gasPriceBasisAtom, raw.gasPriceBasis);
     setIfDefined(set, costProfileAtom, raw.costProfile);
     setIfDefined(set, resultModeAtom, raw.resultMode);
     setIfDefined(set, selectedMeasureAtom, raw.selectedMeasure);

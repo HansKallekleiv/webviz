@@ -5,11 +5,11 @@ import {
     formatWithCommonScale,
     makeCommonNumberScale,
 } from "@modules/_shared/utils/numberFormatting";
-import type { OilPriceBasis } from "@modules/EconomicScreening/typesAndEnums";
 import {
+    CURRENCY,
     EconomicMeasure,
     EconomicMeasureEnumToStringMapping,
-    OilPriceBasisEnumToStringMapping,
+    OIL_PRICE_UNIT,
 } from "@modules/EconomicScreening/typesAndEnums";
 
 import {
@@ -32,11 +32,10 @@ export type MeasureDisplayScale = CommonNumberScale & {
     unit: string;
 };
 
+/** Simulator volume units of the source vectors. */
 export type MeasureUnitContext = {
     oilUnit: string;
     gasUnit: string;
-    currency: string;
-    oilPriceBasis: OilPriceBasis;
 };
 
 /** Measures withheld by an invalid cost draft: NPV, IRR and break-even oil price. */
@@ -58,7 +57,7 @@ function rawMeasureValue(
         case EconomicMeasure.BREAK_EVEN_OIL_PRICE:
             return result.breakEvenOilPrice === null
                 ? null
-                : convertOilPriceFromSimulatorUnit(result.breakEvenOilPrice, context.oilPriceBasis, context.oilUnit);
+                : convertOilPriceFromSimulatorUnit(result.breakEvenOilPrice, context.oilUnit);
         case EconomicMeasure.DISCOUNTED_OIL_VOLUME:
             return result.hasOilData ? result.discountedOilVolume : null;
         case EconomicMeasure.DISCOUNTED_SALES_GAS_VOLUME:
@@ -97,11 +96,11 @@ export function getMeasureUnit(measure: EconomicMeasure, context: MeasureUnitCon
 
     switch (measure) {
         case EconomicMeasure.NPV:
-            return context.currency;
+            return CURRENCY;
         case EconomicMeasure.IRR:
             return "%";
         case EconomicMeasure.BREAK_EVEN_OIL_PRICE:
-            return `${context.currency} ${OilPriceBasisEnumToStringMapping[context.oilPriceBasis]}`;
+            return OIL_PRICE_UNIT;
         case EconomicMeasure.DISCOUNTED_OIL_VOLUME:
         case EconomicMeasure.DISCOUNTED_OIL_EQUIVALENTS:
             return oilUnit;

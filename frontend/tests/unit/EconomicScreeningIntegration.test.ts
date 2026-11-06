@@ -10,12 +10,9 @@ import { RegularEnsemble } from "@framework/RegularEnsemble";
 import { makeMeasureDataGenerator } from "@modules/EconomicScreening/dataGenerators";
 import {
     costProfileAtom,
-    currencyAtom,
     discountRatePercentAtom,
     gasPriceAtom,
-    gasPriceBasisAtom,
     oilPriceAtom,
-    oilPriceBasisAtom,
     predictionStartYearAtom,
 } from "@modules/EconomicScreening/settings/atoms/baseAtoms";
 import type * as SettingsDerivedAtoms from "@modules/EconomicScreening/settings/atoms/derivedAtoms";
@@ -25,10 +22,12 @@ import {
     validRealizationNumbersAtom,
     vectorDataQueriesAtom,
 } from "@modules/EconomicScreening/settings/atoms/sourceQueryAtoms";
-import { Currency, EconomicMeasure, GasPriceBasis, OilPriceBasis } from "@modules/EconomicScreening/typesAndEnums";
+import { EconomicMeasure } from "@modules/EconomicScreening/typesAndEnums";
 import { monthStartUtcMs, SourceKind } from "@modules/EconomicScreening/utils/monthlyProduction";
 import { volumeUnitInSm3 } from "@modules/EconomicScreening/utils/unitConversion";
 import { economicScreeningResultsAtom } from "@modules/EconomicScreening/view/atoms/derivedAtoms";
+
+import { perBbl } from "../ct/support/economicScreeningConnectedFixtures";
 
 import {
     createEconomicScreeningInstance,
@@ -73,7 +72,7 @@ type QueryFixtureAtom = WritableAtom<QueryResult[], [QueryResult[]], void>;
 type Store = ReturnType<typeof createStore>;
 
 const DAY_MS = 86_400_000;
-const unitContext = { oilUnit: "SM3", gasUnit: "SM3", currency: "USD", oilPriceBasis: OilPriceBasis.PER_SM3 };
+const unitContext = { oilUnit: "SM3", gasUnit: "SM3" };
 
 const REGULAR_ENSEMBLE = new RegularEnsemble(
     "asset",
@@ -191,14 +190,13 @@ function setQueries(store: Store, oil: QueryResult, gas: QueryResult) {
     store.set(vectorDataQueriesAtom as unknown as QueryFixtureAtom, [oil, gas, query([]), query([]), query([])]);
 }
 
-function setOilPrice(store: Store, price: number | null, basis = OilPriceBasis.PER_SM3) {
-    store.set(oilPriceAtom, price);
-    store.set(oilPriceBasisAtom, basis);
+/** Takes a price per Sm³, as the expected values are; the module's oil price is per bbl. */
+function setOilPrice(store: Store, pricePerSm3: number | null) {
+    store.set(oilPriceAtom, perBbl(pricePerSm3));
 }
 
-function setGasPrice(store: Store, price: number | null, basis = GasPriceBasis.PER_SM3) {
+function setGasPrice(store: Store, price: number | null) {
     store.set(gasPriceAtom, price);
-    store.set(gasPriceBasisAtom, basis);
 }
 
 /** Sum of monthly volumes discounted at month midpoints to 1 January of the start year. */
@@ -229,7 +227,6 @@ async function setup(options: { sourceKind?: SourceKind } = {}) {
     );
     store.set(discountRatePercentAtom, 10);
     store.set(predictionStartYearAtom, 2020);
-    store.set(currencyAtom, Currency.USD);
     setOilPrice(store, 2);
     setGasPrice(store, 0.1);
     const { instance } = await createEconomicScreeningInstance(store);
@@ -279,7 +276,10 @@ describe("Economic Screening query results to channel data", () => {
         const expectedNpv = 2 * discounted(OIL_7, 2020) + 0.1 * discounted(GAS, 2020) - pvCosts;
         expect(metricData(store, EconomicMeasure.NPV)[0].value).toBeCloseTo(expectedNpv, 8);
         const expectedBreakEven = (pvCosts - 0.1 * discounted(GAS, 2020)) / discounted(OIL_7, 2020);
-        expect(metricData(store, EconomicMeasure.BREAK_EVEN_OIL_PRICE)[0].value).toBeCloseTo(expectedBreakEven, 8);
+        expect(metricData(store, EconomicMeasure.BREAK_EVEN_OIL_PRICE)[0].value).toBeCloseTo(
+            perBbl(expectedBreakEven),
+            8,
+        );
         setOilPrice(store, expectedBreakEven);
         expect(metricData(store, EconomicMeasure.NPV)[0].value).toBeCloseTo(0, 8);
 
@@ -316,8 +316,8 @@ describe("Economic Screening query results to channel data", () => {
         );
 
         setQueries(store, query(oilInBbl), query(gasInMscf));
-        setOilPrice(store, 2 * bblInSm3, OilPriceBasis.PER_BBL);
-        setGasPrice(store, 0.1 * mscfInSm3, GasPriceBasis.PER_MSCF);
+        setOilPrice(store, 2);
+        setGasPrice(store, 0.1);
 
         const convertedNpv = metricData(store, EconomicMeasure.NPV);
         const convertedOilVolumes = metricGenerator(store, EconomicMeasure.DISCOUNTED_OIL_VOLUME);

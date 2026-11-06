@@ -3,41 +3,23 @@ import type { ReactNode } from "react";
 import { useAtom, useAtomValue } from "jotai";
 
 import { CheckboxCompositions } from "@lib/components/Checkbox/compositions";
-import { Combobox } from "@lib/components/Combobox";
 import { NumberInput } from "@lib/components/NumberInput";
 import { Setting } from "@lib/components/Setting";
 import { useDebouncedOnChange } from "@lib/hooks/usedDebouncedStateEmit";
 
-import {
-    Currency,
-    GasPriceBasis,
-    GasPriceBasisEnumToStringMapping,
-    OilPriceBasis,
-    OilPriceBasisEnumToStringMapping,
-} from "../../../typesAndEnums";
+import { GAS_PRICE_UNIT, OIL_PRICE_UNIT } from "../../../typesAndEnums";
 import { getFieldIssueText } from "../../../utils/setupReadiness";
 import type { MissingComponentAssumptions, SalesGasStrategy } from "../../../utils/vectorResolution";
-import {
-    currencyAtom,
-    gasPriceAtom,
-    gasPriceBasisAtom,
-    missingComponentAssumptionsAtom,
-    oilPriceAtom,
-    oilPriceBasisAtom,
-} from "../../atoms/baseAtoms";
+import { gasPriceAtom, missingComponentAssumptionsAtom, oilPriceAtom } from "../../atoms/baseAtoms";
 import { activeVectorListQueryAtom, hasOilProductionVectorAtom, salesGasStrategyAtom } from "../../atoms/derivedAtoms";
 import { validSelectedEnsembleIdentAtom } from "../../atoms/persistableFixableAtoms";
-import { CURRENCY_HELP, GAS_PRICE_HELP, makeSalesGasSourceHelp, OIL_PRICE_HELP } from "../../helpTexts";
+import { GAS_PRICE_HELP, makeSalesGasSourceHelp, OIL_PRICE_HELP } from "../../helpTexts";
 import { NUMBER_INPUT_DEBOUNCE_MS, setupFieldClassName, type SettingsSectionProps } from "../../settingsSections";
-import { NamedRadioGroup } from "../namedRadioGroup";
 
 export function PricesSection(props: SettingsSectionProps): ReactNode {
     const selectedEnsembleIdent = useAtomValue(validSelectedEnsembleIdentAtom);
-    const [currency, setCurrency] = useAtom(currencyAtom);
     const [oilPrice, setOilPrice] = useAtom(oilPriceAtom);
-    const [oilPriceBasis, setOilPriceBasis] = useAtom(oilPriceBasisAtom);
     const [gasPrice, setGasPrice] = useAtom(gasPriceAtom);
-    const [gasPriceBasis, setGasPriceBasis] = useAtom(gasPriceBasisAtom);
     const [missingComponentAssumptionsByEnsemble, setMissingComponentAssumptionsByEnsemble] = useAtom(
         missingComponentAssumptionsAtom,
     );
@@ -56,24 +38,6 @@ export function PricesSection(props: SettingsSectionProps): ReactNode {
         NUMBER_INPUT_DEBOUNCE_MS,
     );
 
-    function handleCurrencyChange(newCurrency: Currency) {
-        setCurrency(newCurrency);
-    }
-
-    function handleOilPriceBasisChange(newBasis: OilPriceBasis | null) {
-        if (newBasis === null) {
-            return;
-        }
-        setOilPriceBasis(newBasis);
-    }
-
-    function handleGasPriceBasisChange(newBasis: GasPriceBasis | null) {
-        if (newBasis === null) {
-            return;
-        }
-        setGasPriceBasis(newBasis);
-    }
-
     function setMissingComponentAssumption(key: keyof MissingComponentAssumptions, accepted: boolean) {
         const ensembleKey = selectedEnsembleIdent?.toString();
         if (!ensembleKey) {
@@ -90,45 +54,26 @@ export function PricesSection(props: SettingsSectionProps): ReactNode {
 
     return (
         <Setting.Section {...props.sectionProps}>
-            <Setting.Field label="Currency" stacked help={{ title: "Currency", content: CURRENCY_HELP }}>
-                <NamedRadioGroup
-                    value={currency}
-                    options={Object.values(Currency).map((value) => ({ value, label: value }))}
-                    onValueChange={handleCurrencyChange}
-                />
-            </Setting.Field>
             {hasOilProductionVector && (
                 <Setting.Field
-                    label={`Oil price [${currency} ${OilPriceBasisEnumToStringMapping[oilPriceBasis]}]`}
+                    label={`Oil price [${OIL_PRICE_UNIT}]`}
                     help={{ title: "Oil price", content: OIL_PRICE_HELP }}
-                    contentClassName={`${setupFieldClassName("oilPrice")} flex gap-x-xs [&>div]:min-w-0`}
+                    contentClassName={setupFieldClassName("oilPrice")}
                     warningAnnotation={getFieldIssueText(props.readiness, "oilPrice")}
                     stacked
                 >
-                    <>
-                        <NumberInput
-                            value={immediateOilPrice}
-                            layoutClassName="[&_input]:text-right"
-                            placeholder="Enter price"
-                            onValueChange={setImmediateOilPrice}
-                        />
-                        <div className="w-32 shrink-0">
-                            <Combobox
-                                items={Object.values(OilPriceBasis).map((value) => ({
-                                    value,
-                                    label: OilPriceBasisEnumToStringMapping[value],
-                                }))}
-                                value={oilPriceBasis}
-                                onValueChange={handleOilPriceBasisChange}
-                            />
-                        </div>
-                    </>
+                    <NumberInput
+                        value={immediateOilPrice}
+                        layoutClassName="[&_input]:text-right"
+                        placeholder="Enter price"
+                        onValueChange={setImmediateOilPrice}
+                    />
                 </Setting.Field>
             )}
             <Setting.Field
-                label={`Gas price [${currency} ${GasPriceBasisEnumToStringMapping[gasPriceBasis]}]`}
+                label={`Gas price [${GAS_PRICE_UNIT}]`}
                 help={{ title: "Gas price", content: GAS_PRICE_HELP }}
-                contentClassName={`${setupFieldClassName("gasPrice")} flex gap-x-xs [&>div]:min-w-0`}
+                contentClassName={setupFieldClassName("gasPrice")}
                 warningAnnotation={getFieldIssueText(props.readiness, "gasPrice")}
                 infoAnnotation={
                     gasPrice === 0
@@ -137,24 +82,12 @@ export function PricesSection(props: SettingsSectionProps): ReactNode {
                 }
                 stacked
             >
-                <>
-                    <NumberInput
-                        value={immediateGasPrice}
-                        layoutClassName="[&_input]:text-right"
-                        placeholder="Enter price"
-                        onValueChange={setImmediateGasPrice}
-                    />
-                    <div className="w-32 shrink-0">
-                        <Combobox
-                            items={Object.values(GasPriceBasis).map((value) => ({
-                                value,
-                                label: GasPriceBasisEnumToStringMapping[value],
-                            }))}
-                            value={gasPriceBasis}
-                            onValueChange={handleGasPriceBasisChange}
-                        />
-                    </div>
-                </>
+                <NumberInput
+                    value={immediateGasPrice}
+                    layoutClassName="[&_input]:text-right"
+                    placeholder="Enter price"
+                    onValueChange={setImmediateGasPrice}
+                />
             </Setting.Field>
             <Setting.Field
                 label="Sales gas source"

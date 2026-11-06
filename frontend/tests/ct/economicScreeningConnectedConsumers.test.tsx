@@ -30,6 +30,7 @@ import {
     makeMonthlySeries,
     OIL_PRICE_USD_PER_SM3,
     PARTIAL_OIL_REALIZATION,
+    perBbl,
 } from "./support/economicScreeningConnectedFixtures";
 import { expect, test } from "./support/offlineComponentTest";
 
@@ -622,7 +623,10 @@ test("typing a valid cost keeps financial channels published until the debounced
     scatter.forEach(([key, x, y]) => {
         expect(x).toBeCloseTo(expectedNpv(DESIGN_MONTHLY_OIL[key]) + CAPEX_PV - newCapexPv, 4);
         expect(y).toBeCloseTo(
-            expectedBreakEven(DESIGN_MONTHLY_OIL[key]) + (newCapexPv - CAPEX_PV) / (DESIGN_MONTHLY_OIL[key] * D_FULL),
+            perBbl(
+                expectedBreakEven(DESIGN_MONTHLY_OIL[key]) +
+                    (newCapexPv - CAPEX_PV) / (DESIGN_MONTHLY_OIL[key] * D_FULL),
+            ),
             4,
         );
     });
@@ -723,9 +727,9 @@ test("representative NPV, volume, IRR and break-even units reach DistributionPlo
     );
     await expectDistributionBars(
         page,
-        expectedByKey(FULL_OIL_KEYS, (r) => expectedBreakEven(oil(r))),
+        expectedByKey(FULL_OIL_KEYS, (r) => perBbl(expectedBreakEven(oil(r)))),
     );
-    await expectVisibleUnit(page, "x", "USD per Sm³");
+    await expectVisibleUnit(page, "x", "USD/bbl");
     await page.screenshot({ path: `${SCREENSHOT_DIR}/distribution-break-even-units.png` });
 
     await component.update(

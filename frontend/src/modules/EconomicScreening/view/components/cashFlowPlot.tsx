@@ -2,7 +2,7 @@ import type { Layout, PlotData } from "plotly.js";
 
 import { ContentInfo } from "@modules/_shared/components/ContentMessage";
 import { Plot } from "@modules/_shared/components/Plot";
-import { CashFlowProfileType } from "@modules/EconomicScreening/typesAndEnums";
+import { CashFlowProfileType, CURRENCY } from "@modules/EconomicScreening/typesAndEnums";
 import { makeDisplayScale } from "@modules/EconomicScreening/utils/measureAccessors";
 import type { MonthlyRealizationEconomicResult } from "@modules/EconomicScreening/utils/monthlyEconomics";
 import {
@@ -12,7 +12,6 @@ import {
 
 export type CashFlowPlotProps = {
     results: MonthlyRealizationEconomicResult[];
-    currency: string;
     oilUnit: string;
     gasUnit: string;
     profileType: CashFlowProfileType;
@@ -134,7 +133,7 @@ export function CashFlowPlot(props: CashFlowPlotProps): React.ReactNode {
                       aggregate: cashFlowAggregate,
                       band: cashFlowAggregate.annualNetCashFlow,
                       name: "Annual net cash flow",
-                      unit: props.currency,
+                      unit: CURRENCY,
                       isMoney: true,
                   }
                 : props.profileType === CashFlowProfileType.CUMULATIVE_DISCOUNTED_CASH_FLOW && cashFlowAggregate
@@ -142,7 +141,7 @@ export function CashFlowPlot(props: CashFlowPlotProps): React.ReactNode {
                         aggregate: cashFlowAggregate,
                         band: cashFlowAggregate.cumulativeDiscountedCashFlow,
                         name: "Cumulative discounted cash flow",
-                        unit: props.currency,
+                        unit: CURRENCY,
                         isMoney: true,
                     }
                   : null;

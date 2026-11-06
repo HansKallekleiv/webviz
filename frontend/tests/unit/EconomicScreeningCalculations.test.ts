@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { BreakEvenSlopeDirection, GasPriceBasis, IrrStatus } from "@modules/EconomicScreening/typesAndEnums";
+import { BreakEvenSlopeDirection, IrrStatus } from "@modules/EconomicScreening/typesAndEnums";
 import {
     aggregateCoincidentEvents,
     computeInternalRateOfReturnFromEvents,
@@ -951,7 +951,7 @@ describe("monthly screening model", () => {
             },
             makeMonthlyAssumptions({
                 oilPricePerVolume: 50,
-                gasPricePerVolume: convertGasPriceToSimulatorUnit(3, GasPriceBasis.PER_MSCF, "SM3"),
+                gasPricePerVolume: convertGasPriceToSimulatorUnit(0.1, "SM3"),
                 gasToOilEquivalentDivisor: makeFixedOilEquivalentDivisor("SM3", "SM3")!,
             }),
             [{ year: 2030, capex: 1000, opex: 0 }],
@@ -968,7 +968,7 @@ describe("monthly screening model", () => {
             },
             makeMonthlyAssumptions({
                 oilPricePerVolume: 50,
-                gasPricePerVolume: convertGasPriceToSimulatorUnit(3, GasPriceBasis.PER_MSCF, "MSCF"),
+                gasPricePerVolume: convertGasPriceToSimulatorUnit(0.1, "MSCF"),
                 gasToOilEquivalentDivisor: makeFixedOilEquivalentDivisor("SM3", "MSCF")!,
             }),
             [{ year: 2030, capex: 1000, opex: 0 }],

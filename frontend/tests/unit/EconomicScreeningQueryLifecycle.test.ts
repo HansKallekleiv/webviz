@@ -20,13 +20,10 @@ import {
     cashFlowProfileTypeAtom,
     costDraftStatusAtom,
     costProfileAtom,
-    currencyAtom,
     discountRatePercentAtom,
     distributionPlotTypeAtom,
     gasPriceAtom,
-    gasPriceBasisAtom,
     oilPriceAtom,
-    oilPriceBasisAtom,
     predictionStartYearAtom,
     resultModeAtom,
     selectedMeasureAtom,
@@ -43,11 +40,8 @@ import {
 import {
     CashFlowProfileType,
     CostDraftStatus,
-    Currency,
     DistributionPlotType,
     EconomicMeasure,
-    GasPriceBasis,
-    OilPriceBasis,
     ResultMode,
 } from "@modules/EconomicScreening/typesAndEnums";
 import { Ineligibility } from "@modules/EconomicScreening/utils/eligibility";
@@ -72,6 +66,7 @@ import {
     scaleReferenceEconomics,
     scaleServedMonthlyVolumes,
     type ScaleEconomicInputs,
+    perBbl,
 } from "../ct/support/economicScreeningConnectedFixtures";
 
 import {
@@ -237,11 +232,8 @@ function resetRequests() {
 function setEconomicInputs(store: Store) {
     store.set(discountRatePercentAtom, 10);
     store.set(predictionStartYearAtom, 2030);
-    store.set(currencyAtom, Currency.USD);
-    store.set(oilPriceAtom, 50);
-    store.set(oilPriceBasisAtom, OilPriceBasis.PER_SM3);
+    store.set(oilPriceAtom, perBbl(50));
     store.set(gasPriceAtom, 0.2);
-    store.set(gasPriceBasisAtom, GasPriceBasis.PER_SM3);
 }
 
 function makeStore(ensembleSet: EnsembleSet) {
@@ -273,14 +265,7 @@ function publishedThroughChannel(store: Store, measure: EconomicMeasure) {
         MEASURE_CHANNEL_ID_MAP[measure],
         results.length === 0
             ? null
-            : makeMeasureDataGenerator(
-                  results,
-                  measure,
-                  { oilUnit, gasUnit, currency: "USD", oilPriceBasis: OilPriceBasis.PER_SM3 },
-                  "fixture",
-                  "Fixture",
-                  "#123456",
-              ),
+            : makeMeasureDataGenerator(results, measure, { oilUnit, gasUnit }, "fixture", "Fixture", "#123456"),
     );
 }
 
@@ -621,7 +606,7 @@ describe("Economic Screening source queries and publication", () => {
         const horizonBefore = store.get(sourceHorizonAtom);
         const snapshotBefore = store.get(settingsSourceSnapshotAtom);
 
-        store.set(oilPriceAtom, 60);
+        store.set(oilPriceAtom, perBbl(60));
         store.set(costProfileAtom, [{ year: 2030, capex: 1000, opex: 100 }]);
         store.set(discountRatePercentAtom, 12);
         await waitFor(() => publishedNpv(store)[0].value !== beforeEdits[0].value);
@@ -631,7 +616,7 @@ describe("Economic Screening source queries and publication", () => {
         expect(executedRequestKeys).toHaveLength(2);
         expect(store.get(settingsSourceSnapshotAtom)).toBe(snapshotBefore);
 
-        store.set(oilPriceAtom, 50);
+        store.set(oilPriceAtom, perBbl(50));
         store.set(costProfileAtom, []);
         store.set(discountRatePercentAtom, 10);
         store.set(predictionStartYearAtom, 2030);
@@ -922,7 +907,7 @@ function resolveScaleSources(caseKey: string, realizations: number[], delta: boo
 function setScaleInputs(store: Store, inputs: ScaleEconomicInputs) {
     store.set(predictionStartYearAtom, inputs.predictionStartYear);
     store.set(discountRatePercentAtom, inputs.discountRatePercent);
-    store.set(oilPriceAtom, inputs.oilPrice);
+    store.set(oilPriceAtom, perBbl(inputs.oilPrice));
     store.set(gasPriceAtom, inputs.gasPrice);
     store.set(costProfileAtom, inputs.costs);
 }
@@ -949,7 +934,7 @@ describe("Economic Screening at scale", () => {
         expect(store.get(sourceHorizonAtom)).toEqual({ endYear: SCALE_LAST_YEAR, isLoading: false });
 
         // Distinct edits, each in its own turn, then a batch written within a single turn.
-        store.set(oilPriceAtom, 45);
+        store.set(oilPriceAtom, perBbl(45));
         await nextTurn();
         store.set(gasPriceAtom, 0.18);
         await nextTurn();
@@ -963,8 +948,8 @@ describe("Economic Screening at scale", () => {
         store.set(costProfileAtom, costs);
         store.set(costDraftStatusAtom, CostDraftStatus.COMMITTED);
         await nextTurn();
-        store.set(oilPriceAtom, 47);
-        store.set(oilPriceAtom, 46);
+        store.set(oilPriceAtom, perBbl(47));
+        store.set(oilPriceAtom, perBbl(46));
         await nextTurn();
 
         const inputs = { ...SCALE_BASE_INPUTS, oilPrice: 46, gasPrice: 0.18, discountRatePercent: 7, costs };
@@ -989,7 +974,8 @@ describe("Economic Screening at scale", () => {
         expectChannel(
             publishedThroughChannel(store, EconomicMeasure.BREAK_EVEN_OIL_PRICE),
             fullOil,
-            (entry) => entry.breakEvenOilPrice,
+            // The reference is per Sm³; the channel publishes USD/bbl.
+            (entry) => perBbl(entry.breakEvenOilPrice),
         );
         const irr = publishedThroughChannel(store, EconomicMeasure.IRR);
         expect(irr.map((entry) => entry.key)).toEqual(fullOil.map((entry) => entry.realization));
@@ -1066,7 +1052,7 @@ describe("Economic Screening at scale", () => {
         await waitFor(() => store.get(economicScreeningResultsAtom).results.length === 100);
         const snapshot = store.get(settingsSourceSnapshotAtom);
 
-        store.set(oilPriceAtom, 55);
+        store.set(oilPriceAtom, perBbl(55));
         await nextTurn();
         store.set(discountRatePercentAtom, 6);
         await nextTurn();

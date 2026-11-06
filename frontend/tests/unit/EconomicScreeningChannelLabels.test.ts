@@ -1,10 +1,10 @@
 import { describe, expect, test } from "vitest";
 
 import { makeChannelDisplayString, makeMeasureDataGenerator } from "@modules/EconomicScreening/dataGenerators";
-import { EconomicMeasure, OilPriceBasis } from "@modules/EconomicScreening/typesAndEnums";
+import { EconomicMeasure } from "@modules/EconomicScreening/typesAndEnums";
 
 const CONTEXT = { discountRatePercent: 8, predictionStartYear: 2019 };
-const UNIT_CONTEXT = { oilUnit: "SM3", gasUnit: "SM3", currency: "USD", oilPriceBasis: OilPriceBasis.PER_SM3 };
+const UNIT_CONTEXT = { oilUnit: "SM3", gasUnit: "SM3" };
 
 function displayStringOf(measure: EconomicMeasure): string | undefined {
     return makeMeasureDataGenerator([], measure, UNIT_CONTEXT, "ensemble", "iter-0", "#000", CONTEXT)().metaData

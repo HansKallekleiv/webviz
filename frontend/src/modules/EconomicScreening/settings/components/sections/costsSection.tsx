@@ -7,7 +7,7 @@ import { isEnsembleIdentOfType } from "@framework/utils/ensembleIdentUtils";
 import { Setting } from "@lib/components/Setting";
 
 import { getFieldIssueText } from "../../../utils/setupReadiness";
-import { costDraftStatusAtom, costProfileAtom, currencyAtom } from "../../atoms/baseAtoms";
+import { costDraftStatusAtom, costProfileAtom } from "../../atoms/baseAtoms";
 import { validSelectedEnsembleIdentAtom } from "../../atoms/persistableFixableAtoms";
 import { evaluationHorizonStateAtom, isSourceLoadingAtom } from "../../atoms/sourceSnapshotAtoms";
 import { ANNUAL_COSTS_DELTA_HELP, ANNUAL_COSTS_HELP } from "../../helpTexts";
@@ -18,7 +18,6 @@ export function CostsSection(props: SettingsSectionProps): ReactNode {
     const selectedEnsembleIdent = useAtomValue(validSelectedEnsembleIdentAtom);
     const [costProfile, setCostProfile] = useAtom(costProfileAtom);
     const setCostDraftStatus = useSetAtom(costDraftStatusAtom);
-    const currency = useAtomValue(currencyAtom);
     const evaluationHorizon = useAtomValue(evaluationHorizonStateAtom);
     const isSourceLoading = useAtomValue(isSourceLoadingAtom);
 
@@ -40,7 +39,6 @@ export function CostsSection(props: SettingsSectionProps): ReactNode {
                 <CostProfileEditor
                     ensembleKey={selectedEnsembleIdent?.toString()}
                     value={costProfile}
-                    currency={currency}
                     isDelta={isDeltaEnsembleSelected}
                     horizon={evaluationHorizon}
                     isSourceLoading={isSourceLoading}

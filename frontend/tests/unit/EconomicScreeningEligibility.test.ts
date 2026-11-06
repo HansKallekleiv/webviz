@@ -1,11 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import {
-    CostDraftStatus,
-    EconomicMeasure,
-    OilPriceBasis,
-    type CostProfileEntry,
-} from "@modules/EconomicScreening/typesAndEnums";
+import { CostDraftStatus, EconomicMeasure, type CostProfileEntry } from "@modules/EconomicScreening/typesAndEnums";
 import {
     getBreakEvenIneligibility,
     getIneligibilityMessage,
@@ -199,7 +194,7 @@ function maskFinancial(result: MonthlyRealizationEconomicResult): MonthlyRealiza
     };
 }
 
-const UNIT_CONTEXT = { oilUnit: "SM3", gasUnit: "SM3", currency: "USD", oilPriceBasis: OilPriceBasis.PER_SM3 };
+const UNIT_CONTEXT = { oilUnit: "SM3", gasUnit: "SM3" };
 
 /** IRR counts as calculated when the solver ran, since no finite root is a valid outcome. */
 function hasMeasureValue(results: MonthlyRealizationEconomicResult[], measure: EconomicMeasure): boolean {

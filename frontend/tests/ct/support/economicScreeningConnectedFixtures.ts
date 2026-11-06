@@ -1,4 +1,5 @@
 import { SensitivityType, type Sensitivity } from "@framework/EnsembleSensitivities";
+import { SM3_PER_BBL } from "@modules/EconomicScreening/utils/unitConversion";
 
 /** Source inputs shared by the connected-consumer harness and its spec; expected outputs are derived in the spec. */
 export const DESIGN_CASE_UUID = "d0000000-0000-4000-8000-000000000001";
@@ -37,6 +38,11 @@ export const FIRST_PRODUCTION_YEAR = 2031;
 export const EVALUATION_END_YEAR = 2032;
 export const DISCOUNT_RATE_PERCENT = 10;
 export const OIL_PRICE_USD_PER_SM3 = 50;
+
+/** Fixtures state oil prices per Sm³; the module takes USD/bbl. */
+export function perBbl<T extends number | null>(pricePerSm3: T): T {
+    return (pricePerSm3 === null ? null : pricePerSm3 * SM3_PER_BBL) as T;
+}
 export const GAS_PRICE_USD_PER_SM3 = 0.2;
 export const CAPEX_2030_USD = 1_000_000;
 export const GAS_SM3_PER_OIL_SM3 = 100;

@@ -1,7 +1,8 @@
-import type { GasPriceBasis, OilPriceBasis } from "@modules/EconomicScreening/typesAndEnums";
 import { DEFAULT_GAS_TO_OIL_EQUIVALENT_FACTOR } from "@modules/EconomicScreening/typesAndEnums";
 
-const SM3_PER_STB = 0.158987294928;
+/** One barrel in Sm³. */
+export const SM3_PER_BBL = 0.158987294928;
+const SM3_PER_STB = SM3_PER_BBL;
 const SM3_PER_SCF = 0.028316846592;
 const SM3_PER_MSCF = 1000 * SM3_PER_SCF;
 
@@ -20,16 +21,6 @@ const VOLUME_UNIT_IN_SM3: Record<string, number> = {
     MSM3: 1e6,
 };
 
-const OIL_PRICE_BASIS_IN_SM3: Record<OilPriceBasis, number> = {
-    PER_SM3: 1,
-    PER_BBL: SM3_PER_STB,
-};
-
-const GAS_PRICE_BASIS_IN_SM3: Record<GasPriceBasis, number> = {
-    PER_SM3: 1,
-    PER_MSCF: SM3_PER_MSCF,
-};
-
 export function normalizeVolumeUnit(rawUnit: string): string {
     return rawUnit.trim().toUpperCase();
 }
@@ -41,44 +32,31 @@ export function volumeUnitInSm3(rawUnit: string): number | null {
     return VOLUME_UNIT_IN_SM3[normalizeVolumeUnit(rawUnit)] ?? null;
 }
 
-/**
- * Rescales a price given per `basis` into a price per unit of the simulator volume unit.
- */
-export function convertOilPriceToSimulatorUnit(
-    price: number,
-    basis: OilPriceBasis,
-    simulatorUnit: string,
-): number | null {
+/** Rescales an oil price per bbl into a price per unit of the simulator volume unit. */
+export function convertOilPriceToSimulatorUnit(pricePerBbl: number, simulatorUnit: string): number | null {
     const simulatorUnitInSm3 = volumeUnitInSm3(simulatorUnit);
     if (simulatorUnitInSm3 === null) {
         return null;
     }
-    return (price * simulatorUnitInSm3) / OIL_PRICE_BASIS_IN_SM3[basis];
+    return (pricePerBbl * simulatorUnitInSm3) / SM3_PER_STB;
 }
 
-/** Rescales a price per simulator volume unit into the selected display basis. */
-export function convertOilPriceFromSimulatorUnit(
-    price: number,
-    basis: OilPriceBasis,
-    simulatorUnit: string,
-): number | null {
+/** Rescales a price per simulator volume unit into a price per bbl. */
+export function convertOilPriceFromSimulatorUnit(price: number, simulatorUnit: string): number | null {
     const simulatorUnitInSm3 = volumeUnitInSm3(simulatorUnit);
     if (simulatorUnitInSm3 === null) {
         return null;
     }
-    return (price * OIL_PRICE_BASIS_IN_SM3[basis]) / simulatorUnitInSm3;
+    return (price * SM3_PER_STB) / simulatorUnitInSm3;
 }
 
-export function convertGasPriceToSimulatorUnit(
-    price: number,
-    basis: GasPriceBasis,
-    simulatorUnit: string,
-): number | null {
+/** Rescales a gas price per Sm³ into a price per unit of the simulator volume unit. */
+export function convertGasPriceToSimulatorUnit(pricePerSm3: number, simulatorUnit: string): number | null {
     const simulatorUnitInSm3 = volumeUnitInSm3(simulatorUnit);
     if (simulatorUnitInSm3 === null) {
         return null;
     }
-    return (price * simulatorUnitInSm3) / GAS_PRICE_BASIS_IN_SM3[basis];
+    return pricePerSm3 * simulatorUnitInSm3;
 }
 
 /**

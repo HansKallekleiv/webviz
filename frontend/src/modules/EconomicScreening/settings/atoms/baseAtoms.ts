@@ -5,11 +5,8 @@ import {
     DEFAULT_DISCOUNT_RATE_PERCENT,
     CashFlowProfileType,
     CostDraftStatus,
-    Currency,
     DistributionPlotType,
     EconomicMeasure,
-    GasPriceBasis,
-    OilPriceBasis,
     ResultMode,
 } from "@modules/EconomicScreening/typesAndEnums";
 import type { MissingComponentAssumptions } from "@modules/EconomicScreening/utils/vectorResolution";
@@ -17,11 +14,8 @@ import type { MissingComponentAssumptions } from "@modules/EconomicScreening/uti
 export const discountRatePercentAtom = atom<number>(DEFAULT_DISCOUNT_RATE_PERCENT);
 export const predictionStartYearAtom = atom<number | null>(null);
 
-export const currencyAtom = atom<Currency>(Currency.USD);
 export const oilPriceAtom = atom<number | null>(null);
-export const oilPriceBasisAtom = atom<OilPriceBasis>(OilPriceBasis.PER_BBL);
 export const gasPriceAtom = atom<number | null>(null);
-export const gasPriceBasisAtom = atom<GasPriceBasis>(GasPriceBasis.PER_SM3);
 
 export const costProfileAtom = atom<CostProfileEntry[]>([]);
 export const costDraftStatusAtom = atom<CostDraftStatus>(CostDraftStatus.COMMITTED);

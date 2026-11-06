@@ -8,14 +8,11 @@ export const REFERENCE_DATE_HELP =
 
 export const DISCOUNT_RATE_HELP = "Annual rate used to discount future volumes and cash flow to the reference date.";
 
-export const CURRENCY_HELP =
-    "Enter all prices and costs in this currency. Changing it does not convert entered values.";
-
 export const OIL_PRICE_HELP =
-    "Constant oil sales price over the evaluation. Blank means unspecified; enter 0 to intentionally omit oil revenue. A price of 0 does not turn missing oil data into zero volume. Volume results and break-even oil price do not need an oil price.";
+    "Constant oil sales price in USD per barrel over the evaluation. Blank means unspecified; enter 0 to intentionally omit oil revenue. A price of 0 does not turn missing oil data into zero volume. Volume results and break-even oil price do not need an oil price.";
 
 export const GAS_PRICE_HELP =
-    "Constant sales-gas price over the evaluation. Blank means unspecified; enter 0 to intentionally omit gas revenue. A price of 0 does not turn missing gas data into zero volume, and sales-gas volume results still need the gas source. Volume results do not need a price.";
+    "Constant sales-gas price in USD per Sm³ over the evaluation. Blank means unspecified; enter 0 to intentionally omit gas revenue. A price of 0 does not turn missing gas data into zero volume, and sales-gas volume results still need the gas source. Volume results do not need a price.";
 
 export function makeSalesGasSourceHelp(kind: SalesGasStrategy["kind"]): string {
     return `${makeSalesGasDescription(kind)} A missing vector is not proof of zero. Accepting treats it as zero for this ensemble only, which can increase sales gas and NPV.`;

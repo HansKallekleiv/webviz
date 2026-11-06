@@ -8,7 +8,7 @@ import { NumberInput } from "@lib/components/NumberInput";
 import { Table } from "@lib/components/Table";
 import { TextArea } from "@lib/components/TextArea";
 import { useDebouncedFunction } from "@lib/hooks/usedDebouncedStateEmit";
-import { CostDraftStatus, type CostProfileEntry } from "@modules/EconomicScreening/typesAndEnums";
+import { CostDraftStatus, CURRENCY, type CostProfileEntry } from "@modules/EconomicScreening/typesAndEnums";
 import {
     getCostYearsOutsideRange,
     hasIncludedNonZeroCost,
@@ -24,7 +24,6 @@ const COST_INPUT_DEBOUNCE_MS = 500;
 export type CostProfileEditorProps = {
     /** Every stored entry, including entries outside the generated years, which are kept for recovery. */
     value: CostProfileEntry[];
-    currency: string;
     isDelta: boolean;
     /** Generated cost years run from the evaluation start through the simulation end, inclusive. */
     horizon: EvaluationHorizonState;
@@ -232,10 +231,10 @@ export function CostProfileEditor(props: CostProfileEditorProps): React.ReactNod
                             Year
                         </Table.Cell>
                         <Table.Cell colKey="capex">
-                            {isDelta ? "Delta CAPEX" : "CAPEX"} [{props.currency}]
+                            {isDelta ? "Delta CAPEX" : "CAPEX"} [{CURRENCY}]
                         </Table.Cell>
                         <Table.Cell colKey="opex">
-                            {isDelta ? "Delta OPEX" : "OPEX"} [{props.currency}]
+                            {isDelta ? "Delta OPEX" : "OPEX"} [{CURRENCY}]
                         </Table.Cell>
                     </Table.Row>
                 </Table.Head>
@@ -306,7 +305,7 @@ export function CostProfileEditor(props: CostProfileEditorProps): React.ReactNod
                             Paste three tab-separated columns: Year, CAPEX, OPEX. No header row or thousands separators;
                             use plain numeric values. Empty costs are zero.{" "}
                             {isDelta ? "Signed delta costs are allowed." : "Costs must be non-negative."} Amounts are in{" "}
-                            {props.currency}.
+                            {CURRENCY}.
                         </Dialog.Description>
                         <TextArea
                             aria-label="Year, CAPEX, OPEX rows"
@@ -338,8 +337,8 @@ export function CostProfileEditor(props: CostProfileEditorProps): React.ReactNod
                                     <Table.Head>
                                         <Table.Row>
                                             <Table.Cell>Year</Table.Cell>
-                                            <Table.Cell>CAPEX [{props.currency}]</Table.Cell>
-                                            <Table.Cell>OPEX [{props.currency}]</Table.Cell>
+                                            <Table.Cell>CAPEX [{CURRENCY}]</Table.Cell>
+                                            <Table.Cell>OPEX [{CURRENCY}]</Table.Cell>
                                         </Table.Row>
                                     </Table.Head>
                                     <Table.Body>

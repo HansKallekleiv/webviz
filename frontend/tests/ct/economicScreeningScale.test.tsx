@@ -3,6 +3,7 @@ import type { Page } from "@playwright/test";
 import { PlotType } from "@modules/DistributionPlot/typesAndEnums";
 import { MEASURE_CHANNEL_ID_MAP } from "@modules/EconomicScreening/channelDefs";
 import { CostDraftStatus, EconomicMeasure } from "@modules/EconomicScreening/typesAndEnums";
+import { SM3_PER_BBL } from "@modules/EconomicScreening/utils/unitConversion";
 
 import {
     EconomicScreeningConnectedConsumersHarness,
@@ -20,6 +21,7 @@ import {
     scaleReferenceEconomics,
     scaleServedMonthlyVolumes,
     type ScaleEconomicInputs,
+    perBbl,
 } from "./support/economicScreeningConnectedFixtures";
 import { expect, test } from "./support/offlineComponentTest";
 
@@ -119,7 +121,7 @@ function expectedScatter(state: ScaleState) {
     return {
         count: plotted.length,
         sumX: plotted.reduce((sum, expected) => sum + expected.npv, 0),
-        sumY: plotted.reduce((sum, expected) => sum + expected.breakEvenOilPrice, 0),
+        sumY: plotted.reduce((sum, expected) => sum + perBbl(expected.breakEvenOilPrice), 0),
     };
 }
 
@@ -295,8 +297,8 @@ async function expectPublishedState(page: Page, state: ScaleState, options: { fi
     const inputsLabel = `; ${state.inputs.discountRatePercent}%, from ${state.inputs.predictionStartYear})`;
     expect(npv.metaData.displayString).toMatch(/^NPV \(.+; /);
     expect(npv.metaData.displayString!.endsWith(inputsLabel)).toBe(true);
-    const breakEven = expectKeyedValues(BREAK_EVEN_CHANNEL, fullOil, (entry) => entry.breakEvenOilPrice);
-    expect(breakEven.metaData.unit).toBe("USD per Sm³");
+    const breakEven = expectKeyedValues(BREAK_EVEN_CHANNEL, fullOil, (entry) => perBbl(entry.breakEvenOilPrice));
+    expect(breakEven.metaData.unit).toBe("USD/bbl");
 
     // Every regular IRR is finite; each published rate is a root of that realization's own cash flow.
     const irr = contentOf(IRR_CHANNEL)!;
@@ -331,6 +333,7 @@ test("500 realizations: rapid Settings edits, invalid draft, display changes and
     await observeInputAndLongTasks(page);
 
     // A burst of distinct edits, each its own browser turn; debounced price and cost fields are re-edited quickly.
+    // Oil prices are typed in USD/bbl; the reference state holds them per Sm³.
     await typeValue(page, inputs.oilPrice(page), "45");
     await typeValue(page, inputs.oilPrice(page), "47");
     await typeValue(page, inputs.gasPrice(page), "0.18");
@@ -339,7 +342,7 @@ test("500 realizations: rapid Settings edits, invalid draft, display changes and
     await typeValue(page, inputs.cost(page, "CAPEX", SCALE_FIRST_YEAR), "4200000");
     await typeValue(page, inputs.oilPrice(page), "46");
     let state: ScaleState = withCost(
-        withCost(withInputs(BASE_STATE, { oilPrice: 46, gasPrice: 0.18, discountRatePercent: 7 }), 2040, {
+        withCost(withInputs(BASE_STATE, { oilPrice: 46 / SM3_PER_BBL, gasPrice: 0.18, discountRatePercent: 7 }), 2040, {
             opex: 50_000,
         }),
         SCALE_FIRST_YEAR,

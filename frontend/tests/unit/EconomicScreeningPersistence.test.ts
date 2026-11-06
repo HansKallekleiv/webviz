@@ -15,14 +15,11 @@ import {
 import {
     cashFlowProfileTypeAtom,
     costProfileAtom,
-    currencyAtom,
     discountRatePercentAtom,
     distributionPlotTypeAtom,
     gasPriceAtom,
-    gasPriceBasisAtom,
     missingComponentAssumptionsAtom,
     oilPriceAtom,
-    oilPriceBasisAtom,
     predictionStartYearAtom,
     resultModeAtom,
     selectedMeasureAtom,
@@ -39,11 +36,8 @@ import {
 } from "@modules/EconomicScreening/settings/persistence";
 import {
     CashFlowProfileType,
-    Currency,
     DistributionPlotType,
     EconomicMeasure,
-    GasPriceBasis,
-    OilPriceBasis,
     ResultMode,
 } from "@modules/EconomicScreening/typesAndEnums";
 
@@ -88,7 +82,6 @@ function populate(
     store: Store,
     overrides: {
         predictionStartYear?: number;
-        currency?: Currency;
         resultMode?: ResultMode;
         realization?: number | null;
     } = {},
@@ -96,11 +89,8 @@ function populate(
     store.set(selectedEnsembleIdentAtom, ENSEMBLE.getIdent());
     store.set(discountRatePercentAtom, 7);
     store.set(predictionStartYearAtom, overrides.predictionStartYear ?? 2031);
-    store.set(currencyAtom, overrides.currency ?? Currency.NOK);
     store.set(oilPriceAtom, 0);
-    store.set(oilPriceBasisAtom, OilPriceBasis.PER_SM3);
     store.set(gasPriceAtom, null);
-    store.set(gasPriceBasisAtom, GasPriceBasis.PER_MSCF);
     store.set(costProfileAtom, [
         { year: 2020, capex: 900, opex: 0 },
         { year: 2031, capex: 100, opex: -12 },
@@ -121,11 +111,8 @@ function snapshot(store: Store) {
         ensemble: store.get(selectedEnsembleIdentAtom).value?.toString() ?? null,
         discountRatePercent: store.get(discountRatePercentAtom),
         predictionStartYear: store.get(predictionStartYearAtom),
-        currency: store.get(currencyAtom),
         oilPrice: store.get(oilPriceAtom),
-        oilPriceBasis: store.get(oilPriceBasisAtom),
         gasPrice: store.get(gasPriceAtom),
-        gasPriceBasis: store.get(gasPriceBasisAtom),
         costProfile: store.get(costProfileAtom),
         resultMode: store.get(resultModeAtom),
         selectedMeasure: store.get(selectedMeasureAtom),
@@ -170,14 +157,11 @@ describe("Economic Screening current-state persistence", () => {
             [
                 "cashFlowProfileType",
                 "costProfile",
-                "currency",
                 "discountRatePercent",
                 "distributionPlotType",
                 "gasPrice",
-                "gasPriceBasis",
                 "missingComponentAssumptionsByEnsemble",
                 "oilPrice",
-                "oilPriceBasis",
                 "predictionStartYear",
                 "resultMode",
                 "selectedEnsembleIdentString",
@@ -319,10 +303,10 @@ describe("Economic Screening current-state persistence", () => {
                 gasToOilEquivalentFactor: 1000,
                 currency: "USD",
                 oilPrice: 70,
-                oilPriceBasis: OilPriceBasis.PER_BBL,
+                oilPriceBasis: "PER_BBL",
                 excludeOilRevenue: true,
                 gasPrice: null,
-                gasPriceBasis: GasPriceBasis.PER_SM3,
+                gasPriceBasis: "PER_SM3",
                 costProfile: [{ year: 2030, capex: 1, opex: 1 }],
                 evaluationFirstYear: 2030,
                 evaluationLastYear: 2040,
@@ -353,12 +337,12 @@ describe("Economic Screening current-state persistence", () => {
             },
         ],
         ["an unknown state format", (current) => ({ ...current, stateFormat: "MONTHLY_SETTINGS_OWNED_V3" })],
-        ["an unsupported currency", (current) => ({ ...current, currency: "EUR" })],
+        ["the removed currency field", (current) => ({ ...current, currency: "USD" })],
         ["an unsupported result mode", (current) => ({ ...current, resultMode: "BOX_ONLY" })],
         ["the removed box distribution plot", (current) => ({ ...current, distributionPlotType: "BOX" })],
     ])("rejects %s before changing any current setting", (_description, makeState) => {
         const target = makeStore();
-        populate(target, { predictionStartYear: 2044, currency: Currency.USD, resultMode: ResultMode.DISTRIBUTION });
+        populate(target, { predictionStartYear: 2044, resultMode: ResultMode.DISTRIBUTION });
         const before = snapshot(target);
         const { serialized } = currentState();
 

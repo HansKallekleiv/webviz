@@ -4,13 +4,10 @@ import {
     costDraftStatusAtom,
     costProfileAtom,
     cashFlowProfileTypeAtom,
-    currencyAtom,
     discountRatePercentAtom,
     distributionPlotTypeAtom,
     gasPriceAtom,
-    gasPriceBasisAtom,
     oilPriceAtom,
-    oilPriceBasisAtom,
     resultModeAtom,
     selectedMeasureAtom,
 } from "./settings/atoms/baseAtoms";
@@ -76,11 +73,8 @@ export const settingsToViewInterfaceInitialization: InterfaceInitialization<Sett
     },
     priceAssumptions: (get) => {
         return {
-            currency: get(currencyAtom),
             oilPrice: get(oilPriceAtom),
-            oilPriceBasis: get(oilPriceBasisAtom),
             gasPrice: get(gasPriceAtom),
-            gasPriceBasis: get(gasPriceBasisAtom),
         };
     },
     costProfile: (get) => {

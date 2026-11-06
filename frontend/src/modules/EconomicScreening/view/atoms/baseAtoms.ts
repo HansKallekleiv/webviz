@@ -5,11 +5,8 @@ import {
     DEFAULT_DISCOUNT_RATE_PERCENT,
     CashFlowProfileType,
     CostDraftStatus,
-    Currency,
     DistributionPlotType,
     EconomicMeasure,
-    GasPriceBasis,
-    OilPriceBasis,
     ResultMode,
 } from "@modules/EconomicScreening/typesAndEnums";
 import type { EvaluationHorizonState } from "@modules/EconomicScreening/utils/evaluationHorizon";
@@ -26,11 +23,8 @@ export const economicAssumptionsAtom = atom<EconomicAssumptions>({
 });
 
 export const priceAssumptionsAtom = atom<PriceAssumptions>({
-    currency: Currency.USD,
     oilPrice: null,
-    oilPriceBasis: OilPriceBasis.PER_BBL,
     gasPrice: null,
-    gasPriceBasis: GasPriceBasis.PER_SM3,
 });
 
 export const costProfileAtom = atom<CostProfileEntry[]>([]);

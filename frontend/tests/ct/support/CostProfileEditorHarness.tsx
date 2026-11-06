@@ -33,7 +33,6 @@ export function CostProfileEditorHarness({
             {showEditor && (
                 <CostProfileEditor
                     value={costProfile}
-                    currency="USD"
                     isDelta={isDelta}
                     horizon={resolveEvaluationHorizon(startYear, {
                         status: isHorizonLoading && endYear === null ? SourceStatus.LOADING : SourceStatus.READY,

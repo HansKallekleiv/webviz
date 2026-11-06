@@ -94,13 +94,7 @@ export function View(props: ModuleViewProps<Interfaces>): React.ReactNode {
         [instanceTitle, props.viewContext],
     );
 
-    const currency = priceAssumptions.currency;
-    const unitContext = {
-        oilUnit,
-        gasUnit,
-        currency,
-        oilPriceBasis: priceAssumptions.oilPriceBasis,
-    };
+    const unitContext = { oilUnit, gasUnit };
     const measureValues = getMeasureValues(results, selectedMeasure, unitContext);
     const breakEvenTargetCount =
         priceAssumptions.oilPrice === null
@@ -122,7 +116,6 @@ export function View(props: ModuleViewProps<Interfaces>): React.ReactNode {
         horizon ? `Reference date 1 Jan ${horizon.startYear}` : null,
         horizon ? `Evaluation ${horizon.startYear}-${horizon.endYear}` : null,
         "Monthly production, revenue and OPEX; mid-year CAPEX",
-        `Currency ${currency}`,
     ].filter((assumption): assumption is string => assumption !== null);
     const pendingMessage =
         evaluationHorizon.status === "NO_START"
@@ -209,7 +202,6 @@ export function View(props: ModuleViewProps<Interfaces>): React.ReactNode {
                                 {(width, height) => (
                                     <CashFlowPlot
                                         results={results}
-                                        currency={currency}
                                         profileType={cashFlowProfileType}
                                         selectedRealization={selectedRealization}
                                         oilUnit={getMeasureUnit(EconomicMeasure.DISCOUNTED_OIL_VOLUME, unitContext)}

@@ -57,13 +57,10 @@ import { MODULE_NAME as ECONOMIC_MODULE_NAME } from "@modules/EconomicScreening/
 import {
     costDraftStatusAtom,
     costProfileAtom,
-    currencyAtom,
     discountRatePercentAtom,
     distributionPlotTypeAtom,
     gasPriceAtom,
-    gasPriceBasisAtom,
     oilPriceAtom,
-    oilPriceBasisAtom,
     predictionStartYearAtom,
     resultModeAtom,
     selectedMeasureAtom,
@@ -71,11 +68,8 @@ import {
 import { selectedEnsembleIdentAtom } from "@modules/EconomicScreening/settings/atoms/persistableFixableAtoms";
 import {
     type CostDraftStatus,
-    Currency,
     type DistributionPlotType,
     type EconomicMeasure,
-    GasPriceBasis,
-    OilPriceBasis,
     type ResultMode,
 } from "@modules/EconomicScreening/typesAndEnums";
 import {
@@ -110,6 +104,7 @@ import {
     SCALE_CASE_UUID,
     SCALE_ENSEMBLE_NAME,
     type ScaleEconomicInputs,
+    perBbl,
 } from "./economicScreeningConnectedFixtures";
 
 const DESIGN = new RegularEnsemble(
@@ -261,16 +256,13 @@ function makeModules(initialEconomics?: ScaleEconomicInputs) {
     store.set(EnsembleSetAtom, ENSEMBLE_SET);
     store.set(discountRatePercentAtom, DISCOUNT_RATE_PERCENT);
     store.set(predictionStartYearAtom, PREDICTION_START_YEAR);
-    store.set(currencyAtom, Currency.USD);
-    store.set(oilPriceAtom, OIL_PRICE_USD_PER_SM3);
-    store.set(oilPriceBasisAtom, OilPriceBasis.PER_SM3);
+    store.set(oilPriceAtom, perBbl(OIL_PRICE_USD_PER_SM3));
     store.set(gasPriceAtom, GAS_PRICE_USD_PER_SM3);
-    store.set(gasPriceBasisAtom, GasPriceBasis.PER_SM3);
     store.set(costProfileAtom, [{ year: PREDICTION_START_YEAR, capex: CAPEX_2030_USD, opex: 0 }]);
     if (initialEconomics) {
         store.set(predictionStartYearAtom, initialEconomics.predictionStartYear);
         store.set(discountRatePercentAtom, initialEconomics.discountRatePercent);
-        store.set(oilPriceAtom, initialEconomics.oilPrice);
+        store.set(oilPriceAtom, perBbl(initialEconomics.oilPrice));
         store.set(gasPriceAtom, initialEconomics.gasPrice);
         store.set(costProfileAtom, initialEconomics.costs);
     }

@@ -119,7 +119,7 @@ const unmaskedResultsAtom = atom<EconomicScreeningResults>((get) => {
               ? priceAssumptions.oilPrice === 0
                   ? 0
                   : null
-              : convertOilPriceToSimulatorUnit(priceAssumptions.oilPrice, priceAssumptions.oilPriceBasis, oilUnit);
+              : convertOilPriceToSimulatorUnit(priceAssumptions.oilPrice, oilUnit);
     const gasPricePerVolume =
         priceAssumptions.gasPrice === null
             ? null
@@ -127,7 +127,7 @@ const unmaskedResultsAtom = atom<EconomicScreeningResults>((get) => {
               ? priceAssumptions.gasPrice === 0
                   ? 0
                   : null
-              : convertGasPriceToSimulatorUnit(priceAssumptions.gasPrice, priceAssumptions.gasPriceBasis, gasUnit);
+              : convertGasPriceToSimulatorUnit(priceAssumptions.gasPrice, gasUnit);
 
     const blockingErrors: string[] = [];
     if (priceAssumptions.oilPrice !== null && oilUnit !== "" && oilPricePerVolume === null) {
