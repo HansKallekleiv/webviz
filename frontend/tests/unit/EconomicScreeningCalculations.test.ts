@@ -4,7 +4,6 @@ import { BreakEvenSlopeDirection, IrrStatus } from "@modules/EconomicScreening/t
 import {
     aggregateCoincidentEvents,
     computeInternalRateOfReturnFromEvents,
-    isConventionalCashFlow,
     makeCostLookup,
 } from "@modules/EconomicScreening/utils/economicCalculations";
 import { Ineligibility } from "@modules/EconomicScreening/utils/eligibility";
@@ -50,7 +49,7 @@ describe("computeInternalRateOfReturnFromEvents", () => {
         expect(npvOfEvents(events, result.irr!)).toBeCloseTo(0, 6);
     });
 
-    test("reports no finite root when the events never change sign", () => {
+    test("reports never recovered or no investment when the events never change sign", () => {
         const allNegative = [
             { time: 0, value: -100 },
             { time: 1, value: -50 },
@@ -62,12 +61,82 @@ describe("computeInternalRateOfReturnFromEvents", () => {
 
         expect(computeInternalRateOfReturnFromEvents(allNegative)).toEqual({
             irr: null,
-            status: IrrStatus.NO_FINITE_ROOT,
+            status: IrrStatus.NEVER_RECOVERED,
         });
         expect(computeInternalRateOfReturnFromEvents(allPositive)).toEqual({
             irr: null,
-            status: IrrStatus.NO_FINITE_ROOT,
+            status: IrrStatus.NO_INVESTMENT,
         });
+    });
+
+    test("reports no investment when income covers mid-year costs at every rate", () => {
+        // A producing field from the reference date with small mid-year CAPEX: + - + - +.
+        const events = [0, 1].flatMap((year) => [
+            ...Array.from({ length: 12 }, (_, month) => ({ time: year + (month + 0.5) / 12, value: 1000 })),
+            { time: year + 0.5, value: -100 },
+        ]);
+
+        expect(computeInternalRateOfReturnFromEvents(events)).toEqual({ irr: null, status: IrrStatus.NO_INVESTMENT });
+    });
+
+    test("scans the rates when the running total dips below zero but NPV stays positive", () => {
+        const events = [
+            ...Array.from({ length: 6 }, (_, month) => ({ time: (month + 0.5) / 12, value: 10 })),
+            { time: 0.5, value: -100 },
+            { time: 1.5, value: 1000 },
+        ];
+
+        expect(computeInternalRateOfReturnFromEvents(events)).toEqual({ irr: null, status: IrrStatus.NO_INVESTMENT });
+    });
+
+    test("reports no investment when the costs come after the income", () => {
+        const incomeThenAbandonment = [
+            { time: 0.5, value: 300 },
+            { time: 1.5, value: 300 },
+            { time: 2.5, value: -1000 },
+        ];
+
+        expect(computeInternalRateOfReturnFromEvents(incomeThenAbandonment)).toEqual({
+            irr: null,
+            status: IrrStatus.NO_INVESTMENT,
+        });
+    });
+
+    test("finds the one supported IRR when a mid-year cost falls between producing months", () => {
+        const events = [
+            ...Array.from({ length: 6 }, (_, month) => ({ time: (month + 0.5) / 12, value: 10 })),
+            { time: 0.5, value: -1000 },
+            ...Array.from({ length: 54 }, (_, month) => ({ time: (month + 6.5) / 12, value: 40 })),
+        ];
+        const result = computeInternalRateOfReturnFromEvents(events);
+
+        expect(result.status).toBe(IrrStatus.CONVERGED);
+        expect(result.irr!).toBeGreaterThan(0.1);
+        expect(result.irr!).toBeLessThan(1);
+        expect(npvOfEvents(events, result.irr!) / 1000).toBeCloseTo(0, 6);
+    });
+
+    test("reports multiple roots when more than one supported rate makes NPV zero", () => {
+        // NPV is zero at 10% and 20%.
+        const events = [
+            { time: 0, value: -100 },
+            { time: 1, value: 230 },
+            { time: 2, value: -132 },
+        ];
+
+        expect(computeInternalRateOfReturnFromEvents(events)).toEqual({
+            irr: null,
+            status: IrrStatus.MULTIPLE_ROOTS,
+        });
+    });
+
+    test("reports out of domain when a conventional IRR exceeds the supported range", () => {
+        expect(
+            computeInternalRateOfReturnFromEvents([
+                { time: 0, value: -1 },
+                { time: 1, value: 1e6 },
+            ]),
+        ).toEqual({ irr: null, status: IrrStatus.OUT_OF_DOMAIN });
     });
 
     test("is independent of the absolute event dates", () => {
@@ -622,7 +691,7 @@ describe("monthly screening model", () => {
         expect(otherRate.npv).not.toBeCloseTo(result.npv!, 2);
     });
 
-    test("keeps real monthly losses after production non-conventional", () => {
+    test("reports multiple roots for real monthly losses after production", () => {
         const oilVolumes = [...new Array(12).fill(0), ...new Array(12).fill(100), ...new Array(12).fill(5)];
         const result = computeMonthlyRealizationEconomics(
             {
@@ -640,12 +709,12 @@ describe("monthly screening model", () => {
 
         // 2032 revenue of 500 per month is below its 1000 monthly OPEX allocation: - then + then -.
         expect(result.annualProfile[2].netCashFlow).toBe(12 * 500 - 12000);
-        expect(result.irrStatus).toBe(IrrStatus.NON_CONVENTIONAL);
+        expect(result.irrStatus).toBe(IrrStatus.MULTIPLE_ROOTS);
         expect(result.irr).toBeNull();
         expect(result.npv).not.toBeNull();
     });
 
-    test("classifies within-year sign changes that annual netting would hide as non-conventional", () => {
+    test("classifies within-year sign changes that annual netting would hide", () => {
         // Monthly revenue of 50 in 2030 and 100 in 2031, with 1000 CAPEX at mid-2030.
         const oilVolumes = [...new Array(12).fill(5), ...new Array(12).fill(10)];
         const result = computeMonthlyRealizationEconomics(
@@ -660,8 +729,7 @@ describe("monthly screening model", () => {
 
         const annualNetCashFlow = result.annualProfile.map((entry) => entry.netCashFlow!);
         expect(annualNetCashFlow).toEqual([-400, 1200]);
-        // Annual netting looks conventional; the earlier implementation reported a converged IRR of about 257%.
-        expect(isConventionalCashFlow(annualNetCashFlow)).toBe(true);
+        // Annual netting looks like a conventional investment; an earlier implementation reported an IRR of about 257%.
 
         const exactEvents: { time: number; value: number }[] = oilVolumes.map((volume, index) => ({
             time: (index + 0.5) / 12,
@@ -671,9 +739,9 @@ describe("monthly screening model", () => {
         const exactSigns = aggregateCoincidentEvents(exactEvents).map((event) => Math.sign(event.value));
         expect(exactSigns.slice(0, 8)).toEqual([1, 1, 1, 1, 1, 1, -1, 1]);
 
-        expect(result.irrStatus).toBe(IrrStatus.NON_CONVENTIONAL);
+        expect(result.irrStatus).toBe(IrrStatus.MULTIPLE_ROOTS);
         expect(result.irr).toBeNull();
-        expect(computeInternalRateOfReturnFromEvents(exactEvents).status).toBe(IrrStatus.NON_CONVENTIONAL);
+        expect(computeInternalRateOfReturnFromEvents(exactEvents).status).toBe(IrrStatus.MULTIPLE_ROOTS);
         expect(result.npv).toBeCloseTo(
             oilVolumes.reduce((sum, volume, index) => sum + 10 * volume * Math.pow(1.1, -(index + 0.5) / 12), 0) -
                 1000 * Math.pow(1.1, -0.5),
@@ -697,16 +765,17 @@ describe("monthly screening model", () => {
         expect(sameTime.irr).toBeCloseTo(800 / 600 - 1, 9);
         expect(nearlySameTime.status).toBe(IrrStatus.CONVERGED);
         expect(nearlySameTime.irr).not.toBeCloseTo(sameTime.irr!, 3);
-        expect(
-            computeInternalRateOfReturnFromEvents([
-                { time: 0.4, value: 400 },
-                { time: 0.5, value: -1000 },
-                { time: 1.5, value: 800 },
-            ]).status,
-        ).toBe(IrrStatus.NON_CONVENTIONAL);
+        // Income just before the cost is not netted against it; the only supported root still gives an IRR.
+        const incomeFirst = computeInternalRateOfReturnFromEvents([
+            { time: 0.4, value: 400 },
+            { time: 0.5, value: -1000 },
+            { time: 1.5, value: 800 },
+        ]);
+        expect(incomeFirst.status).toBe(IrrStatus.CONVERGED);
+        expect(incomeFirst.irr).not.toBeCloseTo(sameTime.irr!, 3);
     });
 
-    test("classifies a reversing annual cash flow as non-conventional", () => {
+    test("reports multiple roots for a reversing annual cash flow", () => {
         const result = computeMonthlyRealizationEconomics(
             {
                 realization: 1,
@@ -721,7 +790,7 @@ describe("monthly screening model", () => {
             ],
         );
 
-        expect(result.irrStatus).toBe(IrrStatus.NON_CONVENTIONAL);
+        expect(result.irrStatus).toBe(IrrStatus.MULTIPLE_ROOTS);
         expect(result.irr).toBeNull();
         expect(result.npv).not.toBeNull();
     });
@@ -824,8 +893,8 @@ describe("monthly screening model", () => {
         expect(result.discountedOilVolume).toBeCloseTo(218.512, 3);
         expect(result.discountedSalesGasVolume).toBeCloseTo(2185.117, 3);
         expect(result.breakEvenOilPrice).toBeCloseTo(-0.06366, 5);
-        // Monthly revenue in January-June 2020 precedes the mid-2020 CAPEX.
-        expect(result.irrStatus).toBe(IrrStatus.NON_CONVENTIONAL);
+        // Monthly income covers the mid-2020 CAPEX at every rate: no investment to recover.
+        expect(result.irrStatus).toBe(IrrStatus.NO_INVESTMENT);
         expect(
             computeMonthlyRealizationEconomics(
                 input,
@@ -936,7 +1005,7 @@ describe("monthly screening model", () => {
                 9,
             );
             // July-December 2031 OPEX follows the last revenue month, so the exact events reverse sign again.
-            expect(result.irrStatus).toBe(IrrStatus.NON_CONVENTIONAL);
+            expect(result.irrStatus).toBe(IrrStatus.MULTIPLE_ROOTS);
         });
     });
 

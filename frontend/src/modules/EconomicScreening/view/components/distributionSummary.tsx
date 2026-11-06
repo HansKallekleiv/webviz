@@ -2,7 +2,10 @@ import { EconomicMeasure } from "@modules/EconomicScreening/typesAndEnums";
 import type { BreakEvenTargetCount } from "@modules/EconomicScreening/utils/distributionAggregation";
 import { countValuesAboveThreshold } from "@modules/EconomicScreening/utils/distributionAggregation";
 import type { MeasureValues } from "@modules/EconomicScreening/utils/measureAccessors";
-import { getMeasureUnavailableReason } from "@modules/EconomicScreening/utils/measureAccessors";
+import {
+    getIrrUnavailableSummary,
+    getMeasureUnavailableReason,
+} from "@modules/EconomicScreening/utils/measureAccessors";
 import type { MonthlyRealizationEconomicResult } from "@modules/EconomicScreening/utils/monthlyEconomics";
 
 export type DistributionSummaryProps = {
@@ -23,6 +26,7 @@ export function DistributionSummary(props: DistributionSummaryProps): React.Reac
         );
     }
 
+    const irrUnavailable = props.measure === EconomicMeasure.IRR ? getIrrUnavailableSummary(props.results) : null;
     const positiveNpvCount =
         props.measure === EconomicMeasure.NPV ? countValuesAboveThreshold(props.measureValues.values, 0) : null;
 
@@ -34,6 +38,12 @@ export function DistributionSummary(props: DistributionSummaryProps): React.Reac
             {positiveNpvCount && (
                 <span title="Fraction of valid realizations with NPV strictly above zero; this is not a probability of commercial success.">
                     Positive NPV: {positiveNpvCount.countAbove}/{positiveNpvCount.validCount}
+                </span>
+            )}
+            {irrUnavailable && (
+                <span>
+                    IRR unavailable for {irrUnavailable.count} of {props.results.length} realizations:{" "}
+                    {irrUnavailable.message}
                 </span>
             )}
             {props.measure === EconomicMeasure.BREAK_EVEN_OIL_PRICE && props.breakEvenTargetCount && (

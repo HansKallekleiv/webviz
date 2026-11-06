@@ -94,7 +94,14 @@ You do not need to enter an oil price to calculate it. Break-even oil price can 
 
 Internal rate of return (IRR) is the annual discount rate at which `NPV(IRR) = 0`. It is calculated from the same undiscounted events as NPV, monthly revenue less monthly OPEX and mid-year CAPEX, not from your selected discount rate.
 
-The solver supports conventional cash flows: initial net outflows followed by net inflows, with only one change of sign. Only events at exactly the same time are combined before the signs are counted; annual totals are not used, because they can hide a change of sign within a year. A profile can still be non-conventional, for example with CAPEX during production, months where OPEX exceeds revenue, or OPEX after production ends. A non-conventional profile may have multiple roots, or none; the module does not select an IRR for such a profile. A profile with no change of sign has no finite IRR. A result is also unavailable if the root is outside the solver's supported range.
+IRR is a return on an investment: money goes out first and comes back later. The module reports an IRR when exactly one rate between -99.99% and 10,000% makes NPV zero, and NPV is positive below that rate and negative above it. Only events at exactly the same time are combined; annual totals are not used, because they can hide a change of sign within a year. Otherwise IRR is unavailable for the realization, with one of these reasons:
+
+- **Income covers costs from the start, so there's no investment to recover.** NPV is positive at every rate, or the costs come after the income, for example an abandonment cost at the end of production.
+- **Income never covers the costs, so the investment is never recovered.** NPV is negative at every rate.
+- **More than one rate makes NPV zero, so no IRR is shown.** This can happen when costs return after the investment is recovered, for example OPEX after production ends.
+- **IRR could not be calculated within the supported rate range.**
+
+The view shows how many realizations have no IRR and the most common reason. IRR is most meaningful when the costs come before the production, for example for a delta ensemble or a reference date before production starts. A field that already produces at the reference date usually has no investment to recover.
 
 ## Oil equivalents
 
@@ -150,4 +157,4 @@ break-even oil price = net cost / discounted oil
 break-even oil price = -0.06366 USD/Sm3 = -0.01012 USD/bbl
 ```
 
-Substituting **-0.01012 USD/bbl** as the oil price gives NPV approximately zero with the same gas price. The price is negative because discounted gas revenue already exceeds discounted costs. IRR is not selected for this profile: net monthly inflows from January to June 2020 are received before the mid-2020 CAPEX, so the cash flow changes sign more than once. These prices are illustrative, not recommended asset assumptions.
+Substituting **-0.01012 USD/bbl** as the oil price gives NPV approximately zero with the same gas price. The price is negative because discounted gas revenue already exceeds discounted costs. IRR is unavailable for this profile: the income from January to June 2020 already covers the mid-2020 CAPEX, so NPV is positive at every rate and there is no investment to recover. These prices are illustrative, not recommended asset assumptions.

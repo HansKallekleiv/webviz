@@ -23,8 +23,13 @@ export enum BreakEvenSlopeDirection {
 
 export enum IrrStatus {
     CONVERGED = "CONVERGED",
-    NO_FINITE_ROOT = "NO_FINITE_ROOT",
-    NON_CONVENTIONAL = "NON_CONVENTIONAL",
+    /** NPV is positive at every supported rate, or the costs come after the income. */
+    NO_INVESTMENT = "NO_INVESTMENT",
+    /** NPV is negative at every supported rate. */
+    NEVER_RECOVERED = "NEVER_RECOVERED",
+    /** More than one supported rate makes NPV zero. */
+    MULTIPLE_ROOTS = "MULTIPLE_ROOTS",
+    /** The rate could not be found within the supported range. */
     OUT_OF_DOMAIN = "OUT_OF_DOMAIN",
 }
 

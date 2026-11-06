@@ -18,31 +18,6 @@ export function makeCostLookup(costProfile: CostProfileEntry[]): Map<number, { c
     return lookup;
 }
 
-/**
- * Checks if a cash flow profile is conventional (initial negative cash flows followed by positive cash flows).
- * In a conventional profile:
- * - Net cash flow starts with one or more negative events (ignoring any leading zeros).
- * - Switches exactly once to positive events.
- * - After the first positive event, no further negative events occur.
- */
-export function isConventionalCashFlow(netEvents: number[]): boolean {
-    const nonZero = netEvents.filter((val) => Math.abs(val) > 1e-12);
-    if (nonZero.length < 2) {
-        return false;
-    }
-    // Must start negative
-    if (nonZero[0] > 0) {
-        return false;
-    }
-    let signChanges = 0;
-    for (let i = 1; i < nonZero.length; i++) {
-        if ((nonZero[i] > 0 && nonZero[i - 1] < 0) || (nonZero[i] < 0 && nonZero[i - 1] > 0)) {
-            signChanges++;
-        }
-    }
-    return signChanges === 1;
-}
-
 export type IrrComputationResult = {
     irr: number | null;
     status: IrrStatus;
@@ -65,35 +40,179 @@ export function aggregateCoincidentEvents(events: TimedCashFlowEvent[]): TimedCa
         .sort((first, second) => first.time - second.time);
 }
 
+/** Highest rate considered when locating IRR roots (10,000%). */
+export const IRR_MAX_RATE = 100;
+/** Grid points in ln(1 + rate) used to count roots when the cash flow changes sign more than once. */
+const IRR_ROOT_SCAN_POINTS = 300;
+
 /**
- * Finds the rate where the present value of the given timed events is zero.
+ * Sign of NPV shared by every rate, decided without solving, or 0 when it cannot be decided this way.
+ * For rates >= 0 discount factors fall over time, so positive running totals from the start keep NPV
+ * positive; for negative rates they rise, so positive running totals from the end do. The same holds for
+ * negative totals.
+ */
+function signShownByRunningTotals(values: number[]): number {
+    let prefix = 0;
+    let prefixSign = 0;
+    for (const value of values) {
+        prefix += value;
+        const sign = Math.sign(prefix);
+        if (sign === 0 || (prefixSign !== 0 && sign !== prefixSign)) return 0;
+        prefixSign = sign;
+    }
+    let suffix = 0;
+    for (let i = values.length - 1; i >= 0; i--) {
+        suffix += values[i];
+        if (Math.sign(suffix) !== prefixSign) return 0;
+    }
+    return prefixSign;
+}
+
+function countSignChanges(values: number[]): number {
+    let changes = 0;
+    let previous = 0;
+    for (const value of values) {
+        const sign = Math.sign(value);
+        if (sign === 0) continue;
+        if (previous !== 0 && sign !== previous) changes++;
+        previous = sign;
+    }
+    return changes;
+}
+
+/**
+ * Sign-preserving NPV as a function of x = ln(1 + rate), scaled so that the largest discount factor is one.
+ * Factors are built by multiplying per-gap factors, so long profiles neither overflow nor need a power per event.
+ */
+function makeNpvSignFunction(events: TimedCashFlowEvent[]): (x: number) => number {
+    const count = events.length;
+    const values = new Float64Array(count);
+    const gapIndex = new Int32Array(count);
+    const gapKeys = new Map<number, number>();
+    const uniqueGaps: number[] = [];
+    for (let i = 0; i < count; i++) {
+        values[i] = events[i].value;
+        if (i === 0) continue;
+        const gap = events[i].time - events[i - 1].time;
+        const key = Math.round(gap * 1e9);
+        let index = gapKeys.get(key);
+        if (index === undefined) {
+            index = uniqueGaps.length;
+            gapKeys.set(key, index);
+            uniqueGaps.push(gap);
+        }
+        gapIndex[i] = index;
+    }
+    const gapFactors = new Float64Array(uniqueGaps.length);
+
+    return (x: number) => {
+        const magnitude = Math.abs(x);
+        for (let u = 0; u < uniqueGaps.length; u++) {
+            gapFactors[u] = Math.exp(-uniqueGaps[u] * magnitude);
+        }
+        let factor = 1;
+        if (x >= 0) {
+            // Positive rates discount later events most: scale relative to the first event.
+            let sum = values[0];
+            for (let i = 1; i < count; i++) {
+                factor *= gapFactors[gapIndex[i]];
+                sum += values[i] * factor;
+            }
+            return sum;
+        }
+        // Negative rates weight later events most: scale relative to the last event.
+        let sum = values[count - 1];
+        for (let i = count - 2; i >= 0; i--) {
+            factor *= gapFactors[gapIndex[i + 1]];
+            sum += values[i] * factor;
+        }
+        return sum;
+    };
+}
+
+/**
+ * Finds the investment IRR of the given timed events, or says why there is none.
  *
- * Event magnitudes are normalized before classification and solving, so that very small or very
- * large cash flows are handled identically. Conventionality is classified on the same timed events
- * that are solved, after combining only events at identical times; coarser netting such as annual
- * totals can hide sign changes and is not used.
+ * Only events at identical times are combined; coarser netting such as annual totals can hide sign
+ * changes. With one change of sign there is exactly one root (Descartes' rule of signs). With more,
+ * NPV is scanned over the supported rate range and its zero crossings are counted; roots closer together
+ * than one scan step can be missed. An IRR is reported only for an investment-shaped root, where NPV is
+ * positive below the rate and negative above it.
  */
 export function computeInternalRateOfReturnFromEvents(events: TimedCashFlowEvent[]): IrrComputationResult {
     const aggregatedEvents = aggregateCoincidentEvents(events);
     if (aggregatedEvents.length === 0) {
-        return { irr: null, status: IrrStatus.NO_FINITE_ROOT };
+        return { irr: null, status: IrrStatus.NO_INVESTMENT };
     }
 
     const cashFlowScale = Math.max(...aggregatedEvents.map((event) => Math.abs(event.value)));
-    const normalizedEvents = aggregatedEvents.map((event) => ({ ...event, value: event.value / cashFlowScale }));
-    const combinedEvents = normalizedEvents.map((event) => event.value);
+    const normalizedEvents = aggregatedEvents
+        .map((event) => ({ ...event, value: event.value / cashFlowScale }))
+        .filter((event) => Math.abs(event.value) > 1e-12);
+    if (normalizedEvents.length === 0) {
+        return { irr: null, status: IrrStatus.NO_INVESTMENT };
+    }
+    const values = normalizedEvents.map((event) => event.value);
+    const signChanges = countSignChanges(values);
 
-    const hasPositive = combinedEvents.some((v) => v > 1e-12);
-    const hasNegative = combinedEvents.some((v) => v < -1e-12);
-
-    if (!hasPositive || !hasNegative) {
-        return { irr: null, status: IrrStatus.NO_FINITE_ROOT };
+    if (signChanges === 0) {
+        return { irr: null, status: values[0] > 0 ? IrrStatus.NO_INVESTMENT : IrrStatus.NEVER_RECOVERED };
+    }
+    if (signChanges === 1) {
+        // Income first and costs later is a financing shape, not an investment to recover.
+        return values[0] > 0 ? { irr: null, status: IrrStatus.NO_INVESTMENT } : solveConventional(normalizedEvents);
     }
 
-    if (!isConventionalCashFlow(combinedEvents)) {
-        return { irr: null, status: IrrStatus.NON_CONVENTIONAL };
+    const sharedSign = signShownByRunningTotals(values);
+    if (sharedSign !== 0) {
+        return { irr: null, status: sharedSign > 0 ? IrrStatus.NO_INVESTMENT : IrrStatus.NEVER_RECOVERED };
     }
 
+    const npvSign = makeNpvSignFunction(normalizedEvents);
+    const lowX = Math.log1p(IRR_LOWER_BOUND);
+    const highX = Math.log1p(IRR_MAX_RATE);
+    const step = (highX - lowX) / (IRR_ROOT_SCAN_POINTS - 1);
+    const crossings: [number, number][] = [];
+    let previousX = lowX;
+    let previousSign = Math.sign(npvSign(lowX));
+    let firstSign = previousSign;
+    for (let i = 1; i < IRR_ROOT_SCAN_POINTS; i++) {
+        const x = lowX + i * step;
+        const sign = Math.sign(npvSign(x));
+        if (sign === 0) continue;
+        if (firstSign === 0) firstSign = sign;
+        if (previousSign !== 0 && sign !== previousSign) {
+            crossings.push([previousX, x]);
+            if (crossings.length > 1) break;
+        }
+        previousSign = sign;
+        previousX = x;
+    }
+
+    if (crossings.length === 0) {
+        return { irr: null, status: firstSign < 0 ? IrrStatus.NEVER_RECOVERED : IrrStatus.NO_INVESTMENT };
+    }
+    if (crossings.length > 1) {
+        return { irr: null, status: IrrStatus.MULTIPLE_ROOTS };
+    }
+    if (firstSign < 0) {
+        return { irr: null, status: IrrStatus.NO_INVESTMENT };
+    }
+
+    let [low, high] = crossings[0];
+    for (let i = 0; i < IRR_MAX_ITERATIONS && Math.expm1(high) - Math.expm1(low) > IRR_TOLERANCE; i++) {
+        const mid = (low + high) / 2;
+        if (Math.sign(npvSign(mid)) === firstSign) {
+            low = mid;
+        } else {
+            high = mid;
+        }
+    }
+    return { irr: Math.expm1((low + high) / 2), status: IrrStatus.CONVERGED };
+}
+
+/** One change of sign from outflows to inflows: exactly one root, found by bracketed bisection. */
+function solveConventional(normalizedEvents: TimedCashFlowEvent[]): IrrComputationResult {
     const firstEventTime = normalizedEvents[0].time;
     const residualTolerance = 1e-12;
     const npvAtRate = (rate: number): number => {
@@ -126,10 +245,10 @@ export function computeInternalRateOfReturnFromEvents(events: TimedCashFlowEvent
         return { irr: high, status: IrrStatus.CONVERGED };
 
     if (npvLowSign * npvHighSign > 0) {
-        // Try bracket expansion upwards up to 100 (10,000%)
+        // Try bracket expansion upwards up to IRR_MAX_RATE (10,000%)
         let expanded = false;
         let testHigh = high;
-        while (testHigh < 100) {
+        while (testHigh < IRR_MAX_RATE) {
             testHigh *= 2;
             const npvTest = npvAtRate(testHigh);
             const npvTestSign = Number.isFinite(npvTest) ? npvTest : npvSignAtRate(testHigh);

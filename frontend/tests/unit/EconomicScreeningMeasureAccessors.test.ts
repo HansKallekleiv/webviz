@@ -6,7 +6,9 @@ import {
     getMeasureDisplayName,
     formatMeasureValue,
     getMeasureDisplayScale,
+    getIrrUnavailableSummary,
     getMeasureUnavailableReason,
+    IRR_STATUS_MESSAGES,
     getMeasureUnit,
     isFinancialMeasure,
 } from "@modules/EconomicScreening/utils/measureAccessors";
@@ -61,13 +63,26 @@ describe("getMeasureUnavailableReason", () => {
         ).toBe("Financial results are unavailable until the cost schedule is valid.");
     });
 
-    test("keeps the IRR solver texts when IRR was calculated", () => {
-        expect(
-            getMeasureUnavailableReason(
-                [{ ...BASE_RESULT, npv: 1, irrStatus: IrrStatus.NO_FINITE_ROOT }],
-                EconomicMeasure.IRR,
-            ),
-        ).toBe("No finite IRR for the available cash-flow signs.");
+    test("explains the most common IRR reason when IRR was calculated", () => {
+        const results = [
+            { ...BASE_RESULT, realization: 1, npv: 1, irrStatus: IrrStatus.NO_INVESTMENT },
+            { ...BASE_RESULT, realization: 2, npv: 1, irrStatus: IrrStatus.NO_INVESTMENT },
+            { ...BASE_RESULT, realization: 3, npv: 1, irrStatus: IrrStatus.MULTIPLE_ROOTS },
+            { ...BASE_RESULT, realization: 4, npv: 1, irr: 0.12, irrStatus: IrrStatus.CONVERGED },
+        ];
+        const noInvestment = "Income covers costs from the start, so there's no investment to recover.";
+        expect(getMeasureUnavailableReason(results, EconomicMeasure.IRR)).toBe(noInvestment);
+        expect(getIrrUnavailableSummary(results)).toEqual({ count: 3, message: noInvestment });
+        expect(getIrrUnavailableSummary([results[3]])).toBeNull();
+    });
+
+    test("has one plain message per IRR reason", () => {
+        expect(IRR_STATUS_MESSAGES).toEqual({
+            [IrrStatus.NO_INVESTMENT]: "Income covers costs from the start, so there's no investment to recover.",
+            [IrrStatus.NEVER_RECOVERED]: "Income never covers the costs, so the investment is never recovered.",
+            [IrrStatus.MULTIPLE_ROOTS]: "More than one rate makes NPV zero, so no IRR is shown.",
+            [IrrStatus.OUT_OF_DOMAIN]: "IRR could not be calculated within the supported rate range.",
+        });
     });
 
     test("reports missing coverage for volume measures", () => {

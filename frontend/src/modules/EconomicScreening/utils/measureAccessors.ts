@@ -8,6 +8,7 @@ import {
 import {
     CURRENCY,
     EconomicMeasure,
+    IrrStatus,
     EconomicMeasureEnumToStringMapping,
     OIL_PRICE_UNIT,
 } from "@modules/EconomicScreening/typesAndEnums";
@@ -189,10 +190,37 @@ export function getMeasureUnavailableReason(
         return getIneligibilityMessage(reason);
     }
     if (measure === EconomicMeasure.IRR) {
-        const status = results.find((result) => result.irrStatus)?.irrStatus;
-        if (status === "NO_FINITE_ROOT") return "No finite IRR for the available cash-flow signs.";
-        if (status === "NON_CONVENTIONAL") return "Non-conventional cash flow has no selected IRR root.";
-        if (status === "OUT_OF_DOMAIN") return "IRR could not be solved within the supported rate range.";
+        const summary = getIrrUnavailableSummary(results);
+        if (summary) return summary.message;
     }
     return "No valid values are available for this metric.";
+}
+
+export const IRR_STATUS_MESSAGES: Record<Exclude<IrrStatus, IrrStatus.CONVERGED>, string> = {
+    [IrrStatus.NO_INVESTMENT]: "Income covers costs from the start, so there's no investment to recover.",
+    [IrrStatus.NEVER_RECOVERED]: "Income never covers the costs, so the investment is never recovered.",
+    [IrrStatus.MULTIPLE_ROOTS]: "More than one rate makes NPV zero, so no IRR is shown.",
+    [IrrStatus.OUT_OF_DOMAIN]: "IRR could not be calculated within the supported rate range.",
+};
+
+/**
+ * Among realizations with a calculated cash flow but no IRR: how many, and the most common reason.
+ * Null when every such realization has an IRR.
+ */
+export function getIrrUnavailableSummary(
+    results: MonthlyRealizationEconomicResult[],
+): { count: number; message: string } | null {
+    const counts = new Map<Exclude<IrrStatus, IrrStatus.CONVERGED>, number>();
+    for (const result of results) {
+        const status = result.irrStatus;
+        if (status === undefined || status === IrrStatus.CONVERGED) continue;
+        counts.set(status, (counts.get(status) ?? 0) + 1);
+    }
+    let mostCommon: Exclude<IrrStatus, IrrStatus.CONVERGED> | null = null;
+    let total = 0;
+    for (const [status, count] of counts) {
+        total += count;
+        if (mostCommon === null || count > counts.get(mostCommon)!) mostCommon = status;
+    }
+    return mostCommon === null ? null : { count: total, message: IRR_STATUS_MESSAGES[mostCommon] };
 }
