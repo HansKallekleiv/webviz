@@ -19,8 +19,10 @@ import {
     SourceKind,
 } from "@modules/EconomicScreening/utils/monthlyProduction";
 import {
+    describeSalesGasSource,
     determineSalesGasStrategy,
     deriveSalesGasCumulative,
+    getSalesGasSourceWarning,
     isCumulativeVectorAllZero,
     summarizeCumulativeVectorTerminals,
 } from "@modules/EconomicScreening/utils/vectorResolution";
@@ -59,8 +61,31 @@ describe("determineSalesGasStrategy", () => {
         });
     });
 
-    test("is unavailable without FGST and FGPT", () => {
-        expect(determineSalesGasStrategy(["FOPT"])).toEqual({ kind: "UNAVAILABLE" });
+    test("is zero without FGST and FGPT", () => {
+        expect(determineSalesGasStrategy(["FOPT", "FGIT"])).toEqual({ kind: "ZERO" });
+    });
+});
+
+describe("sales gas source texts", () => {
+    const derived = (hasGasInjection: boolean, hasGasConsumption: boolean) =>
+        ({ kind: "DERIVED", hasGasProduction: true, hasGasInjection, hasGasConsumption }) as const;
+
+    test("names the source and states every assumption", () => {
+        expect(describeSalesGasSource({ kind: "DIRECT", hasGasConsumption: false })).toBe("Reported (FGST)");
+        expect(getSalesGasSourceWarning({ kind: "DIRECT", hasGasConsumption: false })).toBeNull();
+
+        expect(describeSalesGasSource(derived(true, true))).toBe("Calculated (FGPT - FGIT - FGCT)");
+        expect(getSalesGasSourceWarning(derived(true, true))).toBe("FGST missing: sales gas = FGPT - FGIT - FGCT.");
+        expect(describeSalesGasSource(derived(true, false))).toBe("Calculated (FGPT - FGIT)");
+        expect(getSalesGasSourceWarning(derived(true, false))).toBe(
+            "FGST missing: sales gas = FGPT - FGIT; FGCT missing, taken as 0.",
+        );
+        expect(getSalesGasSourceWarning(derived(false, false))).toBe(
+            "FGST missing: sales gas = FGPT; FGIT and FGCT missing, taken as 0.",
+        );
+
+        expect(describeSalesGasSource({ kind: "ZERO" })).toBe("Taken as 0");
+        expect(getSalesGasSourceWarning({ kind: "ZERO" })).toBe("FGST and FGPT missing: sales gas taken as 0.");
     });
 });
 
@@ -77,44 +102,37 @@ describe("deriveSalesGasCumulative", () => {
         expect(result.series).toMatchObject([{ realization: 0, timestampsUtcMs: timestamps, values: [89, 178] }]);
     });
 
-    test("does not treat an unavailable component as zero without an explicit assumption", () => {
-        const result = deriveSalesGasCumulative([makeVectorData(0, timestamps, [100, 200])], [], []);
+    test("takes a component that is missing from the ensemble as zero", () => {
+        const result = deriveSalesGasCumulative([makeVectorData(0, timestamps, [100, 200])], null, [
+            makeVectorData(0, timestamps, [1, 2]),
+        ]);
 
-        expect(result.series).toEqual([]);
+        expect(result.series).toMatchObject([{ realization: 0, timestampsUtcMs: timestamps, values: [99, 198] }]);
+        expect(deriveSalesGasCumulative([makeVectorData(0, timestamps, [100, 200])], null, null).series).toMatchObject([
+            { realization: 0, values: [100, 200] },
+        ]);
     });
 
     test("aligns components on timestamps rather than position", () => {
         const result = deriveSalesGasCumulative(
             [makeVectorData(0, [0, 1000], [100, 200])],
             [makeVectorData(0, [1000], [50])],
-            [],
-            { assumeMissingConsumptionAsZero: true },
+            null,
         );
 
         expect(result.series).toEqual([]);
         expect(result.incompleteInjectionRealizations).toEqual([0]);
     });
 
-    test("matches components by realization", () => {
+    test("excludes a realization that is absent from an available component instead of taking it as zero", () => {
         const result = deriveSalesGasCumulative(
             [makeVectorData(0, timestamps, [100, 200]), makeVectorData(1, timestamps, [300, 400])],
             [makeVectorData(1, timestamps, [30, 40])],
-            [],
-            { assumeMissingConsumptionAsZero: true },
+            null,
         );
 
         expect(result.series).toMatchObject([{ realization: 1, timestampsUtcMs: timestamps, values: [270, 360] }]);
-    });
-
-    test("uses an explicitly accepted missing-component assumption only for an absent vector", () => {
-        const result = deriveSalesGasCumulative(
-            [makeVectorData(0, timestamps, [100, 200])],
-            [],
-            [makeVectorData(0, timestamps, [1, 2])],
-            { assumeMissingInjectionAsZero: true },
-        );
-
-        expect(result.series).toMatchObject([{ realization: 0, timestampsUtcMs: timestamps, values: [99, 198] }]);
+        expect(result.incompleteInjectionRealizations).toEqual([0]);
     });
 });
 
@@ -465,9 +483,7 @@ describe("derived sales-gas coverage", () => {
             ["SOURCE_ALIGNED", "PARTIAL"],
         );
 
-        const [series] = deriveSalesGasCumulative([production], [injection], [], {
-            assumeMissingConsumptionAsZero: true,
-        }).series;
+        const [series] = deriveSalesGasCumulative([production], [injection], null).series;
 
         expect(series.values).toEqual([0, 90, 185]);
         expect(series.intervalCoverage).toEqual([MonthCoverage.SOURCE_ALIGNED, MonthCoverage.AFTER_SOURCE_END]);
@@ -481,9 +497,7 @@ describe("derived sales-gas coverage", () => {
         ]);
         const consumption = makeVectorData(4, dates.map(ms), [0, 1, 2]);
 
-        const [series] = deriveSalesGasCumulative([production], [], [consumption], {
-            assumeMissingInjectionAsZero: true,
-        }).series;
+        const [series] = deriveSalesGasCumulative([production], null, [consumption]).series;
 
         expect(series.intervalCoverage).toEqual([MonthCoverage.UNVERIFIED, MonthCoverage.UNVERIFIED]);
         expect(series.supportEndUtcMs).toBeNull();
@@ -499,9 +513,7 @@ describe("derived sales-gas coverage", () => {
             ["PARTIAL", "SOURCE_ALIGNED"],
         );
 
-        const [series] = deriveSalesGasCumulative([production], [injection], [], {
-            assumeMissingConsumptionAsZero: true,
-        }).series;
+        const [series] = deriveSalesGasCumulative([production], [injection], null).series;
 
         expect(series.values).toEqual([0, 90]);
         expect(series.intervalCoverage).toEqual([MonthCoverage.INTERPOLATED]);

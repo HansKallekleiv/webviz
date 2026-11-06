@@ -85,7 +85,6 @@ function readyInput(
         },
         hasOilVector: true,
         productSupport: ALL_COVERED,
-        missingComponentAssumptions: undefined,
         oilPrice: null,
         gasPrice: null,
         costProfile: [],
@@ -114,12 +113,6 @@ describe("getSetupReadiness", () => {
                     message: "Enter a gas price, or 0 to omit gas revenue.",
                     field: "gasPrice",
                 },
-                {
-                    kind: SetupIssueKind.INPUT,
-                    field: "consumption",
-                    message:
-                        "Gas consumption (FGCT) is missing: accept “Assume no gas consumption” or enter a gas price of 0.",
-                },
             ],
         });
     });
@@ -128,41 +121,18 @@ describe("getSetupReadiness", () => {
         expect(messages(readyInput({ oilPrice: 50 }))).toEqual([
             "Enter a reference date.",
             "Enter a gas price, or 0 to omit gas revenue.",
-            "Gas consumption (FGCT) is missing: accept “Assume no gas consumption” or enter a gas price of 0.",
         ]);
     });
 
-    test("a zero gas price resolves gas revenue, but gas volumes still need the missing component", () => {
-        expect(messages(readyInput({ predictionStartYear: 2018, oilPrice: 50, gasPrice: 0 }))).toEqual([]);
-        expect(
-            messages(
-                readyInput({
-                    predictionStartYear: 2018,
-                    gasPrice: 0,
-                    requirement: MeasureRequirement.GAS_VOLUME,
-                }),
-            ),
-        ).toEqual(["Gas consumption (FGCT) is missing: accept “Assume no gas consumption” to calculate sales gas."]);
-    });
-
-    test("an accepted assumption resolves the component for this input only", () => {
-        const accepted = readyInput({
-            predictionStartYear: 2018,
-            oilPrice: 50,
-            gasPrice: 0.2,
-            missingComponentAssumptions: { assumeMissingConsumptionAsZero: true },
-        });
-        expect(messages(accepted)).toEqual([]);
-        expect(messages({ ...accepted, missingComponentAssumptions: undefined })).toEqual([
-            "Gas consumption (FGCT) is missing: accept “Assume no gas consumption” or enter a gas price of 0.",
-        ]);
+    test("takes a missing gas component as zero without asking for an assumption", () => {
+        const derived = readyInput({ predictionStartYear: 2018, oilPrice: 50, gasPrice: 0.2 });
+        expect(messages(derived)).toEqual([]);
+        expect(messages({ ...derived, requirement: MeasureRequirement.GAS_VOLUME })).toEqual([]);
+        expect(getSetupReadiness(derived).issues.some((issue) => issue.message.includes("FGCT"))).toBe(false);
     });
 
     test("volume results need no prices, and break-even needs no oil price but needs included costs", () => {
-        const base = readyInput({
-            predictionStartYear: 2018,
-            missingComponentAssumptions: { assumeMissingConsumptionAsZero: true },
-        });
+        const base = readyInput({ predictionStartYear: 2018 });
         expect(messages({ ...base, requirement: MeasureRequirement.OIL_VOLUME })).toEqual([]);
         expect(messages({ ...base, requirement: MeasureRequirement.OIL_AND_GAS_VOLUME })).toEqual([]);
         expect(messages({ ...base, requirement: MeasureRequirement.BREAK_EVEN })).toEqual([
@@ -235,7 +205,6 @@ describe("getSetupReadiness", () => {
             predictionStartYear: 2016,
             oilPrice: 50,
             gasPrice: 0.2,
-            missingComponentAssumptions: { assumeMissingConsumptionAsZero: true },
             productSupport: NONE_COVERED,
         });
         expect(getSetupReadiness(beforeSource).issues).toEqual([
@@ -274,10 +243,6 @@ describe("getSetupReadiness", () => {
                 ]),
             }),
         ).toEqual([]);
-        // An unresolved missing component already explains the missing sales gas.
-        expect(messages({ ...beforeSource, oilPrice: 0, missingComponentAssumptions: undefined })).toEqual([
-            "Gas consumption (FGCT) is missing: accept “Assume no gas consumption” or enter a gas price of 0.",
-        ]);
     });
 
     test("requires the needed products to be covered in the same realization", () => {
@@ -286,7 +251,6 @@ describe("getSetupReadiness", () => {
             oilPrice: 50,
             gasPrice: 0.2,
             costProfile: [{ year: 2018, capex: 100, opex: 0 }],
-            missingComponentAssumptions: { assumeMissingConsumptionAsZero: true },
             productSupport: support([
                 { oil: true, gas: false },
                 { oil: false, gas: true },
@@ -307,25 +271,6 @@ describe("getSetupReadiness", () => {
     });
 
     test("separates unavailable source data from missing inputs", () => {
-        const unavailable = readyInput({
-            predictionStartYear: 2018,
-            oilPrice: 50,
-            snapshot: {
-                ...EMPTY_SOURCE_SNAPSHOT,
-                status: SourceStatus.READY,
-                salesGasStrategy: { kind: "UNAVAILABLE" },
-                envelopeEndMonthIndex: monthIndexOf(2020, 6),
-            },
-        });
-        expect(getSetupReadiness(unavailable).issues).toEqual([
-            {
-                kind: SetupIssueKind.SOURCE,
-                message: "Sales gas is unavailable: enter a gas price of 0 to calculate without gas revenue.",
-                field: "gasPrice",
-            },
-        ]);
-        expect(messages({ ...unavailable, gasPrice: 0 })).toEqual([]);
-
         const failed = readyInput({
             snapshot: {
                 ...EMPTY_SOURCE_SNAPSHOT,
@@ -353,7 +298,6 @@ describe("getSetupReadiness", () => {
             predictionStartYear: 2018,
             oilPrice: 50,
             gasPrice: 0.2,
-            missingComponentAssumptions: { assumeMissingConsumptionAsZero: true },
             hasOilVector: false,
         });
         const missingOil = "Oil production (FOPT) is not available for this ensemble.";
@@ -369,30 +313,35 @@ describe("getSetupReadiness", () => {
         expect(messages({ ...noOil, oilPrice: 0 })).toEqual([]);
     });
 
-    test("reports unavailable sales gas for gas volumes, and for financial results unless the gas price is 0", () => {
-        const noGas = readyInput({
+    test("needs no gas price when sales gas is taken as zero, and reports its coverage only through oil", () => {
+        const zeroGasSnapshot = {
+            ...EMPTY_SOURCE_SNAPSHOT,
+            status: SourceStatus.READY,
+            salesGasStrategy: { kind: "ZERO" },
+            envelopeEndMonthIndex: monthIndexOf(2020, 6),
+        } as const;
+        const zeroGas = readyInput({
             predictionStartYear: 2018,
             oilPrice: 50,
             costProfile: [{ year: 2018, capex: 100, opex: 0 }],
-            snapshot: {
-                ...EMPTY_SOURCE_SNAPSHOT,
-                status: SourceStatus.READY,
-                salesGasStrategy: { kind: "UNAVAILABLE" },
-                envelopeEndMonthIndex: monthIndexOf(2020, 6),
-            },
+            snapshot: zeroGasSnapshot,
+            productSupport: { ...ALL_COVERED, gas: { ...PRODUCT_SUPPORT, isConfirmedAbsent: true } },
         });
-        const noGasVolume = "Sales gas is unavailable: neither FGST nor FGPT is available.";
-        const noGasRevenue = "Sales gas is unavailable: enter a gas price of 0 to calculate without gas revenue.";
         for (const gasPrice of [null, 0, 0.2]) {
-            expect(messages({ ...noGas, gasPrice, requirement: MeasureRequirement.GAS_VOLUME })).toEqual([noGasVolume]);
-            expect(messages({ ...noGas, gasPrice, requirement: MeasureRequirement.OIL_AND_GAS_VOLUME })).toEqual([
-                noGasVolume,
-            ]);
-            expect(messages({ ...noGas, gasPrice, requirement: MeasureRequirement.OIL_VOLUME })).toEqual([]);
-            for (const requirement of [MeasureRequirement.FINANCIAL, MeasureRequirement.BREAK_EVEN]) {
-                expect(messages({ ...noGas, gasPrice, requirement })).toEqual(gasPrice === 0 ? [] : [noGasRevenue]);
+            for (const requirement of Object.values(MeasureRequirement)) {
+                expect(messages({ ...zeroGas, gasPrice, requirement })).toEqual([]);
             }
         }
+
+        // Zero sales gas follows the oil coverage, so a missing oil coverage is reported once, as oil.
+        const uncovered = { ...zeroGas, predictionStartYear: 2016, productSupport: NONE_COVERED };
+        const uncoveredInput = readyInput({ ...uncovered });
+        const oilCoverage =
+            "Oil source coverage is incomplete between Jan 2016 and Jun 2020 for every selected realization; supported data starts Jan 2018.";
+        expect(messages({ ...uncoveredInput, gasPrice: 0.2 })).toEqual([oilCoverage]);
+        expect(messages({ ...uncoveredInput, requirement: MeasureRequirement.GAS_VOLUME })).toEqual([
+            "Sales gas source coverage is incomplete between Jan 2016 and Jun 2020 for every selected realization; supported data starts Jan 2018.",
+        ]);
     });
 
     test("reports invalid cost drafts", () => {

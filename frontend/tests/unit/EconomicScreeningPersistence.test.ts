@@ -18,7 +18,6 @@ import {
     discountRatePercentAtom,
     distributionPlotTypeAtom,
     gasPriceAtom,
-    missingComponentAssumptionsAtom,
     oilPriceAtom,
     predictionStartYearAtom,
     resultModeAtom,
@@ -103,7 +102,6 @@ function populate(
         ensembleIdentString: ENSEMBLE_STRING,
         realization: overrides.realization === undefined ? 21 : overrides.realization,
     });
-    store.set(missingComponentAssumptionsAtom, { ensemble: { assumeMissingInjectionAsZero: true } });
 }
 
 function snapshot(store: Store) {
@@ -119,7 +117,6 @@ function snapshot(store: Store) {
         distributionPlotType: store.get(distributionPlotTypeAtom),
         cashFlowProfileType: store.get(cashFlowProfileTypeAtom),
         displayedRealization: store.get(displayedRealizationAtom),
-        missingComponentAssumptions: store.get(missingComponentAssumptionsAtom),
     };
 }
 
@@ -160,7 +157,6 @@ describe("Economic Screening current-state persistence", () => {
                 "discountRatePercent",
                 "distributionPlotType",
                 "gasPrice",
-                "missingComponentAssumptionsByEnsemble",
                 "oilPrice",
                 "predictionStartYear",
                 "resultMode",
@@ -338,6 +334,13 @@ describe("Economic Screening current-state persistence", () => {
         ],
         ["an unknown state format", (current) => ({ ...current, stateFormat: "MONTHLY_SETTINGS_OWNED_V3" })],
         ["the removed currency field", (current) => ({ ...current, currency: "USD" })],
+        [
+            "the removed missing gas component assumptions",
+            (current) => ({
+                ...current,
+                missingComponentAssumptionsByEnsemble: { ensemble: { assumeMissingInjectionAsZero: true } },
+            }),
+        ],
         ["an unsupported result mode", (current) => ({ ...current, resultMode: "BOX_ONLY" })],
         ["the removed box distribution plot", (current) => ({ ...current, distributionPlotType: "BOX" })],
     ])("rejects %s before changing any current setting", (_description, makeState) => {

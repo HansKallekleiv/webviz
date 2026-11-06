@@ -16,7 +16,6 @@ import {
     discountRatePercentAtom,
     distributionPlotTypeAtom,
     gasPriceAtom,
-    missingComponentAssumptionsAtom,
     oilPriceAtom,
     predictionStartYearAtom,
     resultModeAtom,
@@ -45,10 +44,6 @@ export type SerializedSettings = {
     cashFlowProfileType: CashFlowProfileType;
     /** Null means Aggregate. */
     selectedRealization: number | null;
-    missingComponentAssumptionsByEnsemble: Record<
-        string,
-        { assumeMissingInjectionAsZero?: boolean; assumeMissingConsumptionAsZero?: boolean }
-    >;
 };
 
 const schemaBuilder = new SchemaBuilder<SerializedSettings>(() => ({
@@ -73,14 +68,6 @@ const schemaBuilder = new SchemaBuilder<SerializedSettings>(() => ({
         distributionPlotType: { enum: Object.values(DistributionPlotType) },
         cashFlowProfileType: { enum: Object.values(CashFlowProfileType) },
         selectedRealization: { type: "int32", nullable: true },
-        missingComponentAssumptionsByEnsemble: {
-            values: {
-                optionalProperties: {
-                    assumeMissingInjectionAsZero: { type: "boolean" },
-                    assumeMissingConsumptionAsZero: { type: "boolean" },
-                },
-            },
-        },
     },
 }));
 
@@ -101,7 +88,6 @@ export const serializeSettings: SerializeStateFunction<SerializedSettings> = (ge
         cashFlowProfileType: get(cashFlowProfileTypeAtom),
         // The displayed choice, so a selection that is invalid here is saved as Aggregate.
         selectedRealization: get(displayedRealizationAtom),
-        missingComponentAssumptionsByEnsemble: get(missingComponentAssumptionsAtom),
     };
 };
 
@@ -132,5 +118,4 @@ export const deserializeSettings: DeserializeStateFunction<SerializedSettings> =
     setIfDefined(set, distributionPlotTypeAtom, raw.distributionPlotType);
     setIfDefined(set, cashFlowProfileTypeAtom, raw.cashFlowProfileType);
     setIfDefined(set, selectedRealizationAtom, selectedRealization);
-    setIfDefined(set, missingComponentAssumptionsAtom, raw.missingComponentAssumptionsByEnsemble);
 };

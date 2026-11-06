@@ -22,6 +22,8 @@ function monthStartUtcMs(year: number, month: number): number {
     return Date.UTC(year, month - 1, 1);
 }
 
+const DERIVED_WITHOUT_FGCT_WARNING = "FGST missing: sales gas = FGPT - FGIT; FGCT missing, taken as 0.";
+
 /**
  * API-shaped monthly cumulative series for 2030-2031 with source-aligned coverage. With
  * `partialFirstMonth`, the source starts mid-January 2030, so that month is only partly covered.
@@ -472,7 +474,9 @@ for (const layout of [
         await expect(
             settings.getByText("Gas revenue excluded; gas-volume outputs still require resolved gas data."),
         ).toBeVisible();
-        await expect(settings.getByRole("checkbox", { name: "Assume no gas consumption" })).not.toBeChecked();
+        await expect(settings.getByText("Calculated (FGPT - FGIT)", { exact: true })).toBeVisible();
+        await expect(settings.getByText(DERIVED_WITHOUT_FGCT_WARNING, { exact: true })).toBeVisible();
+        await expect(settings.getByRole("checkbox")).toHaveCount(0);
 
         for (const label of ["Discount rate [%]", "Oil price [USD/bbl]", "Gas price [USD/Sm³]"]) {
             const input = settings.getByRole("textbox", { name: label, exact: true });
@@ -523,7 +527,6 @@ test("lists every known NPV setup requirement together before any price edit", a
             "Enter a reference date.",
             "Enter an oil price, or 0 to omit oil revenue.",
             "Enter a gas price, or 0 to omit gas revenue.",
-            "Gas consumption (FGCT) is missing: accept “Assume no gas consumption” or enter a gas price of 0.",
         ]);
     await page.screenshot({ path: `${UX_SCREENSHOT_DIR}/desktop-initial-setup.png` });
 
@@ -534,27 +537,16 @@ test("lists every known NPV setup requirement together before any price edit", a
     await oilPrice.blur();
     await expect
         .poll(() => setupItems(page))
-        .toEqual([
-            "Enter a reference date.",
-            "Enter a gas price, or 0 to omit gas revenue.",
-            "Gas consumption (FGCT) is missing: accept “Assume no gas consumption” or enter a gas price of 0.",
-        ]);
+        .toEqual(["Enter a reference date.", "Enter a gas price, or 0 to omit gas revenue."]);
 
-    // Zero gas price resolves gas revenue only; sales-gas volume still needs the missing component.
     await gasPrice.fill("0");
     await gasPrice.blur();
     await expect.poll(() => setupItems(page)).toEqual(["Enter a reference date."]);
-    await expect(settings.getByRole("checkbox", { name: "Assume no gas consumption" })).not.toBeChecked();
 
     await settings.getByRole("combobox", { name: "Response" }).click();
     await page.getByRole("option", { name: "Discounted sales gas volume" }).click();
     await expect(setupStatus(page)).toContainText("Needed for discounted sales gas volume");
-    await expect
-        .poll(() => setupItems(page))
-        .toEqual([
-            "Enter a reference date.",
-            "Gas consumption (FGCT) is missing: accept “Assume no gas consumption” to calculate sales gas.",
-        ]);
+    await expect.poll(() => setupItems(page)).toEqual(["Enter a reference date."]);
     await settings.getByRole("combobox", { name: "Response" }).click();
     await page.getByRole("option", { name: "Break-even oil price" }).click();
     await expect(setupStatus(page)).toContainText("Needed for break-even oil price");
@@ -563,10 +555,7 @@ test("lists every known NPV setup requirement together before any price edit", a
     expect(fixtures.unexpectedApiRequests).toEqual([]);
 });
 
-test("applies an explicit missing-component assumption to gas revenue without auto-accepting it", async ({
-    mount,
-    page,
-}) => {
+test("takes a missing gas component as zero and states it in Settings", async ({ mount, page }) => {
     const fixtures = await routeSourceFixtures(page, { vectorNames: ["FOPT", "FGPT", "FGIT"] });
     await mount(
         <EconomicScreeningModuleHarness
@@ -583,30 +572,24 @@ test("applies an explicit missing-component assumption to gas revenue without au
             .contents.flat()
             .map((element) => element.value as number);
 
+    const salesGasWarning = settings.getByText(DERIVED_WITHOUT_FGCT_WARNING, { exact: true });
+    await salesGasWarning.scrollIntoViewIfNeeded();
+    await expect(salesGasWarning).toBeVisible();
+    await page.screenshot({ path: `${UX_SCREENSHOT_DIR}/desktop-sales-gas-source.png` });
     await expect.poll(async () => (await npvValues()).length).toBe(3);
     const withoutGasRevenue = await npvValues();
-    const consumption = settings.getByRole("checkbox", { name: "Assume no gas consumption" });
-    await expect(consumption).not.toBeChecked();
 
     const gasPrice = settings.getByRole("textbox", { name: /^Gas price/ });
     await gasPrice.fill("0.2");
     await gasPrice.blur();
-    await expect
-        .poll(() => setupItems(page))
-        .toEqual(["Gas consumption (FGCT) is missing: accept “Assume no gas consumption” or enter a gas price of 0."]);
-    await expect.poll(async () => (await npvValues()).length).toBe(0);
-
-    await consumption.check();
     await expect(setupStatus(page)).toHaveText("Setup ready");
-    await expect.poll(async () => (await npvValues()).length).toBe(3);
+    await expect.poll(async () => (await npvValues())[0]).toBeGreaterThan(withoutGasRevenue[0]);
     const withGasRevenue = await npvValues();
     withGasRevenue.forEach((value, index) => expect(value).toBeGreaterThan(withoutGasRevenue[index]));
 
     await gasPrice.fill("0");
     await gasPrice.blur();
     await expect.poll(async () => npvValues()).toEqual(withoutGasRevenue);
-    // A zero gas price does not clear the stored ensemble-scoped assumption.
-    await expect(consumption).toBeChecked();
     expect(fixtures.vectorDataRequests.sort()).toEqual(["FGIT", "FGPT", "FOPT"]);
     expect(fixtures.unexpectedApiRequests).toEqual([]);
 });

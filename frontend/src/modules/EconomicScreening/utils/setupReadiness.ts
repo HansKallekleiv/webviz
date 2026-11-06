@@ -7,7 +7,6 @@ import { getEvaluationHorizonError, type EvaluationHorizon, type EvaluationHoriz
 import { isProductConfirmedAbsent, isProductEstablished } from "./monthlyEconomics";
 import { isMonthCoverageEstablished, monthIndexOf, type MonthlyProductionProfile } from "./monthlyProduction";
 import { SourceStatus, type EconomicSourceSnapshot, type RealizationProfiles } from "./sourceSnapshot";
-import type { MissingComponentAssumptions } from "./vectorResolution";
 
 /**
  * Years whose January has established source coverage in at least one realization and product, through
@@ -44,14 +43,7 @@ export enum SetupIssueKind {
     SOURCE = "SOURCE",
 }
 
-export type SetupField =
-    | "ensemble"
-    | "predictionYear"
-    | "oilPrice"
-    | "gasPrice"
-    | "injection"
-    | "consumption"
-    | "costs";
+export type SetupField = "ensemble" | "predictionYear" | "oilPrice" | "gasPrice" | "costs";
 
 export type SetupIssue = { kind: SetupIssueKind; message: string; field?: SetupField };
 
@@ -149,7 +141,6 @@ export type SetupReadinessInput = {
     hasOilVector: boolean;
     /** Support of each product over the evaluation for the selected realizations; null until known. */
     productSupport: SelectedProductSupport | null;
-    missingComponentAssumptions: MissingComponentAssumptions | undefined;
     evaluationHorizon: EvaluationHorizonState;
     oilPrice: number | null;
     gasPrice: number | null;
@@ -157,12 +148,6 @@ export type SetupReadinessInput = {
     costDraftStatus: CostDraftStatus;
     requirement: MeasureRequirement;
 };
-
-function missingComponentMessage(componentLabel: string, checkboxLabel: string, needsGasVolume: boolean): string {
-    return needsGasVolume
-        ? `${componentLabel} is missing: accept “${checkboxLabel}” to calculate sales gas.`
-        : `${componentLabel} is missing: accept “${checkboxLabel}” or enter a gas price of 0.`;
-}
 
 /**
  * Every currently known requirement of the selected result, reported together. Applies the shared
@@ -212,7 +197,6 @@ export function getSetupReadiness(input: SetupReadinessInput): SetupReadiness {
         const support = input.productSupport;
         const coverage = support?.realizations;
         const needsOilCoverage = input.hasOilVector && needsOilSource;
-        let needsGasCoverage = false;
         if (!input.hasOilVector) {
             if (needsOilSource) {
                 addSource("Oil production (FOPT) is not available for this ensemble.");
@@ -229,49 +213,19 @@ export function getSetupReadiness(input: SetupReadinessInput): SetupReadiness {
             }
         }
 
-        const strategy = snapshot.salesGasStrategy;
-        if (strategy.kind === "UNAVAILABLE") {
-            if (needs.gasVolume) {
-                addSource("Sales gas is unavailable: neither FGST nor FGPT is available.");
-            } else if (gasRevenueNeedsSource) {
-                addSource(
-                    "Sales gas is unavailable: enter a gas price of 0 to calculate without gas revenue.",
-                    "gasPrice",
-                );
-            }
-        } else {
-            if (needs.gasRevenue && gasRevenue.needsPrice) {
-                addInput("Enter a gas price, or 0 to omit gas revenue.", "gasPrice");
-            }
-            let hasUnresolvedComponent = false;
-            if (strategy.kind === "DERIVED" && needsGasSource) {
-                const assumptions = input.missingComponentAssumptions;
-                if (!strategy.hasGasInjection && !assumptions?.assumeMissingInjectionAsZero) {
-                    hasUnresolvedComponent = true;
-                    addInput(
-                        missingComponentMessage("Gas injection (FGIT)", "Assume no gas injection", needs.gasVolume),
-                        "injection",
-                    );
-                }
-                if (!strategy.hasGasConsumption && !assumptions?.assumeMissingConsumptionAsZero) {
-                    hasUnresolvedComponent = true;
-                    addInput(
-                        missingComponentMessage("Gas consumption (FGCT)", "Assume no gas consumption", needs.gasVolume),
-                        "consumption",
-                    );
-                }
-            }
-            // An unresolved component already explains the missing sales gas; its coverage is not yet defined.
-            needsGasCoverage = needsGasSource && !hasUnresolvedComponent;
-            if (needsGasCoverage && coverage && !coverage.some((entry) => entry.gas) && horizon) {
-                addSource(coverageMessage("Sales gas", support!.gas, horizon));
-            }
+        if (needs.gasRevenue && gasRevenue.needsPrice) {
+            addInput("Enter a gas price, or 0 to omit gas revenue.", "gasPrice");
+        }
+        // Sales gas taken as zero follows the oil coverage, so an oil coverage message already explains it.
+        const isGasCoverageExplained = snapshot.salesGasStrategy.kind === "ZERO" && needsOilCoverage;
+        if (needsGasSource && !isGasCoverageExplained && coverage && !coverage.some((entry) => entry.gas) && horizon) {
+            addSource(coverageMessage("Sales gas", support!.gas, horizon));
         }
 
         // Each product can be covered somewhere while no realization has both, which the results require.
         if (
             needsOilCoverage &&
-            needsGasCoverage &&
+            needsGasSource &&
             coverage &&
             coverage.some((entry) => entry.oil) &&
             coverage.some((entry) => entry.gas) &&

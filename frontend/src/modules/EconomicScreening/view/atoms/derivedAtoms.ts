@@ -17,6 +17,7 @@ import {
     convertOilPriceToSimulatorUnit,
     makeFixedOilEquivalentDivisor,
 } from "@modules/EconomicScreening/utils/unitConversion";
+import { getSalesGasSourceWarning } from "@modules/EconomicScreening/utils/vectorResolution";
 
 import {
     constituentGasConsumptionWarningAtom,
@@ -56,26 +57,17 @@ const unmaskedResultsAtom = atom<EconomicScreeningResults>((get) => {
 
     const { oilUnit, gasUnit, salesGasStrategy } = snapshot;
 
-    if (salesGas.isGasConsumptionAssumedZero) {
-        warnings.push("Assuming missing FGCT is zero.");
-    } else if (salesGas.isGasConsumptionMissing) {
-        warnings.push(
-            salesGasStrategy.kind === "DIRECT"
-                ? "Gas consumption data unavailable."
-                : "FGCT is not available. Sales gas is excluded until a zero-consumption assumption is accepted.",
-        );
-    } else if (salesGas.hasZeroGasConsumption && !isDeltaEnsemble) {
+    // Shown first: a failed export of FGST or FGPT looks the same as an ensemble without gas.
+    const salesGasSourceWarning =
+        snapshot.status === SourceStatus.READY ? getSalesGasSourceWarning(salesGasStrategy) : null;
+    if (salesGasSourceWarning) {
+        warnings.push(salesGasSourceWarning);
+    }
+    if (salesGas.hasZeroGasConsumption && !isDeltaEnsemble) {
         warnings.push("FGCT is zero in all realizations, so no gas consumption is modelled.");
     }
     if (isDeltaEnsemble && constituentGasConsumptionWarning) {
         warnings.push(constituentGasConsumptionWarning);
-    }
-    if (salesGas.isGasInjectionAssumedZero) {
-        warnings.push("Assuming missing FGIT is zero.");
-    } else if (salesGas.isGasInjectionMissing && salesGas.hasSeries) {
-        warnings.push(
-            "FGIT is not available. Sales gas cannot be derived until a zero-injection assumption is accepted.",
-        );
     }
     if (salesGas.incompleteInjectionRealizations.length > 0) {
         warnings.push(`FGIT has missing samples for ${salesGas.incompleteInjectionRealizations.length} realizations.`);

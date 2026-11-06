@@ -27,11 +27,12 @@ import type { RealizationCumulativeSeries } from "@modules/EconomicScreening/uti
 import {
     deriveSalesGasCumulative,
     isCumulativeVectorAllZero,
+    makeZeroCumulativeSeries,
     summarizeCumulativeVectorTerminals,
     toRealizationCumulativeSeries,
 } from "@modules/EconomicScreening/utils/vectorResolution";
 
-import { missingComponentAssumptionsAtom, predictionStartYearAtom } from "./baseAtoms";
+import { predictionStartYearAtom } from "./baseAtoms";
 import { activeVectorListQueryAtom, isSelectedEnsembleDeltaAtom, salesGasStrategyAtom } from "./derivedAtoms";
 import { validSelectedEnsembleIdentAtom } from "./persistableFixableAtoms";
 import {
@@ -41,6 +42,9 @@ import {
     vectorDataQueriesAtom,
     VectorQueryIndex,
 } from "./sourceQueryAtoms";
+
+/** Zero volume is zero in any unit; Sm³ matches the gas price unit. */
+const ZERO_SALES_GAS_UNIT = "SM3";
 
 type SalesGasData = {
     series: RealizationCumulativeSeries[];
@@ -109,8 +113,6 @@ const salesGasDataAtom = atom<SalesGasData>((get) => {
     const salesGasStrategy = get(salesGasStrategyAtom);
     const queries = get(vectorDataQueriesAtom);
     const sourceKind = get(sourceKindAtom);
-    const ensembleKey = get(validSelectedEnsembleIdentAtom)?.toString();
-    const missingComponentAssumptions = ensembleKey ? get(missingComponentAssumptionsAtom)[ensembleKey] : undefined;
 
     if (salesGasStrategy.kind === "DIRECT") {
         const data = queries[VectorQueryIndex.SALES_GAS].data ?? [];
@@ -125,10 +127,6 @@ const salesGasDataAtom = atom<SalesGasData>((get) => {
                 hasSeries: series.length > 0,
                 hasZeroGasConsumption:
                     salesGasStrategy.hasGasConsumption && isCumulativeVectorAllZero(gasConsumptionData),
-                isGasConsumptionMissing: !salesGasStrategy.hasGasConsumption,
-                isGasInjectionMissing: false,
-                isGasConsumptionAssumedZero: false,
-                isGasInjectionAssumedZero: false,
                 incompleteInjectionRealizations: [],
                 incompleteConsumptionRealizations: [],
             },
@@ -139,16 +137,15 @@ const salesGasDataAtom = atom<SalesGasData>((get) => {
         const gasProductionData = queries[VectorQueryIndex.GAS_PRODUCTION].data ?? [];
         const gasInjectionData = salesGasStrategy.hasGasInjection
             ? (queries[VectorQueryIndex.GAS_INJECTION].data ?? [])
-            : [];
+            : null;
         const gasConsumptionData = salesGasStrategy.hasGasConsumption
             ? (queries[VectorQueryIndex.GAS_CONSUMPTION].data ?? [])
-            : [];
+            : null;
 
         const derivedSalesGas = deriveSalesGasCumulative(
             gasProductionData,
             gasInjectionData,
             gasConsumptionData,
-            missingComponentAssumptions,
             sourceKind,
         );
         return {
@@ -156,23 +153,19 @@ const salesGasDataAtom = atom<SalesGasData>((get) => {
             unit: gasProductionData[0]?.unit ?? "",
             diagnostics: {
                 hasSeries: derivedSalesGas.series.length > 0,
-                hasZeroGasConsumption:
-                    salesGasStrategy.hasGasConsumption && isCumulativeVectorAllZero(gasConsumptionData),
-                isGasConsumptionMissing: !salesGasStrategy.hasGasConsumption,
-                isGasInjectionMissing: !salesGasStrategy.hasGasInjection,
-                isGasConsumptionAssumedZero:
-                    !salesGasStrategy.hasGasConsumption &&
-                    (missingComponentAssumptions?.assumeMissingConsumptionAsZero ?? false),
-                isGasInjectionAssumedZero:
-                    !salesGasStrategy.hasGasInjection &&
-                    (missingComponentAssumptions?.assumeMissingInjectionAsZero ?? false),
+                hasZeroGasConsumption: gasConsumptionData !== null && isCumulativeVectorAllZero(gasConsumptionData),
                 incompleteInjectionRealizations: derivedSalesGas.incompleteInjectionRealizations,
                 incompleteConsumptionRealizations: derivedSalesGas.incompleteConsumptionRealizations,
             },
         };
     }
 
-    return { series: [], unit: "", diagnostics: NO_SALES_GAS_DIAGNOSTICS };
+    // Zero sales gas follows the oil sampling and coverage, so it is confirmed zero wherever oil is covered.
+    return {
+        series: makeZeroCumulativeSeries(get(oilProductionSeriesAtom)),
+        unit: ZERO_SALES_GAS_UNIT,
+        diagnostics: NO_SALES_GAS_DIAGNOSTICS,
+    };
 });
 
 /** A regular realization is extended with zero production after its source end; a delta one is not. */

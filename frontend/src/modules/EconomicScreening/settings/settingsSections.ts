@@ -16,8 +16,6 @@ export const FIELD_SECTIONS: Record<SetupField, SettingsSection> = {
     predictionYear: SettingsSection.DATA_AND_VALUATION,
     oilPrice: SettingsSection.PRICES,
     gasPrice: SettingsSection.PRICES,
-    injection: SettingsSection.PRICES,
-    consumption: SettingsSection.PRICES,
     costs: SettingsSection.COSTS,
 };
 

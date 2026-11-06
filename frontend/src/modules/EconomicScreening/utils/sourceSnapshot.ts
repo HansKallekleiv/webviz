@@ -19,13 +19,10 @@ export type RealizationProfiles = {
 };
 
 export type SalesGasDiagnostics = {
+    /** Sales gas comes from gas vectors for some realization; false when it is taken as zero. */
     hasSeries: boolean;
     /** True when gas consumption is available but zero in every realization. */
     hasZeroGasConsumption: boolean;
-    isGasConsumptionMissing: boolean;
-    isGasInjectionMissing: boolean;
-    isGasConsumptionAssumedZero: boolean;
-    isGasInjectionAssumedZero: boolean;
     incompleteInjectionRealizations: number[];
     incompleteConsumptionRealizations: number[];
 };
@@ -53,10 +50,6 @@ export type EconomicSourceSnapshot = {
 export const NO_SALES_GAS_DIAGNOSTICS: SalesGasDiagnostics = {
     hasSeries: false,
     hasZeroGasConsumption: false,
-    isGasConsumptionMissing: true,
-    isGasInjectionMissing: true,
-    isGasConsumptionAssumedZero: false,
-    isGasInjectionAssumedZero: false,
     incompleteInjectionRealizations: [],
     incompleteConsumptionRealizations: [],
 };
@@ -66,7 +59,7 @@ export const EMPTY_SOURCE_SNAPSHOT: EconomicSourceSnapshot = {
     status: SourceStatus.NO_ENSEMBLE,
     isFetching: false,
     queryError: null,
-    salesGasStrategy: { kind: "UNAVAILABLE" },
+    salesGasStrategy: { kind: "ZERO" },
     oilUnit: "",
     gasUnit: "",
     hasOilSeries: false,

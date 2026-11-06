@@ -1,7 +1,6 @@
 import { simulationVectorDescription } from "@modules/_shared/reservoirSimulationStringUtils";
 
 import { EconomicMeasure } from "../typesAndEnums";
-import type { SalesGasStrategy } from "../utils/vectorResolution";
 
 export const REFERENCE_DATE_HELP =
     "Required. The evaluation runs from this date through the supported simulation end, and all results are discounted to it. It does not have to match the simulation's switch from history to prediction, and it may precede production to include forecast investment. Suggestions are years with source data from 1 January for the full ensemble, including covered years without production; any whole year can be typed. The historical simulation start is not suggested as a default.";
@@ -14,19 +13,7 @@ export const OIL_PRICE_HELP =
 export const GAS_PRICE_HELP =
     "Constant sales-gas price in USD per Sm³ over the evaluation. Blank means unspecified; enter 0 to intentionally omit gas revenue. A price of 0 does not turn missing gas data into zero volume, and sales-gas volume results still need the gas source. Volume results do not need a price.";
 
-export function makeSalesGasSourceHelp(kind: SalesGasStrategy["kind"]): string {
-    return `${makeSalesGasDescription(kind)} A missing vector is not proof of zero. Accepting treats it as zero for this ensemble only, which can increase sales gas and NPV.`;
-}
-
-function makeSalesGasDescription(kind: SalesGasStrategy["kind"]): string {
-    if (kind === "DIRECT") {
-        return `${simulationVectorDescription("FGST")} (FGST) is used directly.`;
-    }
-    if (kind === "DERIVED") {
-        return `${simulationVectorDescription("FGST")} is calculated as ${simulationVectorDescription("FGPT")} (FGPT) minus ${simulationVectorDescription("FGIT")} (FGIT) and ${simulationVectorDescription("FGCT")} (FGCT).`;
-    }
-    return "Neither FGST nor FGPT is available for this ensemble.";
-}
+export const SALES_GAS_SOURCE_HELP = `${simulationVectorDescription("FGST")} (FGST) is expected and used when available. Without it, sales gas is calculated as ${simulationVectorDescription("FGPT")} (FGPT) minus ${simulationVectorDescription("FGIT")} (FGIT) and ${simulationVectorDescription("FGCT")} (FGCT), with a missing FGIT or FGCT taken as 0. Without FGST and FGPT, sales gas is taken as 0. A missing vector is not proof of zero: check the warning, since a failed export looks the same as an ensemble without that vector.`;
 
 export const ANNUAL_COSTS_DELTA_HELP =
     "One row per year from the reference date through the simulation end. For a delta ensemble, costs are comparison minus reference; negative values are savings. Blank cells are zero. OPEX is paid in twelve equal monthly amounts; CAPEX at mid-year. The full annual amount applies even in a final year that ends early.";

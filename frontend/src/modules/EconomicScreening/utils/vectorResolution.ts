@@ -16,7 +16,8 @@ export type SalesGasStrategy =
           hasGasInjection: boolean;
           hasGasConsumption: boolean;
       }
-    | { kind: "UNAVAILABLE" };
+    /** Neither FGST nor FGPT is available, so sales gas is taken as zero. */
+    | { kind: "ZERO" };
 
 export type RealizationCumulativeSeries = {
     realization: number;
@@ -26,11 +27,6 @@ export type RealizationCumulativeSeries = {
     intervalCoverage: MonthCoverage[];
     /** End of common raw-source support over every required source vector; null when unverified. */
     supportEndUtcMs: number | null;
-};
-
-export type MissingComponentAssumptions = {
-    assumeMissingInjectionAsZero?: boolean;
-    assumeMissingConsumptionAsZero?: boolean;
 };
 
 export type DerivedSalesGasCumulative = {
@@ -46,7 +42,7 @@ export type CumulativeTerminalSummary = {
 
 /**
  * Sales gas is taken from FGST when the ensemble provides it, otherwise derived as
- * FGPT - FGIT - FGCT from whichever components are available.
+ * FGPT - FGIT - FGCT with a missing FGIT or FGCT taken as zero. Without FGST and FGPT it is zero.
  */
 export function determineSalesGasStrategy(availableVectorNames: string[]): SalesGasStrategy {
     const available = new Set(availableVectorNames);
@@ -54,7 +50,7 @@ export function determineSalesGasStrategy(availableVectorNames: string[]): Sales
         return { kind: "DIRECT", hasGasConsumption: available.has(GAS_CONSUMPTION_VECTOR) };
     }
     if (!available.has(GAS_PRODUCTION_VECTOR)) {
-        return { kind: "UNAVAILABLE" };
+        return { kind: "ZERO" };
     }
     return {
         kind: "DERIVED",
@@ -62,6 +58,49 @@ export function determineSalesGasStrategy(availableVectorNames: string[]): Sales
         hasGasInjection: available.has(GAS_INJECTION_VECTOR),
         hasGasConsumption: available.has(GAS_CONSUMPTION_VECTOR),
     };
+}
+
+/** How sales gas is obtained, for display: "Reported (FGST)", "Calculated (FGPT - FGIT)" or "Taken as 0". */
+export function describeSalesGasSource(strategy: SalesGasStrategy): string {
+    switch (strategy.kind) {
+        case "DIRECT":
+            return `Reported (${SALES_GAS_VECTOR})`;
+        case "DERIVED":
+            return `Calculated (${derivedSalesGasEquation(strategy)})`;
+        case "ZERO":
+            return "Taken as 0";
+    }
+}
+
+/** The assumptions behind sales gas that is not reported as FGST; null when it is. */
+export function getSalesGasSourceWarning(strategy: SalesGasStrategy): string | null {
+    switch (strategy.kind) {
+        case "DIRECT":
+            return null;
+        case "DERIVED": {
+            const missing = [
+                ...(strategy.hasGasInjection ? [] : [GAS_INJECTION_VECTOR]),
+                ...(strategy.hasGasConsumption ? [] : [GAS_CONSUMPTION_VECTOR]),
+            ];
+            const assumption = missing.length === 0 ? "" : `; ${missing.join(" and ")} missing, taken as 0`;
+            return `${SALES_GAS_VECTOR} missing: sales gas = ${derivedSalesGasEquation(strategy)}${assumption}.`;
+        }
+        case "ZERO":
+            return `${SALES_GAS_VECTOR} and ${GAS_PRODUCTION_VECTOR} missing: sales gas taken as 0.`;
+    }
+}
+
+function derivedSalesGasEquation(strategy: Extract<SalesGasStrategy, { kind: "DERIVED" }>): string {
+    return [
+        GAS_PRODUCTION_VECTOR,
+        ...(strategy.hasGasInjection ? [GAS_INJECTION_VECTOR] : []),
+        ...(strategy.hasGasConsumption ? [GAS_CONSUMPTION_VECTOR] : []),
+    ].join(" - ");
+}
+
+/** Zero cumulative sales gas on another product's sampling and coverage. */
+export function makeZeroCumulativeSeries(series: RealizationCumulativeSeries[]): RealizationCumulativeSeries[] {
+    return series.map((entry) => ({ ...entry, values: entry.values.map(() => 0) }));
 }
 
 function makeValueByTimestampMap(realizationData: VectorRealizationData_api): Map<number, number> {
@@ -114,40 +153,35 @@ function componentCoverageForIntervals(
 
 /**
  * Builds cumulative sales gas per realization as FGPT - FGIT - FGCT, using the FGPT timestamps as
- * the master sampling. Missing vectors require an explicit zero assumption; missing samples always
- * exclude the affected realization.
+ * the master sampling. A null component is missing from the ensemble and taken as zero. A realization
+ * absent from, or with missing samples in, an available component is excluded.
  */
 export function deriveSalesGasCumulative(
     gasProductionData: VectorRealizationData_api[],
-    gasInjectionData: VectorRealizationData_api[],
-    gasConsumptionData: VectorRealizationData_api[],
-    assumptions: MissingComponentAssumptions = {},
+    gasInjectionData: VectorRealizationData_api[] | null,
+    gasConsumptionData: VectorRealizationData_api[] | null,
     sourceKind: SourceKind = SourceKind.REGULAR,
 ): DerivedSalesGasCumulative {
-    const injectionByRealization = makeDataByRealizationMap(gasInjectionData);
-    const consumptionByRealization = makeDataByRealizationMap(gasConsumptionData);
+    const injectionByRealization = gasInjectionData ? makeDataByRealizationMap(gasInjectionData) : null;
+    const consumptionByRealization = gasConsumptionData ? makeDataByRealizationMap(gasConsumptionData) : null;
     const incompleteInjectionRealizations: number[] = [];
     const incompleteConsumptionRealizations: number[] = [];
     const series: RealizationCumulativeSeries[] = [];
 
     for (const production of gasProductionData) {
-        const injection = injectionByRealization.get(production.realization);
-        const consumption = consumptionByRealization.get(production.realization);
-        if (
-            (!injection && !assumptions.assumeMissingInjectionAsZero) ||
-            (!consumption && !assumptions.assumeMissingConsumptionAsZero)
-        ) {
-            continue;
-        }
+        const injection = injectionByRealization?.get(production.realization);
+        const consumption = consumptionByRealization?.get(production.realization);
         const injectionByTimestamp = injection ? makeValueByTimestampMap(injection) : null;
         const consumptionByTimestamp = consumption ? makeValueByTimestampMap(consumption) : null;
 
-        const hasIncompleteInjection = injectionByTimestamp
-            ? production.timestampsUtcMs.some((timestampUtcMs) => !injectionByTimestamp.has(timestampUtcMs))
-            : false;
-        const hasIncompleteConsumption = consumptionByTimestamp
-            ? production.timestampsUtcMs.some((timestampUtcMs) => !consumptionByTimestamp.has(timestampUtcMs))
-            : false;
+        const hasIncompleteInjection =
+            injectionByRealization !== null &&
+            (!injectionByTimestamp ||
+                production.timestampsUtcMs.some((timestampUtcMs) => !injectionByTimestamp.has(timestampUtcMs)));
+        const hasIncompleteConsumption =
+            consumptionByRealization !== null &&
+            (!consumptionByTimestamp ||
+                production.timestampsUtcMs.some((timestampUtcMs) => !consumptionByTimestamp.has(timestampUtcMs)));
         if (hasIncompleteInjection || hasIncompleteConsumption) {
             if (hasIncompleteInjection) incompleteInjectionRealizations.push(production.realization);
             if (hasIncompleteConsumption) incompleteConsumptionRealizations.push(production.realization);

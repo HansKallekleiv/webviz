@@ -15,7 +15,7 @@ export function useGasOnlyMeasureFallback(): void {
     const salesGasStrategy = useAtomValue(salesGasStrategyAtom);
 
     useEffect(() => {
-        if (vectorListQuery.isFetching || hasOilProductionVector || salesGasStrategy.kind === "UNAVAILABLE") {
+        if (vectorListQuery.isFetching || hasOilProductionVector || salesGasStrategy.kind === "ZERO") {
             return;
         }
         if (selectedMeasure === EconomicMeasure.DISCOUNTED_OIL_VOLUME) {

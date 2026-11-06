@@ -4,7 +4,7 @@ This is a screening estimate from simulated production, constant prices, and the
 
 ## Monthly sales volumes
 
-The calculation uses monthly-resampled cumulative ECLIPSE vectors. Oil comes from FOPT. For gas, it uses reported sales gas from FGST when available. Otherwise, it calculates sales gas from produced gas FGPT, less injected gas FGIT and consumed gas FGCT.
+The calculation uses monthly-resampled cumulative ECLIPSE vectors. Oil comes from FOPT. For gas, it uses reported sales gas from FGST, which the ensemble is expected to provide. Otherwise, it calculates sales gas from produced gas FGPT, less injected gas FGIT and consumed gas FGCT.
 
 For each realization, we subtract consecutive monthly cumulative values to estimate the volume produced in each calendar month.
 
@@ -14,7 +14,7 @@ gas deductions = injected gas + consumed gas
 derived sales gas = produced gas - gas deductions
 ```
 
-A missing gas component is only treated as zero after you accept that assumption. Missing, failed, or non-finite data is never treated as zero production.
+Without FGST, a missing FGIT or FGCT is taken as zero. Without FGST and FGPT, sales gas is taken as zero, so no gas price is needed. Both cases are shown as a warning in Settings and in the view with the equation used: a failed export looks the same as an ensemble without that vector. A realization missing from a vector that the ensemble does provide is excluded, and failed or non-finite data is never treated as zero production.
 
 ## Source coverage
 

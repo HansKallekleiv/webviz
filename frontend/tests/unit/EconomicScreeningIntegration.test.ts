@@ -16,9 +16,11 @@ import {
     predictionStartYearAtom,
 } from "@modules/EconomicScreening/settings/atoms/baseAtoms";
 import type * as SettingsDerivedAtoms from "@modules/EconomicScreening/settings/atoms/derivedAtoms";
+import { salesGasStrategyAtom } from "@modules/EconomicScreening/settings/atoms/derivedAtoms";
 import { selectedEnsembleIdentAtom } from "@modules/EconomicScreening/settings/atoms/persistableFixableAtoms";
 import {
     deltaConstituentGasConsumptionQueriesAtom,
+    isVectorNeededAtom,
     validRealizationNumbersAtom,
     vectorDataQueriesAtom,
 } from "@modules/EconomicScreening/settings/atoms/sourceQueryAtoms";
@@ -378,6 +380,28 @@ describe("Economic Screening query results to channel data", () => {
         uncovered.set(predictionStartYearAtom, 2019);
         uncovered.set(costProfileAtom, [{ year: 2019, capex: 100, opex: 0 }]);
         expect(metricData(uncovered, EconomicMeasure.NPV)).toEqual([]);
+    });
+
+    test("takes sales gas as zero without FGST and FGPT, so a blank gas price does not block NPV", async () => {
+        const { store, oil } = await setup();
+        store.set(salesGasStrategyAtom as unknown as WritableAtom<unknown, [unknown], void>, { kind: "ZERO" });
+        store.set(isVectorNeededAtom as unknown as WritableAtom<boolean[], [boolean[]], void>, [
+            true,
+            false,
+            false,
+            false,
+            false,
+        ]);
+        setQueries(store, query(oil), query(undefined));
+        setGasPrice(store, null);
+
+        expect(metricData(store, EconomicMeasure.NPV)[1].value).toBeCloseTo(2 * discounted(OIL_42, 2020), 8);
+        expect(metricData(store, EconomicMeasure.DISCOUNTED_SALES_GAS_VOLUME).map((entry) => entry.value)).toEqual([
+            0, 0,
+        ]);
+        expect(store.get(economicScreeningResultsAtom).warnings[0]).toBe(
+            "FGST and FGPT missing: sales gas taken as 0.",
+        );
     });
 
     test("includes a realization whose source ends inside the last evaluated month", async () => {

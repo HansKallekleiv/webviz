@@ -273,7 +273,6 @@ describe("readiness and calculation parity", () => {
                                         snapshot,
                                         hasOilVector: true,
                                         productSupport,
-                                        missingComponentAssumptions: undefined,
                                         evaluationHorizon,
                                         oilPrice,
                                         gasPrice,

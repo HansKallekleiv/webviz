@@ -18,7 +18,6 @@ import {
     costDraftStatusAtom,
     costProfileAtom,
     gasPriceAtom,
-    missingComponentAssumptionsAtom,
     oilPriceAtom,
     resultModeAtom,
     selectedMeasureAtom,
@@ -100,7 +99,6 @@ export function Settings(props: ModuleSettingsProps<Interfaces>): ReactNode {
     const gasPrice = useAtomValue(gasPriceAtom);
     const costProfile = useAtomValue(costProfileAtom);
     const costDraftStatus = useAtomValue(costDraftStatusAtom);
-    const missingComponentAssumptionsByEnsemble = useAtomValue(missingComponentAssumptionsAtom);
     const evaluationHorizon = useAtomValue(evaluationHorizonStateAtom);
     const sourceSnapshot = useAtomValue(sourceSnapshotAtom);
     const selectedProductSupport = useAtomValue(selectedProductSupportAtom);
@@ -109,8 +107,6 @@ export function Settings(props: ModuleSettingsProps<Interfaces>): ReactNode {
 
     const isDeltaEnsembleSelected =
         selectedEnsembleIdent !== null && isEnsembleIdentOfType(selectedEnsembleIdent, DeltaEnsembleIdent);
-    const selectedMissingComponentAssumptions =
-        missingComponentAssumptionsByEnsemble[selectedEnsembleIdent?.toString() ?? ""];
 
     const setupReadiness = getSetupReadiness({
         hasEnsemble: selectedEnsembleIdent !== null,
@@ -118,7 +114,6 @@ export function Settings(props: ModuleSettingsProps<Interfaces>): ReactNode {
         snapshot: sourceSnapshot,
         hasOilVector: hasOilProductionVector,
         productSupport: selectedProductSupport,
-        missingComponentAssumptions: selectedMissingComponentAssumptions,
         evaluationHorizon,
         oilPrice,
         gasPrice,
