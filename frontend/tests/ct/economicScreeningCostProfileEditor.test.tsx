@@ -1,14 +1,27 @@
+import type { CostProfileEntry } from "@modules/EconomicScreening/typesAndEnums";
+
 import { CostProfileEditorHarness } from "./support/CostProfileEditorHarness";
 import { expect, test } from "./support/offlineComponentTest";
+
+/** Costs are typed and pasted in MUSD and stored in USD; fixtures and expectations state MUSD. */
+function musd(entries: CostProfileEntry[]): CostProfileEntry[] {
+    return entries.map((entry) => ({ year: entry.year, capex: entry.capex * 1e6, opex: entry.opex * 1e6 }));
+}
+
+function storedAs(entries: CostProfileEntry[]): string {
+    return JSON.stringify(musd(entries));
+}
+
+const DEFAULT_STORED = storedAs([{ year: 2020, capex: 100, opex: 0 }]);
 
 test("previews year-keyed costs without committing until Apply", async ({ mount, page }) => {
     await mount(
         <CostProfileEditorHarness
-            initialCostProfile={[
+            initialCostProfile={musd([
                 { year: 2016, capex: 7, opex: 0 },
                 { year: 2020, capex: 100, opex: 20 },
                 { year: 2021, capex: 30, opex: 2 },
-            ]}
+            ])}
         />,
     );
     const committed = page.getByTestId("committed-cost-profile");
@@ -18,12 +31,19 @@ test("previews year-keyed costs without committing until Apply", async ({ mount,
     await expect(dialog.getByRole("button", { name: "Apply", exact: true })).toBeDisabled();
     await dialog.getByRole("textbox").fill("2022\t50\t5\n2020\t\t10");
     await expect(dialog.getByRole("table", { name: "Cost paste preview" })).toBeVisible();
+    await expect(dialog.getByRole("columnheader", { name: "CAPEX [MUSD]", exact: true })).toBeVisible();
+    await expect(dialog.getByRole("cell", { name: "50", exact: true })).toBeVisible();
     await expect(committed).toHaveText(original!);
     await expect(page.getByTestId("cost-draft-status")).toHaveText("COMMITTED");
     await dialog.getByRole("button", { name: "Apply", exact: true }).click();
     await expect(dialog).toHaveCount(0);
     await expect(committed).toHaveText(
-        '[{"year":2016,"capex":7,"opex":0},{"year":2020,"capex":0,"opex":10},{"year":2021,"capex":30,"opex":2},{"year":2022,"capex":50,"opex":5}]',
+        storedAs([
+            { year: 2016, capex: 7, opex: 0 },
+            { year: 2020, capex: 0, opex: 10 },
+            { year: 2021, capex: 30, opex: 2 },
+            { year: 2022, capex: 50, opex: 5 },
+        ]),
     );
 });
 
@@ -107,12 +127,15 @@ test("allows signed delta preview but revalidates when the cost rules change", a
     await expect(dialog.getByRole("button", { name: "Apply", exact: true })).toBeDisabled();
     await component.update(<CostProfileEditorHarness isDelta />);
     await dialog.getByRole("button", { name: "Apply", exact: true }).click();
-    await expect(page.getByTestId("committed-cost-profile")).toHaveText('[{"year":2020,"capex":-40,"opex":-5}]');
+    await expect(page.getByTestId("committed-cost-profile")).toHaveText(
+        storedAs([{ year: 2020, capex: -40, opex: -5 }]),
+    );
 });
 
 test("names each editable cost input by its year and shows no step buttons", async ({ mount, page }) => {
     await mount(<CostProfileEditorHarness />);
 
+    await expect(page.getByRole("columnheader", { name: "CAPEX [MUSD]", exact: true })).toBeVisible();
     await expect(page.getByRole("textbox", { name: "CAPEX 2020", exact: true })).toHaveValue("100");
     await expect(page.getByRole("button", { name: /^(Increase|Decrease)$/ })).toHaveCount(0);
     const opex2021 = page.getByRole("textbox", { name: "OPEX 2021", exact: true });
@@ -121,11 +144,27 @@ test("names each editable cost input by its year and shows no step buttons", asy
     await opex2021.blur();
     await expect(opex2021).toHaveValue("1,250.5");
     await expect(page.getByTestId("committed-cost-profile")).toHaveText(
-        '[{"year":2020,"capex":100,"opex":0},{"year":2021,"capex":0,"opex":1250.5}]',
+        storedAs([
+            { year: 2020, capex: 100, opex: 0 },
+            { year: 2021, capex: 0, opex: 1250.5 },
+        ]),
         { timeout: 2_000 },
     );
     await page.keyboard.press("Tab");
     await expect(page.getByRole("textbox", { name: "CAPEX 2022", exact: true })).toBeFocused();
+});
+
+test("keeps whole-USD precision for small MUSD amounts", async ({ mount, page }) => {
+    await mount(<CostProfileEditorHarness initialCostProfile={[]} />);
+
+    const capex2020 = page.getByRole("textbox", { name: "CAPEX 2020", exact: true });
+    await capex2020.click();
+    await page.keyboard.type("0.012345");
+    await capex2020.blur();
+    await expect(capex2020).toHaveValue("0.012345");
+    await expect(page.getByTestId("committed-cost-profile")).toHaveText('[{"year":2020,"capex":12345,"opex":0}]', {
+        timeout: 2_000,
+    });
 });
 
 test("accepts signed delta costs typed into a field without step buttons", async ({ mount, page }) => {
@@ -136,7 +175,10 @@ test("accepts signed delta costs typed into a field without step buttons", async
     await page.keyboard.type("-40");
     await capex2021.blur();
     await expect(page.getByTestId("committed-cost-profile")).toHaveText(
-        '[{"year":2020,"capex":100,"opex":0},{"year":2021,"capex":-40,"opex":0}]',
+        storedAs([
+            { year: 2020, capex: 100, opex: 0 },
+            { year: 2021, capex: -40, opex: 0 },
+        ]),
         { timeout: 2_000 },
     );
     await expect(page.getByRole("status").filter({ hasText: "No non-zero costs included." })).toHaveCount(0);
@@ -155,7 +197,7 @@ test("shows neutral zero-cost context until an included cost is entered", async 
 });
 
 test("does not count an excluded stored entry as an included cost", async ({ mount, page }) => {
-    await mount(<CostProfileEditorHarness initialCostProfile={[{ year: 2016, capex: 7, opex: 0 }]} />);
+    await mount(<CostProfileEditorHarness initialCostProfile={musd([{ year: 2016, capex: 7, opex: 0 }])} />);
     await expect(page.getByRole("status").filter({ hasText: "No non-zero costs included." })).toBeVisible();
     await expect(
         page.getByText("Costs entered for 2016 are outside 2020-2022. They are kept but not used."),
@@ -167,10 +209,10 @@ test("does not treat signed cancellation or an invalid draft as zero costs", asy
     const component = await mount(
         <CostProfileEditorHarness
             isDelta
-            initialCostProfile={[
+            initialCostProfile={musd([
                 { year: 2020, capex: 100, opex: 0 },
                 { year: 2021, capex: -100, opex: 0 },
-            ]}
+            ])}
         />,
     );
     await expect(page.getByRole("textbox", { name: "CAPEX 2021", exact: true })).toHaveValue("-100");
@@ -179,10 +221,10 @@ test("does not treat signed cancellation or an invalid draft as zero costs", asy
     await component.update(
         <CostProfileEditorHarness
             isDelta={false}
-            initialCostProfile={[
+            initialCostProfile={musd([
                 { year: 2020, capex: 100, opex: 0 },
                 { year: 2021, capex: -100, opex: 0 },
-            ]}
+            ])}
         />,
     );
     await expect(page.getByRole("alert")).toHaveText("Investment and operating costs must be zero or greater.");
@@ -198,11 +240,14 @@ test("reports a valid edit as pending, not invalid, until its debounced commit",
     await capex2021.fill("50");
     await capex2021.blur();
     await expect(page.getByTestId("cost-draft-status")).toHaveText("PENDING");
-    await expect(page.getByTestId("committed-cost-profile")).toHaveText('[{"year":2020,"capex":100,"opex":0}]');
+    await expect(page.getByTestId("committed-cost-profile")).toHaveText(DEFAULT_STORED);
 
     await expect(page.getByTestId("cost-draft-status")).toHaveText("COMMITTED", { timeout: 2_000 });
     await expect(page.getByTestId("committed-cost-profile")).toHaveText(
-        '[{"year":2020,"capex":100,"opex":0},{"year":2021,"capex":50,"opex":0}]',
+        storedAs([
+            { year: 2020, capex: 100, opex: 0 },
+            { year: 2021, capex: 50, opex: 0 },
+        ]),
     );
 });
 
@@ -217,7 +262,10 @@ test("commits a valid pending draft when the editor unmounts", async ({ mount, p
 
     await expect(capex2021).toHaveCount(0);
     await expect(page.getByTestId("committed-cost-profile")).toHaveText(
-        '[{"year":2020,"capex":100,"opex":0},{"year":2021,"capex":50,"opex":0}]',
+        storedAs([
+            { year: 2020, capex: 100, opex: 0 },
+            { year: 2021, capex: 50, opex: 0 },
+        ]),
     );
     await expect(page.getByTestId("cost-draft-status")).toHaveText("COMMITTED");
 });
@@ -238,7 +286,7 @@ test("discards an invalid draft and clears its status when the editor unmounts",
 
     await expect(capex2021).toHaveCount(0);
     await expect(page.getByTestId("cost-draft-status")).toHaveText("COMMITTED");
-    await expect(page.getByTestId("committed-cost-profile")).toHaveText('[{"year":2020,"capex":100,"opex":0}]');
+    await expect(page.getByTestId("committed-cost-profile")).toHaveText(DEFAULT_STORED);
 });
 
 test("revalidates signed Delta costs when switched to a regular ensemble", async ({ mount, page }) => {
@@ -288,5 +336,5 @@ test("rejects a pasted year outside the generated cost years", async ({ mount, p
     });
 
     await expect(page.getByRole("alert")).toHaveText("Pasted year 2030 is outside the cost years 2020-2022.");
-    await expect(page.getByTestId("committed-cost-profile")).toHaveText('[{"year":2020,"capex":100,"opex":0}]');
+    await expect(page.getByTestId("committed-cost-profile")).toHaveText(DEFAULT_STORED);
 });

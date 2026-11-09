@@ -339,8 +339,9 @@ test("500 realizations: rapid Settings edits, invalid draft, display changes and
     await typeValue(page, inputs.oilPrice(page), "47");
     await typeValue(page, inputs.gasPrice(page), "0.18");
     await typeValue(page, inputs.discountRate(page), "7");
-    await typeValue(page, inputs.cost(page, "OPEX", 2040), "50000");
-    await typeValue(page, inputs.cost(page, "CAPEX", SCALE_FIRST_YEAR), "4200000");
+    // Costs are typed in MUSD; the reference inputs below are in USD.
+    await typeValue(page, inputs.cost(page, "OPEX", 2040), "0.05");
+    await typeValue(page, inputs.cost(page, "CAPEX", SCALE_FIRST_YEAR), "4.2");
     await typeValue(page, inputs.oilPrice(page), "46");
     let state: ScaleState = withCost(
         withCost(withInputs(BASE_STATE, { oilPrice: 46 / SM3_PER_BBL, gasPrice: 0.18, discountRatePercent: 7 }), 2040, {
@@ -362,7 +363,7 @@ test("500 realizations: rapid Settings edits, invalid draft, display changes and
     // A valid cost being typed is pending, not invalid: financial outputs stay published until its debounced commit.
     const draftMarker = await observationCount(page);
     state = withCost(state, 2041, { opex: 55_000 });
-    await typeValue(page, inputs.cost(page, "OPEX", 2041), "55000");
+    await typeValue(page, inputs.cost(page, "OPEX", 2041), "0.055");
     await watchRender(page, expectedScatter(state));
     const draftEvents = (await observationsSince(page, draftMarker)).filter((entry) =>
         ["commit:costProfileAtom", "received:channelX"].includes(entry.event),

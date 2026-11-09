@@ -1,4 +1,14 @@
-import type { CostProfileEntry } from "@modules/EconomicScreening/typesAndEnums";
+import { USD_PER_COST_INPUT_UNIT, type CostProfileEntry } from "@modules/EconomicScreening/typesAndEnums";
+
+/** An entered or pasted amount in MUSD as stored USD, rounded to whole USD so decimals stay exact. */
+export function costInputToUsd(amount: number): number {
+    return Math.round(amount * USD_PER_COST_INPUT_UNIT);
+}
+
+/** A stored USD amount as shown in the MUSD cost inputs. */
+export function usdToCostInput(amount: number): number {
+    return amount / USD_PER_COST_INPUT_UNIT;
+}
 
 export function validateCostProfile(costProfile: CostProfileEntry[], isDelta: boolean): string | null {
     const years = new Set<number>();

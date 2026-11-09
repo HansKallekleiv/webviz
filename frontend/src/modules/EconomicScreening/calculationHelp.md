@@ -73,7 +73,7 @@ cost PV = CAPEX PV + OPEX PV
 NPV = revenue PV - cost PV
 ```
 
-Prices and costs are in USD: oil per barrel, gas per Sm³. A blank price is unspecified, so NPV is unavailable unless that product is confirmed zero in every month of the evaluation. A price of 0 intentionally omits that product's revenue; it does not turn missing volume data into zero volume.
+Prices are in USD: oil per barrel, gas per Sm³. Costs are entered in million USD (MUSD). A blank price is unspecified, so NPV is unavailable unless that product is confirmed zero in every month of the evaluation. A price of 0 intentionally omits that product's revenue; it does not turn missing volume data into zero volume.
 
 Cost years are generated from the year of the reference date through the simulation end. Blank cost cells are zero, so an operating cost does not repeat through the remaining years. Costs stored for years outside these rows are kept and listed, but not used. Zero entered costs means the NPV is discounted revenue, not a complete project-profitability estimate.
 

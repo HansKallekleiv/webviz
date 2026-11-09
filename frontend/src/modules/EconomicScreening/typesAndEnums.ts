@@ -37,6 +37,9 @@ export enum IrrStatus {
 export const CURRENCY = "USD";
 export const OIL_PRICE_UNIT = "USD/bbl";
 export const GAS_PRICE_UNIT = "USD/Sm³";
+/** Costs are entered in million USD and stored in USD. */
+export const COST_INPUT_UNIT = "MUSD";
+export const USD_PER_COST_INPUT_UNIT = 1_000_000;
 
 export enum DistributionPlotType {
     EXCEEDANCE = "EXCEEDANCE",

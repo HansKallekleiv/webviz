@@ -8,18 +8,35 @@ import { NumberInput } from "@lib/components/NumberInput";
 import { Table } from "@lib/components/Table";
 import { TextArea } from "@lib/components/TextArea";
 import { useDebouncedFunction } from "@lib/hooks/usedDebouncedStateEmit";
-import { CostDraftStatus, CURRENCY, type CostProfileEntry } from "@modules/EconomicScreening/typesAndEnums";
+import { COST_INPUT_UNIT, CostDraftStatus, type CostProfileEntry } from "@modules/EconomicScreening/typesAndEnums";
 import {
+    costInputToUsd,
     getCostYearsOutsideRange,
     hasIncludedNonZeroCost,
     parseCostProfilePaste,
     setCostEntry,
+    usdToCostInput,
     validateCostProfile,
     validatePastedCostYears,
 } from "@modules/EconomicScreening/utils/costProfile";
 import type { EvaluationHorizonState } from "@modules/EconomicScreening/utils/evaluationHorizon";
 
 const COST_INPUT_DEBOUNCE_MS = 500;
+/** Whole-USD resolution in MUSD; the default number format would round to three decimals. */
+const COST_INPUT_FORMAT: Intl.NumberFormatOptions = { maximumFractionDigits: 6 };
+
+/** Pasted rows are in MUSD; the schedule is stored in USD. */
+function pastedEntriesToUsd(entries: CostProfileEntry[]): CostProfileEntry[] {
+    return entries.map((entry) => ({
+        year: entry.year,
+        capex: costInputToUsd(entry.capex),
+        opex: costInputToUsd(entry.opex),
+    }));
+}
+
+function formatCostInput(amountUsd: number): string {
+    return usdToCostInput(amountUsd).toLocaleString("en-US", COST_INPUT_FORMAT);
+}
 
 export type CostProfileEditorProps = {
     /** Every stored entry, including entries outside the generated years, which are kept for recovery. */
@@ -121,7 +138,7 @@ export function CostProfileEditor(props: CostProfileEditorProps): React.ReactNod
 
     function handleCostChange(year: number, field: "capex" | "opex", newValue: number | null) {
         const current = immediateValue.find((entry) => entry.year === year) ?? { year, capex: 0, opex: 0 };
-        updateProfile(setCostEntry(immediateValue, { ...current, [field]: newValue ?? 0 }));
+        updateProfile(setCostEntry(immediateValue, { ...current, [field]: costInputToUsd(newValue ?? 0) }));
     }
 
     function handlePaste(event: React.ClipboardEvent) {
@@ -140,7 +157,9 @@ export function CostProfileEditor(props: CostProfileEditorProps): React.ReactNod
             setPasteError(yearError);
             return;
         }
-        updateProfile(parsed.entries.reduce((profile, entry) => setCostEntry(profile, entry), immediateValue));
+        updateProfile(
+            pastedEntriesToUsd(parsed.entries).reduce((profile, entry) => setCostEntry(profile, entry), immediateValue),
+        );
     }
 
     function pastePreview() {
@@ -151,12 +170,12 @@ export function CostProfileEditor(props: CostProfileEditorProps): React.ReactNod
         const parsed = parseCostProfilePaste(pasteDraft.text);
         if ("error" in parsed) return parsed;
         if (parsed.entries.length === 0) return { error: "Paste at least one year of costs." };
-        const error =
-            validatePastedCostYears(parsed.entries, startYear, endYear) ?? validateCostProfile(parsed.entries, isDelta);
+        const entries = pastedEntriesToUsd(parsed.entries);
+        const error = validatePastedCostYears(entries, startYear, endYear) ?? validateCostProfile(entries, isDelta);
         if (error) return { error };
-        const updated = parsed.entries.reduce((profile, entry) => setCostEntry(profile, entry), immediateValue);
+        const updated = entries.reduce((profile, entry) => setCostEntry(profile, entry), immediateValue);
         const scheduleError = validateCostProfile(updated, isDelta);
-        return scheduleError ? { error: scheduleError } : { entries: parsed.entries, updated };
+        return scheduleError ? { error: scheduleError } : { entries, updated };
     }
 
     function applyPaste() {
@@ -231,10 +250,10 @@ export function CostProfileEditor(props: CostProfileEditorProps): React.ReactNod
                             Year
                         </Table.Cell>
                         <Table.Cell colKey="capex">
-                            {isDelta ? "Delta CAPEX" : "CAPEX"} [{CURRENCY}]
+                            {isDelta ? "Delta CAPEX" : "CAPEX"} [{COST_INPUT_UNIT}]
                         </Table.Cell>
                         <Table.Cell colKey="opex">
-                            {isDelta ? "Delta OPEX" : "OPEX"} [{CURRENCY}]
+                            {isDelta ? "Delta OPEX" : "OPEX"} [{COST_INPUT_UNIT}]
                         </Table.Cell>
                     </Table.Row>
                 </Table.Head>
@@ -251,7 +270,8 @@ export function CostProfileEditor(props: CostProfileEditorProps): React.ReactNod
                                         size="small"
                                         layoutClassName="min-w-0"
                                         aria-label={`CAPEX ${year}`}
-                                        value={entry?.capex ? entry.capex : null}
+                                        value={entry?.capex ? usdToCostInput(entry.capex) : null}
+                                        format={COST_INPUT_FORMAT}
                                         placeholder="0"
                                         min={isDelta ? undefined : 0}
                                         showStepButtons={false}
@@ -263,7 +283,8 @@ export function CostProfileEditor(props: CostProfileEditorProps): React.ReactNod
                                         size="small"
                                         layoutClassName="min-w-0"
                                         aria-label={`OPEX ${year}`}
-                                        value={entry?.opex ? entry.opex : null}
+                                        value={entry?.opex ? usdToCostInput(entry.opex) : null}
+                                        format={COST_INPUT_FORMAT}
                                         placeholder="0"
                                         min={isDelta ? undefined : 0}
                                         showStepButtons={false}
@@ -305,13 +326,13 @@ export function CostProfileEditor(props: CostProfileEditorProps): React.ReactNod
                             Paste three tab-separated columns: Year, CAPEX, OPEX. No header row or thousands separators;
                             use plain numeric values. Empty costs are zero.{" "}
                             {isDelta ? "Signed delta costs are allowed." : "Costs must be non-negative."} Amounts are in{" "}
-                            {CURRENCY}.
+                            million USD ({COST_INPUT_UNIT}).
                         </Dialog.Description>
                         <TextArea
                             aria-label="Year, CAPEX, OPEX rows"
                             rows={5}
                             value={pasteDraft?.text ?? ""}
-                            placeholder={`${startYear}\t1000\t200\n${Math.min(startYear + 1, endYear)}\t0\t200`}
+                            placeholder={`${startYear}\t100\t20\n${Math.min(startYear + 1, endYear)}\t0\t20`}
                             onChange={(event) =>
                                 setPasteDraft({ text: event.target.value, ensembleKey: props.ensembleKey })
                             }
@@ -337,16 +358,20 @@ export function CostProfileEditor(props: CostProfileEditorProps): React.ReactNod
                                     <Table.Head>
                                         <Table.Row>
                                             <Table.Cell>Year</Table.Cell>
-                                            <Table.Cell>CAPEX [{CURRENCY}]</Table.Cell>
-                                            <Table.Cell>OPEX [{CURRENCY}]</Table.Cell>
+                                            <Table.Cell>CAPEX [{COST_INPUT_UNIT}]</Table.Cell>
+                                            <Table.Cell>OPEX [{COST_INPUT_UNIT}]</Table.Cell>
                                         </Table.Row>
                                     </Table.Head>
                                     <Table.Body>
                                         {preview.entries.map((entry) => (
                                             <Table.Row key={entry.year}>
                                                 <Table.Cell>{entry.year}</Table.Cell>
-                                                <Table.Cell layoutClassName="text-right">{entry.capex}</Table.Cell>
-                                                <Table.Cell layoutClassName="text-right">{entry.opex}</Table.Cell>
+                                                <Table.Cell layoutClassName="text-right">
+                                                    {formatCostInput(entry.capex)}
+                                                </Table.Cell>
+                                                <Table.Cell layoutClassName="text-right">
+                                                    {formatCostInput(entry.opex)}
+                                                </Table.Cell>
                                             </Table.Row>
                                         ))}
                                     </Table.Body>

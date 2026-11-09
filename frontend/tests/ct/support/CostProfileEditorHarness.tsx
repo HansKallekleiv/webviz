@@ -6,7 +6,8 @@ import { resolveEvaluationHorizon } from "@modules/EconomicScreening/utils/evalu
 import { monthIndexOf } from "@modules/EconomicScreening/utils/monthlyProduction";
 import { SourceStatus } from "@modules/EconomicScreening/utils/sourceSnapshot";
 
-const DEFAULT_COST_PROFILE: CostProfileEntry[] = [{ year: 2020, capex: 100, opex: 0 }];
+/** Stored costs are USD; the editor shows and accepts MUSD, so this shows as 100. */
+const DEFAULT_COST_PROFILE: CostProfileEntry[] = [{ year: 2020, capex: 100_000_000, opex: 0 }];
 
 export function CostProfileEditorHarness({
     initialCostProfile = DEFAULT_COST_PROFILE,

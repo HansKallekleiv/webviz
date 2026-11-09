@@ -611,7 +611,7 @@ test("typing a valid cost keeps financial channels published until the debounced
     const newCapex = 2 * CAPEX_2030_USD;
     await capex2030.click();
     await page.keyboard.press("ControlOrMeta+a");
-    await page.keyboard.type(String(newCapex));
+    await page.keyboard.type(String(newCapex / 1e6));
 
     // Sampled inside the debounce window: the committed financial outputs are still published.
     const pendingSample = await page.evaluate(

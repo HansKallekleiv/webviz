@@ -1222,12 +1222,13 @@ test("cost paste preserves channels until Apply and matches independent cash flo
     await expect.poll(readCosts).toEqual(initialState.costProfile);
     const settings = settingsRegion(page);
     await expect(settings.getByText("Annual costs", { exact: true })).toBeVisible();
-    await expect(settings.getByRole("columnheader", { name: "CAPEX [USD]", exact: true })).toBeVisible();
-    await expect(settings.getByRole("columnheader", { name: "OPEX [USD]", exact: true })).toBeVisible();
+    await expect(settings.getByRole("columnheader", { name: "CAPEX [MUSD]", exact: true })).toBeVisible();
+    await expect(settings.getByRole("columnheader", { name: "OPEX [MUSD]", exact: true })).toBeVisible();
     const trigger = settings.getByRole("button", { name: "Paste costs...", exact: true });
     await trigger.click();
     const dialog = page.getByRole("dialog", { name: "Paste costs", exact: true });
-    await dialog.getByRole("textbox").fill("2019\t600\t2400\n2020\t\t");
+    // Pasted in MUSD: 600 and 2,400 USD.
+    await dialog.getByRole("textbox").fill("2019\t0.0006\t0.0024\n2020\t\t");
     await expect(dialog.getByRole("table")).toBeVisible();
     expect(await readPublishedChannels(page)).toEqual(original);
     expect(await readCosts()).toEqual(initialState.costProfile);
@@ -1236,14 +1237,14 @@ test("cost paste preserves channels until Apply and matches independent cash flo
     await expect(dialog).toHaveCount(0);
     expect(await readPublishedChannels(page)).toEqual(original);
     await trigger.click();
-    await dialog.getByRole("textbox").fill("2019\t-600\t2400");
+    await dialog.getByRole("textbox").fill("2019\t-0.0006\t0.0024");
     await expect(dialog.getByRole("button", { name: "Apply", exact: true })).toBeDisabled();
     expect(await readPublishedChannels(page)).toEqual(original);
     await page.keyboard.press("Escape");
     await expect(dialog).toHaveCount(0);
     expect(await readPublishedChannels(page)).toEqual(original);
     await trigger.click();
-    await dialog.getByRole("textbox").fill("2019\t600\t2400\n2020\t\t");
+    await dialog.getByRole("textbox").fill("2019\t0.0006\t0.0024\n2020\t\t");
     await dialog.getByRole("button", { name: "Apply", exact: true }).click();
     await expect(dialog).toHaveCount(0);
     await expect.poll(readCosts).toEqual([

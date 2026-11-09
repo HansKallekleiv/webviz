@@ -1,12 +1,30 @@
 import { describe, expect, test } from "vitest";
 
 import {
+    costInputToUsd,
     getCostYearsOutsideRange,
     parseCostProfilePaste,
     setCostEntry,
+    usdToCostInput,
     validateCostProfile,
     validatePastedCostYears,
 } from "@modules/EconomicScreening/utils/costProfile";
+
+describe("MUSD cost input", () => {
+    test("stores entered MUSD as whole USD, so decimal amounts are exact", () => {
+        expect(costInputToUsd(1.1)).toBe(1_100_000);
+        expect(costInputToUsd(4.35)).toBe(4_350_000);
+        expect(costInputToUsd(-0.25)).toBe(-250_000);
+        expect(costInputToUsd(0.0000004)).toBe(0);
+    });
+
+    test("shows stored USD as MUSD and round-trips entered values", () => {
+        expect(usdToCostInput(20_000)).toBe(0.02);
+        for (const amount of [0.000001, 0.02, 1.1, 4.35, 123.456789]) {
+            expect(usdToCostInput(costInputToUsd(amount))).toBe(amount);
+        }
+    });
+});
 
 describe("validateCostProfile", () => {
     test("rejects duplicate calendar years", () => {

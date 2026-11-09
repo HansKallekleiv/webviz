@@ -16,10 +16,10 @@ export const GAS_PRICE_HELP =
 export const SALES_GAS_SOURCE_HELP = `${simulationVectorDescription("FGST")} (FGST) is expected and used when available. Without it, sales gas is calculated as ${simulationVectorDescription("FGPT")} (FGPT) minus ${simulationVectorDescription("FGIT")} (FGIT) and ${simulationVectorDescription("FGCT")} (FGCT), with a missing FGIT or FGCT taken as 0. Without FGST and FGPT, sales gas is taken as 0. A missing vector is not proof of zero: check the warning, since a failed export looks the same as an ensemble without that vector.`;
 
 export const ANNUAL_COSTS_DELTA_HELP =
-    "One row per year from the reference date through the simulation end. For a delta ensemble, costs are comparison minus reference; negative values are savings. Blank cells are zero. OPEX is paid in twelve equal monthly amounts; CAPEX at mid-year. The full annual amount applies even in a final year that ends early.";
+    "One row per year from the reference date through the simulation end, in million USD (MUSD). For a delta ensemble, costs are comparison minus reference; negative values are savings. Blank cells are zero. OPEX is paid in twelve equal monthly amounts; CAPEX at mid-year. The full annual amount applies even in a final year that ends early.";
 
 export const ANNUAL_COSTS_HELP =
-    "One row per year from the reference date through the simulation end. Blank cells are zero. Each year's OPEX is paid in twelve equal monthly amounts and CAPEX at mid-year; the full annual amount applies even in a final year that ends early.";
+    "One row per year from the reference date through the simulation end, in million USD (MUSD). Blank cells are zero. Each year's OPEX is paid in twelve equal monthly amounts and CAPEX at mid-year; the full annual amount applies even in a final year that ends early.";
 
 export const STOP_OPEX_HELP =
     "Per realization, OPEX is zero after its last month with oil or sales-gas production in the evaluation, for example when a realization ends early. A realization still producing in the last evaluated month pays the full year. CAPEX is unchanged. Off by default: production can stop while the field still has operating costs. Not available for delta ensembles.";
