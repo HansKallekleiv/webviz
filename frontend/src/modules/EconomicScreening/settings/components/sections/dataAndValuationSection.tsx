@@ -19,7 +19,7 @@ import { discountRatePercentAtom, predictionStartYearAtom } from "../../atoms/ba
 import { selectedEnsembleIdentAtom, selectedRealizationAtom } from "../../atoms/persistableFixableAtoms";
 import { isSourceLoadingAtom, predictionStartYearSuggestionsAtom } from "../../atoms/sourceSnapshotAtoms";
 import { DISCOUNT_RATE_HELP, REFERENCE_DATE_HELP } from "../../helpTexts";
-import { NUMBER_INPUT_DEBOUNCE_MS, setupFieldClassName, type SettingsSectionProps } from "../../settingsSections";
+import { NUMBER_INPUT_DEBOUNCE_MS, type SettingsSectionProps } from "../../settingsSections";
 import { PredictionYearSelector } from "../predictionYearSelector";
 
 export type DataAndValuationSectionProps = SettingsSectionProps & {
@@ -61,7 +61,6 @@ export function DataAndValuationSection(props: DataAndValuationSectionProps): Re
                     ...selectedEnsembleIdentAnnotations,
                     ...(ensembleIssue ? [{ type: "warning" as const, message: ensembleIssue }] : []),
                 ]}
-                contentClassName={setupFieldClassName("ensemble")}
                 stacked
             >
                 <EnsembleDropdown
@@ -75,7 +74,6 @@ export function DataAndValuationSection(props: DataAndValuationSectionProps): Re
             <Setting.Field
                 label="Reference date"
                 help={{ title: "Reference date", content: REFERENCE_DATE_HELP }}
-                contentClassName={setupFieldClassName("predictionYear")}
                 warningAnnotation={getFieldIssueText(props.readiness, "predictionYear")}
                 stacked
             >

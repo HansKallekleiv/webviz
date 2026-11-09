@@ -1,17 +1,14 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 import { useAtomValue } from "jotai";
 
-import { DeltaEnsembleIdent } from "@framework/DeltaEnsembleIdent";
 import type { ModuleSettingsProps } from "@framework/Module";
-import { isEnsembleIdentOfType } from "@framework/utils/ensembleIdentUtils";
+import { useSettingsStatusWriter } from "@framework/StatusWriter";
 import { Setting } from "@lib/components/Setting";
 
 import type { Interfaces } from "../interfaces";
-import { CashFlowProfileTypeEnumToStringMapping, ResultMode } from "../typesAndEnums";
 import { getResultRequirement, REQUIREMENT_NEEDS } from "../utils/eligibility";
-import { getMeasureDisplayName } from "../utils/measureAccessors";
-import { getSetupReadiness, type SetupField } from "../utils/setupReadiness";
+import { getSetupReadiness } from "../utils/setupReadiness";
 
 import {
     cashFlowProfileTypeAtom,
@@ -33,12 +30,12 @@ import { CostsSection } from "./components/sections/costsSection";
 import { DataAndValuationSection } from "./components/sections/dataAndValuationSection";
 import { PricesSection } from "./components/sections/pricesSection";
 import { ResultsSection } from "./components/sections/resultsSection";
-import { SetupSummary } from "./components/setupSummary";
 import { useGasOnlyMeasureFallback } from "./hooks/useGasOnlyMeasureFallback";
-import { FIELD_SECTIONS, SettingsSection, setupFieldClassName } from "./settingsSections";
+import { useMakeSettingsStatusWriterMessages } from "./hooks/useMakeSettingsStatusWriterMessages";
+import { SettingsSection } from "./settingsSections";
 
 export function Settings(props: ModuleSettingsProps<Interfaces>): ReactNode {
-    const settingsRef = useRef<HTMLDivElement>(null);
+    const statusWriter = useSettingsStatusWriter(props.settingsContext);
     const selectedMeasure = useAtomValue(selectedMeasureAtom);
     const cashFlowProfileType = useAtomValue(cashFlowProfileTypeAtom);
     const resultMode = useAtomValue(resultModeAtom);
@@ -53,7 +50,6 @@ export function Settings(props: ModuleSettingsProps<Interfaces>): ReactNode {
         ...(needsCosts ? [] : [SettingsSection.COSTS]),
     ]);
     const [previousNeeds, setPreviousNeeds] = useState({ needsPrices, needsCosts });
-    const [focusTarget, setFocusTarget] = useState<SetupField | null>(null);
 
     // Opens a section once when the selected result starts needing it; closing it again is respected.
     if (needsPrices !== previousNeeds.needsPrices || needsCosts !== previousNeeds.needsCosts) {
@@ -66,20 +62,6 @@ export function Settings(props: ModuleSettingsProps<Interfaces>): ReactNode {
             setClosedSections((current) => current.filter((section) => !toOpen.includes(section)));
         }
     }
-
-    useEffect(() => {
-        if (!focusTarget) return;
-        const frame = requestAnimationFrame(() => {
-            const field = settingsRef.current?.querySelector(`.${setupFieldClassName(focusTarget)}`);
-            const input =
-                field?.querySelector<HTMLElement>("input, [role=checkbox]") ??
-                field?.querySelector<HTMLElement>("button");
-            input?.focus();
-            input?.scrollIntoView({ block: "center" });
-            setFocusTarget(null);
-        });
-        return () => cancelAnimationFrame(frame);
-    }, [focusTarget]);
 
     function sectionProps(title: SettingsSection) {
         return {
@@ -105,9 +87,6 @@ export function Settings(props: ModuleSettingsProps<Interfaces>): ReactNode {
     const vectorListQuery = useAtomValue(activeVectorListQueryAtom);
     const hasOilProductionVector = useAtomValue(hasOilProductionVectorAtom);
 
-    const isDeltaEnsembleSelected =
-        selectedEnsembleIdent !== null && isEnsembleIdentOfType(selectedEnsembleIdent, DeltaEnsembleIdent);
-
     const setupReadiness = getSetupReadiness({
         hasEnsemble: selectedEnsembleIdent !== null,
         vectorListStatus: vectorListQuery.isError ? "ERROR" : vectorListQuery.isSuccess ? "READY" : "LOADING",
@@ -121,35 +100,20 @@ export function Settings(props: ModuleSettingsProps<Interfaces>): ReactNode {
         costDraftStatus,
         requirement,
     });
-    const resultLabel =
-        resultMode === ResultMode.TIME_PROFILE
-            ? CashFlowProfileTypeEnumToStringMapping[cashFlowProfileType].toLowerCase()
-            : resultMode === ResultMode.ALL_RESULTS
-              ? "all results"
-              : getMeasureDisplayName(selectedMeasure, isDeltaEnsembleSelected).toLowerCase();
+    const { handlePanelAnnotationsChange } = useMakeSettingsStatusWriterMessages(statusWriter, setupReadiness);
 
     return (
-        <div ref={settingsRef} className="flex h-full min-h-0 min-w-0 flex-col [&_input]:scroll-mt-12">
-            <SetupSummary
-                readiness={setupReadiness}
-                resultLabel={resultLabel}
-                onIssueClick={(field) => {
-                    setClosedSections((current) => current.filter((section) => section !== FIELD_SECTIONS[field]));
-                    setFocusTarget(field);
-                }}
-            />
-            <Setting.ScrollArea className="flex-1">
-                <Setting.Panel>
-                    <DataAndValuationSection
-                        sectionProps={sectionProps(SettingsSection.DATA_AND_VALUATION)}
-                        readiness={setupReadiness}
-                        workbenchSession={props.workbenchSession}
-                    />
-                    <PricesSection sectionProps={sectionProps(SettingsSection.PRICES)} readiness={setupReadiness} />
-                    <CostsSection sectionProps={sectionProps(SettingsSection.COSTS)} readiness={setupReadiness} />
-                    <ResultsSection sectionProps={sectionProps(SettingsSection.RESULTS)} />
-                </Setting.Panel>
-            </Setting.ScrollArea>
-        </div>
+        <Setting.ScrollArea>
+            <Setting.Panel onAnnotationsChange={handlePanelAnnotationsChange}>
+                <DataAndValuationSection
+                    sectionProps={sectionProps(SettingsSection.DATA_AND_VALUATION)}
+                    readiness={setupReadiness}
+                    workbenchSession={props.workbenchSession}
+                />
+                <PricesSection sectionProps={sectionProps(SettingsSection.PRICES)} readiness={setupReadiness} />
+                <CostsSection sectionProps={sectionProps(SettingsSection.COSTS)} readiness={setupReadiness} />
+                <ResultsSection sectionProps={sectionProps(SettingsSection.RESULTS)} />
+            </Setting.Panel>
+        </Setting.ScrollArea>
     );
 }

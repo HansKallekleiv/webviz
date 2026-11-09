@@ -1,3 +1,4 @@
+import { ContentInfo } from "@modules/_shared/components/ContentMessage";
 import { EconomicMeasure } from "@modules/EconomicScreening/typesAndEnums";
 import type { BreakEvenTargetCount } from "@modules/EconomicScreening/utils/distributionAggregation";
 import { countValuesAboveThreshold } from "@modules/EconomicScreening/utils/distributionAggregation";
@@ -19,9 +20,10 @@ export type DistributionSummaryProps = {
 export function DistributionSummary(props: DistributionSummaryProps): React.ReactNode {
     const validCount = props.measureValues.values.length;
     if (validCount === 0) {
+        // Shown like the view's other "nothing to plot yet" messages, not as a footnote to an empty plot.
         return (
-            <div role="status" className="text-body-xs text-subtle">
-                {getMeasureUnavailableReason(props.results, props.measure)}
+            <div className="min-h-0 grow">
+                <ContentInfo>{getMeasureUnavailableReason(props.results, props.measure)}</ContentInfo>
             </div>
         );
     }

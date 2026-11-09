@@ -12,7 +12,7 @@ import { describeSalesGasSource, getSalesGasSourceWarning } from "../../../utils
 import { gasPriceAtom, oilPriceAtom } from "../../atoms/baseAtoms";
 import { activeVectorListQueryAtom, hasOilProductionVectorAtom, salesGasStrategyAtom } from "../../atoms/derivedAtoms";
 import { GAS_PRICE_HELP, OIL_PRICE_HELP, SALES_GAS_SOURCE_HELP } from "../../helpTexts";
-import { NUMBER_INPUT_DEBOUNCE_MS, setupFieldClassName, type SettingsSectionProps } from "../../settingsSections";
+import { NUMBER_INPUT_DEBOUNCE_MS, type SettingsSectionProps } from "../../settingsSections";
 
 export function PricesSection(props: SettingsSectionProps): ReactNode {
     const [oilPrice, setOilPrice] = useAtom(oilPriceAtom);
@@ -40,7 +40,6 @@ export function PricesSection(props: SettingsSectionProps): ReactNode {
                 <Setting.Field
                     label={`Oil price [${OIL_PRICE_UNIT}]`}
                     help={{ title: "Oil price", content: OIL_PRICE_HELP }}
-                    contentClassName={setupFieldClassName("oilPrice")}
                     warningAnnotation={getFieldIssueText(props.readiness, "oilPrice")}
                     stacked
                 >
@@ -55,7 +54,6 @@ export function PricesSection(props: SettingsSectionProps): ReactNode {
             <Setting.Field
                 label={`Gas price [${GAS_PRICE_UNIT}]`}
                 help={{ title: "Gas price", content: GAS_PRICE_HELP }}
-                contentClassName={setupFieldClassName("gasPrice")}
                 warningAnnotation={getFieldIssueText(props.readiness, "gasPrice")}
                 infoAnnotation={
                     gasPrice === 0

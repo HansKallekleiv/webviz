@@ -212,11 +212,13 @@ describe("getSetupReadiness", () => {
                 kind: SetupIssueKind.SOURCE,
                 message:
                     "Oil source coverage is incomplete between Jan 2016 and Jun 2020 for every selected realization; supported data starts Jan 2018.",
+                field: "predictionYear",
             },
             {
                 kind: SetupIssueKind.SOURCE,
                 message:
                     "Sales gas source coverage is incomplete between Jan 2016 and Jun 2020 for every selected realization; supported data starts Jan 2018.",
+                field: "predictionYear",
             },
         ]);
         expect(messages({ ...beforeSource, gasPrice: 0 })).toEqual([
@@ -258,7 +260,9 @@ describe("getSetupReadiness", () => {
         });
         const noOverlap =
             "No selected realization has both oil and sales gas source coverage between Jan 2018 and Jun 2020.";
-        expect(getSetupReadiness(disjoint).issues).toEqual([{ kind: SetupIssueKind.SOURCE, message: noOverlap }]);
+        expect(getSetupReadiness(disjoint).issues).toEqual([
+            { kind: SetupIssueKind.SOURCE, message: noOverlap, field: "predictionYear" },
+        ]);
         expect(messages({ ...disjoint, requirement: MeasureRequirement.BREAK_EVEN })).toEqual([noOverlap]);
         expect(messages({ ...disjoint, requirement: MeasureRequirement.OIL_AND_GAS_VOLUME })).toEqual([noOverlap]);
         // A zero price removes that product from the joint requirement.
@@ -282,6 +286,7 @@ describe("getSetupReadiness", () => {
         expect(getSetupReadiness(failed).issues[1]).toEqual({
             kind: SetupIssueKind.SOURCE,
             message: "Could not load vector data for FOPT.",
+            field: "ensemble",
         });
 
         expect(getSetupReadiness(readyInput({ predictionStartYear: 2021, oilPrice: 1, gasPrice: 0 })).issues).toEqual([
@@ -484,7 +489,7 @@ describe("getFieldIssueText", () => {
         isLoading: false,
         issues: [
             { kind: SetupIssueKind.INPUT, message: "Enter an oil price.", field: "oilPrice" as const },
-            { kind: SetupIssueKind.SOURCE, message: "No source data." },
+            { kind: SetupIssueKind.SOURCE, message: "No source data.", field: "ensemble" as const },
             { kind: SetupIssueKind.SOURCE, message: "Oil coverage is incomplete.", field: "oilPrice" as const },
         ],
     };

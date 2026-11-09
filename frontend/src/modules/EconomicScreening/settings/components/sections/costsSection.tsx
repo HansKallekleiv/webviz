@@ -12,7 +12,7 @@ import { costDraftStatusAtom, costProfileAtom, stopOpexAfterLastProductionAtom }
 import { validSelectedEnsembleIdentAtom } from "../../atoms/persistableFixableAtoms";
 import { evaluationHorizonStateAtom, isSourceLoadingAtom } from "../../atoms/sourceSnapshotAtoms";
 import { ANNUAL_COSTS_DELTA_HELP, ANNUAL_COSTS_HELP, STOP_OPEX_HELP } from "../../helpTexts";
-import { setupFieldClassName, type SettingsSectionProps } from "../../settingsSections";
+import { type SettingsSectionProps } from "../../settingsSections";
 import { CostProfileEditor } from "../costProfileEditor";
 
 export function CostsSection(props: SettingsSectionProps): ReactNode {
@@ -30,7 +30,7 @@ export function CostsSection(props: SettingsSectionProps): ReactNode {
         <Setting.Section {...props.sectionProps}>
             <Setting.Field
                 label="Annual costs"
-                contentClassName={`${setupFieldClassName("costs")} min-w-0`}
+                contentClassName="min-w-0"
                 warningAnnotation={getFieldIssueText(props.readiness, "costs")}
                 help={{
                     title: "Annual costs",

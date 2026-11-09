@@ -395,19 +395,16 @@ test("shows a selected realization without complete profile data as unavailable"
 // --- Domain/UX pass: setup guidance, prediction-year selection and cost fields. ---
 const UX_SCREENSHOT_DIR = "test-results/economic-screening-ux";
 
-function setupStatus(page: Page) {
-    return settingsRegion(page).getByRole("status", { name: "Setup status" });
+/** Messages the module flags as "Action required" for the framework's view header and bar. */
+async function readActionRequired(page: Page): Promise<string[]> {
+    return page.evaluate(() =>
+        (
+            window as unknown as { readEconomicScreeningActionRequired: () => string[] }
+        ).readEconomicScreeningActionRequired(),
+    );
 }
 
-async function setupItems(page: Page): Promise<string[]> {
-    const details = setupStatus(page).locator("details");
-    if ((await details.count()) && !(await details.evaluate((element) => element.hasAttribute("open")))) {
-        await details.locator("summary").click();
-    }
-    return (await setupStatus(page).getByRole("listitem").allTextContents()).map((text) => text.trim());
-}
-
-test("keeps compact setup status visible and reveals a closed field section", async ({ mount, page }) => {
+test("marks a closed section with a missing input and opens it from the marker", async ({ mount, page }) => {
     const fixtures = await routeSourceFixtures(page);
     await mount(
         <EconomicScreeningModuleHarness
@@ -418,22 +415,18 @@ test("keeps compact setup status visible and reveals a closed field section", as
         />,
     );
     const settings = settingsRegion(page);
-    const status = setupStatus(page);
-    await expect(status.locator("summary")).toContainText("1 issue for");
-    await settings.getByRole("button", { name: "Data and valuation", exact: true }).click();
-    await settings.locator("[data-collapsible-scroll-area]").evaluate((element) => {
-        element.scrollTop = element.scrollHeight;
-    });
-    await expect(status).toBeInViewport();
-    await status.locator("summary").click();
-    await status.getByRole("button", { name: "Enter a reference date." }).click();
-    const year = settings.getByRole("combobox", { name: "Reference date", exact: true });
-    await expect(year).toBeFocused();
-    await expect(year).toBeInViewport();
-    await page.keyboard.type("2030");
-    await page.keyboard.press("Tab");
-    await expect(status).toHaveText("Setup ready");
-    await expect(status.locator("details")).toHaveCount(0);
+    const sectionTrigger = settings.getByRole("button", { name: "Data and valuation", exact: true });
+    await expect.poll(() => readActionRequired(page)).toEqual(["Enter a reference date."]);
+    await sectionTrigger.click();
+    await expect(sectionTrigger).toHaveAttribute("aria-expanded", "false");
+
+    const marker = settings.getByRole("button", { name: "Settings with warnings - show the section" });
+    await marker.click();
+    await expect(sectionTrigger).toHaveAttribute("aria-expanded", "true");
+    await expect(settings.getByText("Enter a reference date.", { exact: true })).toBeVisible();
+    await typeAndTabAway(page, settings.getByRole("combobox", { name: "Reference date", exact: true }), "2030");
+    await expect.poll(() => readActionRequired(page)).toEqual([]);
+    await expect(marker).toHaveCount(0);
     expect(fixtures.vectorDataRequests.sort()).toEqual(["FGST", "FOPT"]);
     expect(fixtures.unexpectedApiRequests).toEqual([]);
 });
@@ -459,8 +452,7 @@ for (const layout of [
             />,
         );
         const settings = settingsRegion(page);
-        const status = setupStatus(page);
-        await expect(status).toHaveText("Setup ready");
+        await expect.poll(() => readActionRequired(page)).toEqual([]);
         await expect
             .poll(
                 async () =>
@@ -520,38 +512,76 @@ test("lists every known NPV setup requirement together before any price edit", a
         />,
     );
 
-    await expect(setupStatus(page)).toContainText("Needed for net present value");
+    // Each missing input is shown at its field and flagged as "Action required"; the view asks for the reference date.
+    const settings = settingsRegion(page);
     await expect
-        .poll(() => setupItems(page))
+        .poll(() => readActionRequired(page))
         .toEqual([
             "Enter a reference date.",
             "Enter an oil price, or 0 to omit oil revenue.",
             "Enter a gas price, or 0 to omit gas revenue.",
         ]);
+    for (const message of await readActionRequired(page)) {
+        await expect(settings.getByText(message, { exact: true })).toBeVisible();
+    }
+    await expect(
+        viewRegion(page).getByText("Enter a reference date in the settings to calculate results."),
+    ).toBeVisible();
     await page.screenshot({ path: `${UX_SCREENSHOT_DIR}/desktop-initial-setup.png` });
 
-    const settings = settingsRegion(page);
     const oilPrice = settings.getByRole("textbox", { name: /^Oil price/ });
     const gasPrice = settings.getByRole("textbox", { name: /^Gas price/ });
     await oilPrice.fill("50");
     await oilPrice.blur();
     await expect
-        .poll(() => setupItems(page))
+        .poll(() => readActionRequired(page))
         .toEqual(["Enter a reference date.", "Enter a gas price, or 0 to omit gas revenue."]);
 
     await gasPrice.fill("0");
     await gasPrice.blur();
-    await expect.poll(() => setupItems(page)).toEqual(["Enter a reference date."]);
+    await expect.poll(() => readActionRequired(page)).toEqual(["Enter a reference date."]);
 
     await settings.getByRole("combobox", { name: "Response" }).click();
     await page.getByRole("option", { name: "Discounted sales gas volume" }).click();
-    await expect(setupStatus(page)).toContainText("Needed for discounted sales gas volume");
-    await expect.poll(() => setupItems(page)).toEqual(["Enter a reference date."]);
+    await expect.poll(() => readActionRequired(page)).toEqual(["Enter a reference date."]);
     await settings.getByRole("combobox", { name: "Response" }).click();
     await page.getByRole("option", { name: "Break-even oil price" }).click();
-    await expect(setupStatus(page)).toContainText("Needed for break-even oil price");
-    await expect.poll(() => setupItems(page)).toEqual(["Enter a reference date."]);
+    await expect.poll(() => readActionRequired(page)).toEqual(["Enter a reference date."]);
+
+    // Costs are needed once there is an evaluation; entering what is missing clears the flags.
+    await typeAndTabAway(page, settings.getByRole("combobox", { name: "Reference date" }), "2030");
+    await expect
+        .poll(() => readActionRequired(page))
+        .toEqual(["Enter a non-zero CAPEX or OPEX within the evaluation."]);
+    await settings.getByRole("combobox", { name: "Response" }).click();
+    await page.getByRole("option", { name: "Discounted oil volume" }).click();
+    await expect.poll(() => readActionRequired(page)).toEqual([]);
+
+    // A response blocked by a missing price is explained in the view the same way as a missing reference date.
+    await settings.getByRole("combobox", { name: "Response" }).click();
+    await page.getByRole("option", { name: /^Net present value/ }).click();
+    await oilPrice.fill("");
+    await oilPrice.blur();
+    await expect(viewRegion(page).getByText("Enter oil price.", { exact: true })).toBeVisible();
+    await page.screenshot({ path: `${UX_SCREENSHOT_DIR}/desktop-npv-missing-price.png` });
     expect(fixtures.vectorDataRequests.sort()).toEqual(["FGIT", "FGPT", "FOPT"]);
+    expect(fixtures.unexpectedApiRequests).toEqual([]);
+});
+
+test("flags an invalid saved ensemble once, as Action required", async ({ mount, page }) => {
+    const fixtures = await routeSourceFixtures(page);
+    await mount(
+        <EconomicScreeningModuleHarness
+            settingsOpen
+            viewWidth={900}
+            viewHeight={640}
+            initialState={{ savedEnsembleMissing: true }}
+        />,
+    );
+
+    await expect
+        .poll(() => readActionRequired(page))
+        .toEqual(["The saved value is invalid. Please choose a valid value."]);
     expect(fixtures.unexpectedApiRequests).toEqual([]);
 });
 
@@ -582,7 +612,7 @@ test("takes a missing gas component as zero and states it in Settings", async ({
     const gasPrice = settings.getByRole("textbox", { name: /^Gas price/ });
     await gasPrice.fill("0.2");
     await gasPrice.blur();
-    await expect(setupStatus(page)).toHaveText("Setup ready");
+    await expect.poll(() => readActionRequired(page)).toEqual([]);
     await expect.poll(async () => (await npvValues())[0]).toBeGreaterThan(withoutGasRevenue[0]);
     const withGasRevenue = await npvValues();
     withGasRevenue.forEach((value, index) => expect(value).toBeGreaterThan(withoutGasRevenue[index]));
@@ -734,9 +764,11 @@ test("suggests covered years, accepts typed years and keeps the choice under fil
     await page.keyboard.press("Enter");
     await expect(year).toHaveValue("1 Jan 2031");
     await expectPopupClosed(page);
-    await expect(setupStatus(page)).toContainText(
-        "The reference date 1 Jan 2031 is after the supported simulation end (Jun 2020).",
-    );
+    await expect(
+        settings.getByText("The reference date 1 Jan 2031 is after the supported simulation end (Jun 2020).", {
+            exact: true,
+        }),
+    ).toBeVisible();
     await expect(
         viewRegion(page).getByText("The reference date 1 Jan 2031 is after the supported simulation end (Jun 2020)."),
     ).toBeVisible();
@@ -748,7 +780,7 @@ test("suggests covered years, accepts typed years and keeps the choice under fil
     await expectPopupClosed(page);
     await settings.getByRole("button", { name: "Clear selection" }).first().click();
     await expect(year).toHaveValue("");
-    await expect.poll(() => setupItems(page)).toContain("Enter a reference date.");
+    await expect.poll(() => readActionRequired(page)).toContain("Enter a reference date.");
 
     await year.click();
     await page.keyboard.type("2019");
@@ -848,7 +880,7 @@ test("commits a typed whole year when focus leaves, and Escape cancels the edit"
     expect(fixtures.unexpectedApiRequests).toEqual([]);
 });
 
-test("reports missing source coverage for the selected realizations in the setup summary", async ({ mount, page }) => {
+test("reports missing source coverage for the selected realizations at the reference date", async ({ mount, page }) => {
     const fixtures = await routeSourceFixtures(page, { seriesFor: delayedSeriesFor });
     const initialState = { ...DELAYED_INPUTS, predictionStartYear: 2016, selectedMeasure: EconomicMeasure.NPV };
     const component = await mount(
@@ -857,21 +889,25 @@ test("reports missing source coverage for the selected realizations in the setup
     const settings = settingsRegion(page);
     const npvCount = async () => channelEntries(await readPublishedChannels(page), NPV_CHANNEL).length;
     const coverageBefore = (product: string) =>
-        `${product} source coverage is incomplete between Jan 2016 and Jun 2020 for every selected realization; supported data starts Jan 2018.`;
+        settings.getByText(
+            `${product} source coverage is incomplete between Jan 2016 and Jun 2020 for every selected realization; supported data starts Jan 2018.`,
+        );
 
-    await expect.poll(() => setupItems(page)).toEqual([coverageBefore("Oil"), coverageBefore("Sales gas")]);
-    await expect(setupStatus(page)).toContainText("Source data:");
-    await expect(setupStatus(page)).not.toContainText("Setup ready");
+    await expect(coverageBefore("Oil")).toBeVisible();
+    await expect(coverageBefore("Sales gas")).toBeVisible();
+    // Source issues are not "Action required": no input in Settings resolves missing coverage.
+    expect(await readActionRequired(page)).toEqual([]);
     expect(await npvCount()).toBe(0);
     await expect(settings.getByRole("combobox", { name: "Reference date" })).toHaveValue("1 Jan 2016");
 
     // A zero price removes only that product's coverage requirement.
     const gasPrice = settings.getByRole("textbox", { name: /^Gas price/ });
     await typeAndTabAway(page, gasPrice, "0");
-    await expect.poll(() => setupItems(page)).toEqual([coverageBefore("Oil")]);
+    await expect(coverageBefore("Sales gas")).toHaveCount(0);
+    await expect(coverageBefore("Oil")).toBeVisible();
 
     await typeAndTabAway(page, settings.getByRole("combobox", { name: "Reference date" }), "2018");
-    await expect(setupStatus(page)).toHaveText("Setup ready");
+    await expect(coverageBefore("Oil")).toHaveCount(0);
     await expect.poll(npvCount).toBe(3);
 
     // Only realization 21 is selected; its oil ends in January 2020 and is extended with zero production.
@@ -884,8 +920,8 @@ test("reports missing source coverage for the selected realizations in the setup
             filteredRealizations={[21]}
         />,
     );
-    await expect(setupStatus(page)).toHaveText("Setup ready");
     await expect.poll(npvCount).toBe(1);
+    await expect(settings.getByText(/source coverage is incomplete/)).toHaveCount(0);
     expect(fixtures.vectorDataRequests.sort()).toEqual(["FGST", "FOPT"]);
     expect(fixtures.unexpectedApiRequests).toEqual([]);
 });
@@ -919,15 +955,17 @@ test("requires the needed products to be covered in the same selected realizatio
     const npvKeys = async () =>
         channelEntries(await readPublishedChannels(page), NPV_CHANNEL).map((entry) => entry.key);
 
-    await expect
-        .poll(() => setupItems(page))
-        .toEqual(["No selected realization has both oil and sales gas source coverage between Jan 2018 and Jun 2020."]);
-    await expect(setupStatus(page)).not.toContainText("Setup ready");
+    const noOverlap = settingsRegion(page).getByText(
+        "No selected realization has both oil and sales gas source coverage between Jan 2018 and Jun 2020.",
+        { exact: true },
+    );
+    await expect(noOverlap).toBeVisible();
+    expect(await readActionRequired(page)).toEqual([]);
     expect(await npvKeys()).toEqual([]);
 
     // Without gas revenue, realization 3's complete oil is enough.
     await typeAndTabAway(page, settingsRegion(page).getByRole("textbox", { name: /^Gas price/ }), "0");
-    await expect(setupStatus(page)).toHaveText("Setup ready");
+    await expect(noOverlap).toHaveCount(0);
     await expect.poll(npvKeys).toEqual([3]);
     expect(fixtures.vectorDataRequests.sort()).toEqual(["FGST", "FOPT"]);
     expect(fixtures.unexpectedApiRequests).toEqual([]);
@@ -1026,7 +1064,7 @@ async function fitsHorizontally(locator: ReturnType<Page["getByRole"]>): Promise
     return locator.evaluate((element) => element.scrollWidth <= element.clientWidth + 1);
 }
 
-test("keeps the time profile and setup summary contained in a narrow layout", async ({ mount, page }) => {
+test("keeps the time profile and field warnings contained in a narrow layout", async ({ mount, page }) => {
     await routeSourceFixtures(page, { seriesFor: delayedSeriesFor });
     await page.setViewportSize({ width: 720, height: 700 });
     await mount(
@@ -1043,17 +1081,20 @@ test("keeps the time profile and setup summary contained in a narrow layout", as
             }}
         />,
     );
-    // A blank gas price withholds financial results, so the summary is shown while volumes stay available.
-    await expect.poll(() => setupItems(page)).toEqual(["Enter a gas price, or 0 to omit gas revenue."]);
-    const summaryBox = (await setupStatus(page).boundingBox())!;
+    // A blank gas price withholds financial results, so the field warns while volumes stay available.
+    await expect.poll(() => readActionRequired(page)).toEqual(["Enter a gas price, or 0 to omit gas revenue."]);
+    const gasPriceWarning = settingsRegion(page).getByText("Enter a gas price, or 0 to omit gas revenue.", {
+        exact: true,
+    });
+    await gasPriceWarning.scrollIntoViewIfNeeded();
+    const warningBox = (await gasPriceWarning.boundingBox())!;
     const settingsBox = (await settingsRegion(page).boundingBox())!;
-    expect(summaryBox.x + summaryBox.width).toBeLessThanOrEqual(settingsBox.x + settingsBox.width);
-    expect(await fitsHorizontally(setupStatus(page))).toBe(true);
+    expect(warningBox.x + warningBox.width).toBeLessThanOrEqual(settingsBox.x + settingsBox.width);
 
     const gasPrice = settingsRegion(page).getByRole("textbox", { name: /^Gas price/ });
     await gasPrice.fill("0.2");
     await gasPrice.blur();
-    await expect(setupStatus(page)).toHaveText("Setup ready");
+    await expect.poll(() => readActionRequired(page)).toEqual([]);
     await waitForPlottedData(page);
     await expectLegendClearOfYearAxis(page);
     await page.mouse.move(0, 0);
@@ -1271,12 +1312,6 @@ test("cost paste preserves channels until Apply and matches independent cash flo
         const settingsBox = (await settings.boundingBox())!;
         expect(tableBox.width).toBeGreaterThan(settingsBox.width - 40);
         expect(tableBox.x + tableBox.width).toBeLessThanOrEqual(settingsBox.x + settingsBox.width);
-        expect(
-            overlaps(
-                (await setupStatus(page).boundingBox())!,
-                (await settings.locator("[data-collapsible-scroll-area]").boundingBox())!,
-            ),
-        ).toBe(false);
         await page.screenshot({ path: `test-results/economic-screening-presentation/${layout.name}-costs.png` });
         await trigger.click();
         await dialog.getByRole("textbox").fill("2019\t600\t2400");

@@ -10,9 +10,12 @@ import { EnsembleSetAtom, RealizationFilterSetAtom } from "@framework/GlobalAtom
 import { ApplyInterfaceEffectsToView } from "@framework/internal/components/ApplyInterfaceEffects/applyInterfaceEffects";
 import type { Module, ModuleSettingsProps, ModuleViewProps } from "@framework/Module";
 import { ModuleInstance, ModuleInstanceTopic } from "@framework/ModuleInstance";
+import { StatusMessageType, StatusSource } from "@framework/ModuleInstanceStatusController";
 import { ModuleRegistry } from "@framework/ModuleRegistry";
 import type { RealizationFilterSet } from "@framework/RealizationFilterSet";
 import { RegularEnsemble } from "@framework/RegularEnsemble";
+import { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
+import { Source } from "@framework/utils/atomUtils";
 import { WorkbenchSessionTopic, type WorkbenchSession } from "@framework/WorkbenchSession";
 import { PublishSubscribeDelegate } from "@lib/utils/PublishSubscribeDelegate";
 import { channelDefs } from "@modules/EconomicScreening/channelDefs";
@@ -54,6 +57,8 @@ export type EconomicScreeningHarnessInitialState = {
     selectedMeasure?: EconomicMeasure;
     cashFlowProfileType?: CashFlowProfileType;
     selectedRealization?: number | null;
+    /** Restores a saved ensemble that is not in the ensemble set. */
+    savedEnsembleMissing?: boolean;
 };
 
 const HARNESS_CASE_UUID = "99999999-aaaa-4444-aaaa-aaaaaaaaaaaa";
@@ -127,6 +132,16 @@ function makeModuleInstance(initialState: EconomicScreeningHarnessInitialState =
     if (initialState.resultMode) store.set(resultModeAtom, initialState.resultMode);
     if (initialState.selectedMeasure) store.set(selectedMeasureAtom, initialState.selectedMeasure);
     if (initialState.cashFlowProfileType) store.set(cashFlowProfileTypeAtom, initialState.cashFlowProfileType);
+    if (initialState.savedEnsembleMissing) {
+        store.set(selectedEnsembleIdentAtom, {
+            value: new RegularEnsembleIdent("00000000-aaaa-4444-aaaa-aaaaaaaaaaaa", "Removed"),
+            isValidInContext: false,
+            isLoading: false,
+            isBlocked: false,
+            depsHaveError: false,
+            _source: Source.PERSISTENCE,
+        });
+    }
     if ("selectedRealization" in initialState) {
         store.set(selectedRealizationAtom, {
             ensembleIdentString: ENSEMBLE.getIdent().toString(),
@@ -188,6 +203,16 @@ export function EconomicScreeningModuleHarness(props: EconomicScreeningModuleHar
     useEffect(() => {
         // Lets the test read the contents the view has published on the instance's own channels.
         (window as unknown as Record<string, unknown>).readEconomicScreeningCosts = () => store.get(costProfileAtom);
+        // The published Settings messages the framework shows as "Action required" in the view header and bar.
+        (window as unknown as Record<string, unknown>).readEconomicScreeningActionRequired = () =>
+            instance
+                .getStatusController()
+                .makeSnapshotGetter("hotMessageCache")()
+                .filter(
+                    (entry) =>
+                        entry.source === StatusSource.Settings && entry.type === StatusMessageType.ActionRequired,
+                )
+                .map((entry) => entry.message);
         (window as unknown as Record<string, unknown>).readEconomicScreeningChannels = () =>
             instance
                 .getChannelManager()

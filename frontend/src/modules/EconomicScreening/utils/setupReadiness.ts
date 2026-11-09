@@ -45,7 +45,8 @@ export enum SetupIssueKind {
 
 export type SetupField = "ensemble" | "predictionYear" | "oilPrice" | "gasPrice" | "costs";
 
-export type SetupIssue = { kind: SetupIssueKind; message: string; field?: SetupField };
+/** Every issue is shown at its field: source issues at the ensemble or the reference date that they depend on. */
+export type SetupIssue = { kind: SetupIssueKind; message: string; field: SetupField };
 
 export type ProductSupport = {
     /** Every selected realization has the product established and zero in every evaluated month. */
@@ -164,8 +165,8 @@ export function getSetupReadiness(input: SetupReadinessInput): SetupReadiness {
     const issues: SetupIssue[] = [];
     const addInput = (message: string, field: SetupField) =>
         issues.push({ kind: SetupIssueKind.INPUT, message, field });
-    const addSource = (message: string, field?: SetupField) =>
-        issues.push({ kind: SetupIssueKind.SOURCE, message, ...(field && { field }) });
+    const addSource = (message: string, field: SetupField) =>
+        issues.push({ kind: SetupIssueKind.SOURCE, message, field });
 
     const isLoading =
         input.vectorListStatus === "LOADING" || snapshot.status === SourceStatus.LOADING || snapshot.isFetching;
@@ -181,9 +182,9 @@ export function getSetupReadiness(input: SetupReadinessInput): SetupReadiness {
     }
 
     if (input.vectorListStatus === "ERROR" || snapshot.status === SourceStatus.ERROR) {
-        addSource(snapshot.queryError ?? "Could not load the source data.");
+        addSource(snapshot.queryError ?? "Could not load the source data.", "ensemble");
     } else if (snapshot.status === SourceStatus.NO_SOURCES) {
-        addSource("No oil or sales-gas vectors are available for this ensemble.");
+        addSource("No oil or sales-gas vectors are available for this ensemble.", "ensemble");
     }
 
     const needs = REQUIREMENT_NEEDS[requirement];
@@ -199,17 +200,20 @@ export function getSetupReadiness(input: SetupReadinessInput): SetupReadiness {
         const needsOilCoverage = input.hasOilVector && needsOilSource;
         if (!input.hasOilVector) {
             if (needsOilSource) {
-                addSource("Oil production (FOPT) is not available for this ensemble.");
+                addSource("Oil production (FOPT) is not available for this ensemble.", "ensemble");
             }
         } else {
             if (needs.oilRevenue && oilRevenue.needsPrice) {
                 addInput("Enter an oil price, or 0 to omit oil revenue.", "oilPrice");
             }
             if (needsOilCoverage && coverage && !coverage.some((entry) => entry.oil) && horizon) {
-                addSource(coverageMessage("Oil", support!.oil, horizon));
+                addSource(coverageMessage("Oil", support!.oil, horizon), "predictionYear");
             }
             if (needs.nonZeroOilVolume && support?.oil.isConfirmedAbsent) {
-                addSource("Oil production is zero in every selected realization, so break-even cannot be solved.");
+                addSource(
+                    "Oil production is zero in every selected realization, so break-even cannot be solved.",
+                    "ensemble",
+                );
             }
         }
 
@@ -219,7 +223,7 @@ export function getSetupReadiness(input: SetupReadinessInput): SetupReadiness {
         // Sales gas taken as zero follows the oil coverage, so an oil coverage message already explains it.
         const isGasCoverageExplained = snapshot.salesGasStrategy.kind === "ZERO" && needsOilCoverage;
         if (needsGasSource && !isGasCoverageExplained && coverage && !coverage.some((entry) => entry.gas) && horizon) {
-            addSource(coverageMessage("Sales gas", support!.gas, horizon));
+            addSource(coverageMessage("Sales gas", support!.gas, horizon), "predictionYear");
         }
 
         // Each product can be covered somewhere while no realization has both, which the results require.
@@ -234,6 +238,7 @@ export function getSetupReadiness(input: SetupReadinessInput): SetupReadiness {
         ) {
             addSource(
                 `No selected realization has both oil and sales gas source coverage between Jan ${horizon.startYear} and ${formatMonthIndex(horizon.endMonthIndex)}.`,
+                "predictionYear",
             );
         }
     }
