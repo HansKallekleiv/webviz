@@ -143,8 +143,12 @@ describe("getIneligibilityMessage", () => {
         expect(getIneligibilityMessage(Ineligibility.GAS_COVERAGE)).toBe(
             "Gas source coverage is not established for every month of the evaluation.",
         );
-        expect(getIneligibilityMessage(Ineligibility.OIL_PRICE_MISSING)).toBe("Enter oil price.");
-        expect(getIneligibilityMessage(Ineligibility.GAS_PRICE_MISSING)).toBe("Enter gas price.");
+        expect(getIneligibilityMessage(Ineligibility.OIL_PRICE_MISSING)).toBe(
+            "Enter an oil price, or 0 to omit oil revenue.",
+        );
+        expect(getIneligibilityMessage(Ineligibility.GAS_PRICE_MISSING)).toBe(
+            "Enter a gas price, or 0 to omit gas revenue.",
+        );
         expect(getIneligibilityMessage(Ineligibility.NO_INCLUDED_COSTS)).toBe(
             "Enter a non-zero CAPEX or OPEX within the evaluation.",
         );

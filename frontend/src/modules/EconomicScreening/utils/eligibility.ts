@@ -109,8 +109,8 @@ export enum Ineligibility {
 const INELIGIBILITY_MESSAGES: Record<Ineligibility, string> = {
     [Ineligibility.OIL_COVERAGE]: "Oil source coverage is not established for every month of the evaluation.",
     [Ineligibility.GAS_COVERAGE]: "Gas source coverage is not established for every month of the evaluation.",
-    [Ineligibility.OIL_PRICE_MISSING]: "Enter oil price.",
-    [Ineligibility.GAS_PRICE_MISSING]: "Enter gas price.",
+    [Ineligibility.OIL_PRICE_MISSING]: "Enter an oil price, or 0 to omit oil revenue.",
+    [Ineligibility.GAS_PRICE_MISSING]: "Enter a gas price, or 0 to omit gas revenue.",
     [Ineligibility.NO_INCLUDED_COSTS]: "Enter a non-zero CAPEX or OPEX within the evaluation.",
     [Ineligibility.OIL_VOLUME_TOO_SMALL]: "The discounted oil volume is too close to zero to solve break-even.",
     [Ineligibility.COST_DRAFT_INVALID]: "Financial results are unavailable until the cost schedule is valid.",

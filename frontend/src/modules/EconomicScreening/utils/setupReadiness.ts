@@ -2,7 +2,13 @@ import { CostDraftStatus, type CostProfileEntry } from "@modules/EconomicScreeni
 
 import { formatMonthIndex } from "./calendar";
 import { hasIncludedNonZeroCost } from "./costProfile";
-import { REQUIREMENT_NEEDS, revenueNeeds, type MeasureRequirement } from "./eligibility";
+import {
+    getIneligibilityMessage,
+    Ineligibility,
+    REQUIREMENT_NEEDS,
+    revenueNeeds,
+    type MeasureRequirement,
+} from "./eligibility";
 import { getEvaluationHorizonError, type EvaluationHorizon, type EvaluationHorizonState } from "./evaluationHorizon";
 import { isProductConfirmedAbsent, isProductEstablished } from "./monthlyEconomics";
 import { isMonthCoverageEstablished, monthIndexOf, type MonthlyProductionProfile } from "./monthlyProduction";
@@ -204,7 +210,7 @@ export function getSetupReadiness(input: SetupReadinessInput): SetupReadiness {
             }
         } else {
             if (needs.oilRevenue && oilRevenue.needsPrice) {
-                addInput("Enter an oil price, or 0 to omit oil revenue.", "oilPrice");
+                addInput(getIneligibilityMessage(Ineligibility.OIL_PRICE_MISSING), "oilPrice");
             }
             if (needsOilCoverage && coverage && !coverage.some((entry) => entry.oil) && horizon) {
                 addSource(coverageMessage("Oil", support!.oil, horizon), "predictionYear");
@@ -218,7 +224,7 @@ export function getSetupReadiness(input: SetupReadinessInput): SetupReadiness {
         }
 
         if (needs.gasRevenue && gasRevenue.needsPrice) {
-            addInput("Enter a gas price, or 0 to omit gas revenue.", "gasPrice");
+            addInput(getIneligibilityMessage(Ineligibility.GAS_PRICE_MISSING), "gasPrice");
         }
         // Sales gas taken as zero follows the oil coverage, so an oil coverage message already explains it.
         const isGasCoverageExplained = snapshot.salesGasStrategy.kind === "ZERO" && needsOilCoverage;
@@ -251,7 +257,7 @@ export function getSetupReadiness(input: SetupReadinessInput): SetupReadiness {
         horizon &&
         !hasIncludedNonZeroCost(input.costProfile, horizon.startYear, horizon.endYear)
     ) {
-        addInput("Enter a non-zero CAPEX or OPEX within the evaluation.", "costs");
+        addInput(getIneligibilityMessage(Ineligibility.NO_INCLUDED_COSTS), "costs");
     }
 
     return { isLoading, issues };

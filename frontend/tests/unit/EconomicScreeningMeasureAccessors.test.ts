@@ -43,7 +43,9 @@ describe("getMeasureUnavailableReason", () => {
         expect(getMeasureUnavailableReason(results, EconomicMeasure.NPV)).toBe(
             "Gas source coverage is not established for every month of the evaluation.",
         );
-        expect(getMeasureUnavailableReason(results.slice(0, 2), EconomicMeasure.IRR)).toBe("Enter oil price.");
+        expect(getMeasureUnavailableReason(results.slice(0, 2), EconomicMeasure.IRR)).toBe(
+            "Enter an oil price, or 0 to omit oil revenue.",
+        );
     });
 
     test("reports the break-even reason instead of a generic text", () => {

@@ -5,7 +5,9 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { DeltaEnsembleIdent } from "@framework/DeltaEnsembleIdent";
 import { isEnsembleIdentOfType } from "@framework/utils/ensembleIdentUtils";
 import { CheckboxCompositions } from "@lib/components/Checkbox/compositions";
+import { Field } from "@lib/components/Field";
 import { Setting } from "@lib/components/Setting";
+import { Heading } from "@lib/components/Typography/compositions";
 
 import { getFieldIssueText } from "../../../utils/setupReadiness";
 import { costDraftStatusAtom, costProfileAtom, stopOpexAfterLastProductionAtom } from "../../atoms/baseAtoms";
@@ -49,14 +51,19 @@ export function CostsSection(props: SettingsSectionProps): ReactNode {
                 />
             </Setting.Field>
             {!isDeltaEnsembleSelected && (
-                // Label-less, so the checkbox is named by its own label rather than the field's.
-                <Setting.Field help={{ title: "Stop OPEX after last production", content: STOP_OPEX_HELP }}>
+                // Label-less, so the checkbox is named by its own label. The help sits on the checkbox row,
+                // since a stacked field's help would take a row of its own.
+                <Setting.Field contentClassName="flex items-center justify-between gap-x-2xs">
                     <CheckboxCompositions.WithLabel
                         label="Stop OPEX after last production"
                         checked={stopOpexAfterLastProduction}
                         onCheckedChange={setStopOpexAfterLastProduction}
                         size="small"
                     />
+                    <Field.Info side="right">
+                        <Heading as="h6">Stop OPEX after last production</Heading>
+                        {STOP_OPEX_HELP}
+                    </Field.Info>
                 </Setting.Field>
             )}
         </Setting.Section>

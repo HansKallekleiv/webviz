@@ -562,7 +562,10 @@ test("lists every known NPV setup requirement together before any price edit", a
     await page.getByRole("option", { name: /^Net present value/ }).click();
     await oilPrice.fill("");
     await oilPrice.blur();
-    await expect(viewRegion(page).getByText("Enter oil price.", { exact: true })).toBeVisible();
+    // The view states the missing price in the same words as the field and "Action required".
+    await expect(
+        viewRegion(page).getByText("Enter an oil price, or 0 to omit oil revenue.", { exact: true }),
+    ).toBeVisible();
     await page.screenshot({ path: `${UX_SCREENSHOT_DIR}/desktop-npv-missing-price.png` });
     expect(fixtures.vectorDataRequests.sort()).toEqual(["FGIT", "FGPT", "FOPT"]);
     expect(fixtures.unexpectedApiRequests).toEqual([]);
@@ -1042,6 +1045,15 @@ test("stops OPEX after a realization's last production only when chosen", async 
     if ((await costsTrigger.getAttribute("aria-expanded")) !== "true") await costsTrigger.click();
     const stopOpex = settings.getByRole("checkbox", { name: "Stop OPEX after last production" });
     await expect(stopOpex).not.toBeChecked();
+    // Its help icon sits on the checkbox row, not on a row of its own above it.
+    await stopOpex.scrollIntoViewIfNeeded();
+    const stopOpexRow = settings
+        .locator(".setting-row")
+        .filter({ has: page.getByRole("checkbox", { name: "Stop OPEX after last production" }) });
+    const helpBox = (await stopOpexRow.getByRole("button", { name: "More information" }).boundingBox())!;
+    const checkboxBox = (await stopOpex.boundingBox())!;
+    expect(Math.abs(helpBox.y + helpBox.height / 2 - (checkboxBox.y + checkboxBox.height / 2))).toBeLessThan(6);
+    await page.screenshot({ path: `${UX_SCREENSHOT_DIR}/desktop-stop-opex.png` });
     await expect(viewRegion(page).getByText(/No OPEX after last production/)).toHaveCount(0);
     await stopOpex.check();
 
