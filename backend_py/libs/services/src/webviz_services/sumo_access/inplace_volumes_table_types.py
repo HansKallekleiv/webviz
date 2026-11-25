@@ -119,6 +119,11 @@ class Property(StrEnum):
     FACIES_FRACTION = "FACIES_FRACTION"
 
 
+class InplaceVolumesTableSource(StrEnum):
+    STATIC = "static"
+    SIMULATOR = "simulator"
+
+
 class Statistic(StrEnum):
     """
     Definition of possible statistics for a result column in an inplace volumes table
@@ -176,6 +181,7 @@ class InplaceVolumesTableDefinition:
     indices_with_values: list[InplaceVolumesIndexWithValues]
     result_names: list[str]
     fluids: list[InplaceVolumes.Fluid]
+    table_source: InplaceVolumesTableSource = InplaceVolumesTableSource.STATIC
 
 
 @dataclass

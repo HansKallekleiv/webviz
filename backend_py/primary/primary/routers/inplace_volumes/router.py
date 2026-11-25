@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import Annotated
 
@@ -6,7 +7,9 @@ from fastapi import APIRouter, Depends, Query, Body, Response
 from webviz_services.inplace_volumes_table_assembler.inplace_volumes_table_assembler import (
     InplaceVolumesTableAssembler,
 )
+from webviz_services.sumo_access.fip_regions_mapping_access import FipRegionsMappingAccess
 from webviz_services.sumo_access.inplace_volumes_table_access import InplaceVolumesTableAccess
+from webviz_services.sumo_access.simulator_inplace_volumes_table_access import SimulatorInplaceVolumesTableAccess
 from webviz_services.utils.authenticated_user import AuthenticatedUser
 from primary.auth.auth_helper import AuthHelper
 from primary.utils.warning_reporter import WarningReporter
@@ -14,6 +17,7 @@ from primary.middleware.cache_control_middleware import cache_time, CacheTime
 from primary.routers.inplace_volumes.converters import (
     convert_schema_to_indices,
     convert_schema_to_indices_with_values,
+    convert_schema_to_table_source,
     convert_statistical_table_data_per_fluid_selection_to_schema,
     convert_table_data_per_fluid_selection_to_schema,
     to_api_volumes_table_definitions,
@@ -35,25 +39,42 @@ LOGGER = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def _create_inplace_volumes_assembler(
+    access: InplaceVolumesTableAccess,
+    token: str,
+    case_uuid: str,
+    ensemble_name: str,
+) -> InplaceVolumesTableAssembler:
+    simulator_access = SimulatorInplaceVolumesTableAccess.from_ensemble_name(token, case_uuid, ensemble_name)
+    fip_mapping_access = FipRegionsMappingAccess.from_ensemble_name(token, case_uuid, ensemble_name)
+    return InplaceVolumesTableAssembler(access, simulator_access, fip_mapping_access)
+
+
 @router.get("/inplace_table_definitions/")
 @cache_time(CacheTime.LONG, result_version=1)
 async def get_inplace_table_definitions(
     authenticated_user: Annotated[AuthenticatedUser, Depends(AuthHelper.get_authenticated_user)],
+    warning_reporter: Annotated[WarningReporter, Depends(WarningReporter)],
     case_uuid: Annotated[str, Query(description="Sumo case uuid")],
     ensemble_name: Annotated[str, Query(description="Ensemble name")],
 ) -> list[schemas.InplaceVolumesTableDefinition]:
     """Get the inplace volumes tables definitions for a given ensemble."""
 
-    access = InplaceVolumesTableAccess.from_ensemble_name(
-        authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name
-    )
+    token = authenticated_user.get_sumo_access_token()
+    access = InplaceVolumesTableAccess.from_ensemble_name(token, case_uuid, ensemble_name)
+    assembler = _create_inplace_volumes_assembler(access, token, case_uuid, ensemble_name)
 
     is_deprecated_format = await access.is_deprecated_format_async()
     if is_deprecated_format:
-        return await handle_table_definitions_for_deprecated_format_async(authenticated_user, case_uuid, ensemble_name)
+        deprecated_tables, sim_tables_result = await asyncio.gather(
+            handle_table_definitions_for_deprecated_format_async(authenticated_user, case_uuid, ensemble_name),
+            assembler.get_simulator_tables_metadata_async(),
+        )
+        sim_tables = warning_reporter.unwrap_result_and_report(sim_tables_result)
+        return deprecated_tables + to_api_volumes_table_definitions(sim_tables)
 
-    assembler = InplaceVolumesTableAssembler(access)
-    tables = await assembler.get_inplace_volumes_tables_metadata_async()
+    tables_result = await assembler.get_inplace_volumes_tables_metadata_async()
+    tables = warning_reporter.unwrap_result_and_report(tables_result)
     return to_api_volumes_table_definitions(tables)
 
 
@@ -78,6 +99,10 @@ async def post_get_aggregated_per_realization_inplace_table_data(
             description="Optional list of realizations encoded as string to include. If not specified, all realizations will be included."
         ),
     ] = None,
+    table_source: Annotated[
+        schemas.InplaceVolumesTableSource,
+        Query(description="Source of the inplace volumes table"),
+    ] = schemas.InplaceVolumesTableSource.STATIC,
 ) -> schemas.InplaceVolumesTableDataPerFluidSelection:
     """
     Get aggregated inplace volume data for a given table with data per realization based on requested results and categories/index filter.
@@ -93,27 +118,27 @@ async def post_get_aggregated_per_realization_inplace_table_data(
 
     perf_metrics.record_lap("decode realizations array")
 
-    access = InplaceVolumesTableAccess.from_ensemble_name(
-        authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name
-    )
+    token = authenticated_user.get_sumo_access_token()
+    access = InplaceVolumesTableAccess.from_ensemble_name(token, case_uuid, ensemble_name)
 
-    is_deprecated_format = await access.is_deprecated_format_async()
-    if is_deprecated_format:
-        return await handle_aggregated_per_realization_table_data_for_deprecated_format_async(
-            authenticated_user,
-            warning_reporter,
-            case_uuid,
-            ensemble_name,
-            table_name,
-            result_names,
-            indices_with_values,
-            group_by_indices,
-            realizations,
-        )
+    if table_source != schemas.InplaceVolumesTableSource.SIMULATOR:
+        is_deprecated_format = await access.is_deprecated_format_async()
+        if is_deprecated_format:
+            return await handle_aggregated_per_realization_table_data_for_deprecated_format_async(
+                authenticated_user,
+                warning_reporter,
+                case_uuid,
+                ensemble_name,
+                table_name,
+                result_names,
+                indices_with_values,
+                group_by_indices,
+                realizations,
+            )
 
     perf_metrics.record_lap("get-access")
 
-    assembler = InplaceVolumesTableAssembler(access)
+    assembler = _create_inplace_volumes_assembler(access, token, case_uuid, ensemble_name)
 
     result = await assembler.create_accumulated_by_selection_per_realization_volumes_table_data_async(
         table_name=table_name,
@@ -121,6 +146,7 @@ async def post_get_aggregated_per_realization_inplace_table_data(
         indices_with_values=convert_schema_to_indices_with_values(indices_with_values),
         group_by_indices=convert_schema_to_indices(group_by_indices),
         realizations=realizations,
+        table_source=convert_schema_to_table_source(table_source),
     )
 
     perf_metrics.record_lap("calculate-accumulated-data")
@@ -152,6 +178,10 @@ async def post_get_aggregated_statistical_inplace_table_data(
             description="Optional list of realizations encoded as string to include. If not specified, all realizations will be included."
         ),
     ] = None,
+    table_source: Annotated[
+        schemas.InplaceVolumesTableSource,
+        Query(description="Source of the inplace volumes table"),
+    ] = schemas.InplaceVolumesTableSource.STATIC,
 ) -> schemas.InplaceVolumesStatisticalTableDataPerFluidSelection:
     """
     Get statistical inplace volumes data across selected realizations for a given table based on requested results and categories/index filter.
@@ -167,27 +197,27 @@ async def post_get_aggregated_statistical_inplace_table_data(
 
     perf_metrics.record_lap("decode realizations array")
 
-    access = InplaceVolumesTableAccess.from_ensemble_name(
-        authenticated_user.get_sumo_access_token(), case_uuid, ensemble_name
-    )
+    token = authenticated_user.get_sumo_access_token()
+    access = InplaceVolumesTableAccess.from_ensemble_name(token, case_uuid, ensemble_name)
 
     perf_metrics.record_lap("get-access")
 
-    is_deprecated_format = await access.is_deprecated_format_async()
-    if is_deprecated_format:
-        return await handle_aggregated_statistical_table_data_for_deprecated_format_async(
-            authenticated_user,
-            warning_reporter,
-            case_uuid,
-            ensemble_name,
-            table_name,
-            result_names,
-            indices_with_values,
-            group_by_indices,
-            realizations,
-        )
+    if table_source != schemas.InplaceVolumesTableSource.SIMULATOR:
+        is_deprecated_format = await access.is_deprecated_format_async()
+        if is_deprecated_format:
+            return await handle_aggregated_statistical_table_data_for_deprecated_format_async(
+                authenticated_user,
+                warning_reporter,
+                case_uuid,
+                ensemble_name,
+                table_name,
+                result_names,
+                indices_with_values,
+                group_by_indices,
+                realizations,
+            )
 
-    assembler = InplaceVolumesTableAssembler(access)
+    assembler = _create_inplace_volumes_assembler(access, token, case_uuid, ensemble_name)
 
     result = await assembler.create_accumulated_by_selection_statistical_volumes_table_data_async(
         table_name=table_name,
@@ -195,6 +225,7 @@ async def post_get_aggregated_statistical_inplace_table_data(
         indices_with_values=convert_schema_to_indices_with_values(indices_with_values),
         group_by_indices=convert_schema_to_indices(group_by_indices),
         realizations=realizations,
+        table_source=convert_schema_to_table_source(table_source),
     )
 
     perf_metrics.record_lap("calculate-accumulated-data")

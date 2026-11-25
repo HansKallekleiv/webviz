@@ -710,6 +710,7 @@ export {
     type InplaceVolumesTableData_api,
     type InplaceVolumesTableDataPerFluidSelection_api,
     type InplaceVolumesTableDefinition_api,
+    InplaceVolumesTableSource_api,
     type LoginRouteData_api,
     type LoginRouteError_api,
     type LoginRouteErrors_api,

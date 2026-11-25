@@ -93,7 +93,7 @@ class DEPRECATED_InplaceVolumetricsAccess:
 
     async def get_inplace_volumetrics_table_names_async(self) -> List[str]:
 
-        table_context = self._ensemble_context.tables.filter(content="volumes")
+        table_context = self._ensemble_context.tables.filter(content="volumes", standard_result=False)
         table_names = await table_context.names_async
         return table_names
 

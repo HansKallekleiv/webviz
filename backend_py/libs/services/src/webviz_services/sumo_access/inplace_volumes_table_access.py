@@ -57,8 +57,9 @@ class InplaceVolumesTableAccess:
             self._table_names = table_names
             return False
 
-        # Check if deprecated format (do not initialize _table_names)
-        table_context = self._ensemble_context.tables.filter(content="volumes")
+        # Check if deprecated format (do not initialize _table_names).
+        # Exclude tables that have standard_result set (e.g. simulator_inplace_volumes also has content="volumes").
+        table_context = self._ensemble_context.tables.filter(content="volumes", standard_result=False)
         table_names = await table_context.names_async
         if table_names:
             return True

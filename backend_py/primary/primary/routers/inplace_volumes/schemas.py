@@ -3,6 +3,15 @@ from enum import StrEnum
 from pydantic import BaseModel
 
 
+class InplaceVolumesTableSource(StrEnum):
+    """
+    Source of an inplace volumes table
+    """
+
+    STATIC = "static"
+    SIMULATOR = "simulator"
+
+
 class InplaceVolumesStatistic(StrEnum):
     """
     Definition of possible statistics for a result column in an inplace volumes table
@@ -30,6 +39,7 @@ class InplaceVolumesTableDefinition(BaseModel):
     """Definition of a inplace volumes table"""
 
     tableName: str
+    tableSource: InplaceVolumesTableSource
     resultNames: list[str]
     indicesWithValues: list[InplaceVolumesIndexWithValues]
 

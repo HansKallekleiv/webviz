@@ -2,6 +2,7 @@ from webviz_services.sumo_access.inplace_volumes_table_types import (
     InplaceVolumes,
     InplaceVolumesIndexWithValues,
     InplaceVolumesTableDefinition,
+    InplaceVolumesTableSource,
     InplaceVolumesTableDataPerFluidSelection,
     InplaceVolumesStatisticalTableDataPerFluidSelection,
     Statistic,
@@ -49,6 +50,28 @@ def _convert_schema_to_index(index_string: str) -> InplaceVolumes.TableIndexColu
     return InplaceVolumes.TableIndexColumns(index_string)
 
 
+def convert_schema_to_table_source(
+    table_source: schemas.InplaceVolumesTableSource,
+) -> InplaceVolumesTableSource:
+    """Converts the table source from the API format to the sumo service format"""
+    if table_source == schemas.InplaceVolumesTableSource.STATIC:
+        return InplaceVolumesTableSource.STATIC
+    if table_source == schemas.InplaceVolumesTableSource.SIMULATOR:
+        return InplaceVolumesTableSource.SIMULATOR
+    raise ValueError(f"Unhandled table source value: {table_source.value}")
+
+
+def _convert_table_source_to_schema(
+    table_source: InplaceVolumesTableSource,
+) -> schemas.InplaceVolumesTableSource:
+    """Converts the table source from the sumo service format to the API format"""
+    if table_source == InplaceVolumesTableSource.STATIC:
+        return schemas.InplaceVolumesTableSource.STATIC
+    if table_source == InplaceVolumesTableSource.SIMULATOR:
+        return schemas.InplaceVolumesTableSource.SIMULATOR
+    raise ValueError(f"Unhandled table source value: {table_source.value}")
+
+
 def to_api_volumes_table_definitions(
     table_definitions: list[InplaceVolumesTableDefinition],
 ) -> list[schemas.InplaceVolumesTableDefinition]:
@@ -57,6 +80,7 @@ def to_api_volumes_table_definitions(
     return [
         schemas.InplaceVolumesTableDefinition(
             tableName=table_definition.table_name,
+            tableSource=_convert_table_source_to_schema(table_definition.table_source),
             resultNames=table_definition.result_names,
             indicesWithValues=[
                 schemas.InplaceVolumesIndexWithValues(

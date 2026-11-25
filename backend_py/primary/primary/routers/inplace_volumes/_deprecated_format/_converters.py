@@ -85,6 +85,7 @@ class DeprecatedInplaceVolumetricsConverters:
         return [
             schemas.InplaceVolumesTableDefinition(
                 tableName=table_definition.table_name,
+                tableSource=schemas.InplaceVolumesTableSource.STATIC,
                 resultNames=table_definition.result_names,
                 indicesWithValues=[
                     schemas.InplaceVolumesIndexWithValues(

@@ -4,16 +4,19 @@ import logging
 import pyarrow as pa
 import polars as pl
 
+from webviz_services.sumo_access.fip_regions_mapping_access import FipRegionsMappingAccess
 from webviz_services.sumo_access.inplace_volumes_table_access import (
     InplaceVolumesTableAccess,
     IGNORED_INDEX_COLUMN_VALUES,
 )
+from webviz_services.sumo_access.simulator_inplace_volumes_table_access import SimulatorInplaceVolumesTableAccess
 from webviz_services.sumo_access.inplace_volumes_table_types import (
     CategorizedResultNames,
     Property,
     InplaceVolumes,
     InplaceVolumesIndexWithValues,
     InplaceVolumesTableDefinition,
+    InplaceVolumesTableSource,
     InplaceVolumesStatisticalTableData,
     InplaceVolumesTableData,
     InplaceVolumesTableDataPerFluidSelection,
@@ -41,6 +44,12 @@ from ._utils.inplace_volumes_df_utils import (
     remove_invalid_optional_index_columns,
     sum_inplace_volumes_grouped_by_indices_and_real_df,
     validate_inplace_volumes_df_selector_columns,
+)
+from ._utils.simulator_volumes_df_utils import (
+    filter_to_earliest_date,
+    join_fip_mapping_to_simulator_volumes_df,
+    make_unmapped_fipnums_warning,
+    validate_and_normalize_fip_mapping_df,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -110,10 +119,17 @@ class InplaceVolumesTableAssembler:
 
     """
 
-    def __init__(self, inplace_volumes_access: InplaceVolumesTableAccess):
+    def __init__(
+        self,
+        inplace_volumes_access: InplaceVolumesTableAccess,
+        simulator_inplace_volumes_access: SimulatorInplaceVolumesTableAccess | None = None,
+        fip_regions_mapping_access: FipRegionsMappingAccess | None = None,
+    ):
         self._inplace_volumes_table_access = inplace_volumes_access
+        self._simulator_inplace_volumes_access = simulator_inplace_volumes_access
+        self._fip_regions_mapping_access = fip_regions_mapping_access
 
-    async def get_inplace_volumes_tables_metadata_async(self) -> list[InplaceVolumesTableDefinition]:
+    async def _get_static_tables_metadata_async(self) -> list[InplaceVolumesTableDefinition]:
         # pylint: disable=too-many-locals
         vol_table_names = await self._inplace_volumes_table_access.get_inplace_volumes_table_names_async()
 
@@ -165,10 +181,139 @@ class InplaceVolumesTableAssembler:
                     fluids=valid_fluids,
                     result_names=valid_result_names,
                     indices_with_values=indices_with_values,
+                    table_source=InplaceVolumesTableSource.STATIC,
                 )
             )
         return tables_info
 
+    async def get_simulator_tables_metadata_async(self) -> ResultWithWarning[list[InplaceVolumesTableDefinition]]:
+        # pylint: disable=too-many-locals
+        if self._simulator_inplace_volumes_access is None:
+            return ResultWithWarning([])
+
+        sim_table_names = await self._simulator_inplace_volumes_access.get_table_names_async()
+        if not sim_table_names:
+            return ResultWithWarning([])
+
+        warnings: list[TextWarning] = []
+        if self._fip_regions_mapping_access is None:
+            warnings.append(
+                TextWarning(
+                    "Simulator inplace volumes tables were skipped because no FIP regions mapping accessor is configured."
+                )
+            )
+            return ResultWithWarning([], warnings)
+
+        raw_mapping_df = await self._fip_regions_mapping_access.get_fip_regions_mapping_df_async()
+        if raw_mapping_df is None:
+            warnings.append(
+                TextWarning(
+                    "Simulator inplace volumes tables were skipped because simulator_fipregions_mapping is missing or invalid."
+                )
+            )
+            return ResultWithWarning([], warnings)
+
+        mapping_df = validate_and_normalize_fip_mapping_df(raw_mapping_df)
+        if mapping_df is None:
+            warnings.append(
+                TextWarning(
+                    "Simulator inplace volumes tables were skipped because simulator_fipregions_mapping is empty "
+                    "or has conflicting FIPNUM entries."
+                )
+            )
+            return ResultWithWarning([], warnings)
+
+        sim_access = self._simulator_inplace_volumes_access
+
+        async def get_sim_table_meta_async(table_name: str) -> tuple[str, VolumeColumnsAndIndexUniqueValues]:
+            return (
+                table_name,
+                await sim_access.get_volume_columns_and_index_unique_values_async(table_name),
+            )
+
+        table_name_and_columns_meta_arr = await asyncio.gather(
+            *(get_sim_table_meta_async(name) for name in sim_table_names)
+        )
+
+        mapped_fipnums_set = set(mapping_df["FIPNUM"].to_list())
+        tables_info: list[InplaceVolumesTableDefinition] = []
+
+        for table_name, columns_meta in table_name_and_columns_meta_arr:
+            index_columns_uniques_dict = columns_meta.index_unique_values_map
+            volume_column_names = columns_meta.volume_columns
+
+            unique_fluids = index_columns_uniques_dict.get(InplaceVolumes.TableIndexColumns.FLUID.value, [])
+            fluids = [get_fluid_from_string(str(elm)) for elm in unique_fluids]
+            valid_fluids = [elm for elm in fluids if elm is not None]
+
+            raw_fipnums = index_columns_uniques_dict.get("FIPNUM", [])
+            sim_fipnums: list[int] = []
+            for raw_fid in raw_fipnums:
+                try:
+                    sim_fipnums.append(int(raw_fid))
+                except (TypeError, ValueError):
+                    continue
+
+            unmapped_fipnums = sorted(set(sim_fipnums) - mapped_fipnums_set)
+            if unmapped_fipnums:
+                warnings.append(make_unmapped_fipnums_warning(table_name, unmapped_fipnums))
+
+            matched_mapping_df = mapping_df.filter(pl.col("FIPNUM").is_in(sim_fipnums))
+            unique_zones = matched_mapping_df["ZONE"].unique(maintain_order=True).to_list()
+            unique_regions = matched_mapping_df["REGION"].unique(maintain_order=True).to_list()
+
+            indices_with_values: list[InplaceVolumesIndexWithValues] = []
+            if valid_fluids:
+                indices_with_values.append(
+                    InplaceVolumesIndexWithValues(
+                        index=InplaceVolumes.TableIndexColumns.FLUID,
+                        values=[f.value for f in valid_fluids],
+                    )
+                )
+            if unique_zones:
+                indices_with_values.append(
+                    InplaceVolumesIndexWithValues(
+                        index=InplaceVolumes.TableIndexColumns.ZONE,
+                        values=unique_zones,
+                    )
+                )
+            if unique_regions:
+                indices_with_values.append(
+                    InplaceVolumesIndexWithValues(
+                        index=InplaceVolumes.TableIndexColumns.REGION,
+                        values=unique_regions,
+                    )
+                )
+
+            calculated_volumes = get_available_calculated_volumes_from_volume_names(volume_column_names)
+            available_property_names = get_available_properties_from_volume_names(
+                volume_column_names, index_columns=[iwv.index.value for iwv in indices_with_values]
+            )
+            result_names = volume_column_names + calculated_volumes + available_property_names
+            valid_result_names = get_valid_result_names_from_list(result_names)
+
+            tables_info.append(
+                InplaceVolumesTableDefinition(
+                    table_name=table_name,
+                    fluids=valid_fluids,
+                    result_names=valid_result_names,
+                    indices_with_values=indices_with_values,
+                    table_source=InplaceVolumesTableSource.SIMULATOR,
+                )
+            )
+
+        return ResultWithWarning(tables_info, warnings)
+
+    async def get_inplace_volumes_tables_metadata_async(self) -> ResultWithWarning[list[InplaceVolumesTableDefinition]]:
+        static_tables, sim_tables_result = await asyncio.gather(
+            self._get_static_tables_metadata_async(),
+            self.get_simulator_tables_metadata_async(),
+        )
+        warnings: list[TextWarning] = []
+        sim_tables = sim_tables_result.get_value(propagate_warnings_to=warnings)
+        return ResultWithWarning(static_tables + sim_tables, warnings)
+
+    # pylint: disable-next=too-many-arguments
     async def create_accumulated_by_selection_per_realization_volumes_table_data_async(
         self,
         table_name: str,
@@ -176,6 +321,7 @@ class InplaceVolumesTableAssembler:
         indices_with_values: list[InplaceVolumesIndexWithValues],
         group_by_indices: list[InplaceVolumes.TableIndexColumns] | None,
         realizations: list[int] | None,
+        table_source: InplaceVolumesTableSource = InplaceVolumesTableSource.STATIC,
     ) -> ResultWithWarning[InplaceVolumesTableDataPerFluidSelection]:
         """
         Create result table realization data per fluid selection, i.e. a table per fluid or a single table with all selected fluids accumulated.
@@ -198,7 +344,7 @@ class InplaceVolumesTableAssembler:
         # - Fluid value: The unique fluid value for the DataFrame, e.g. "Oil", "Gas", "Water", or "Oil + Gas" (if fluids are accumulated)
         accumulated_result = (
             await self._create_accumulated_real_inplace_volumes_df_per_fluid_and_categorized_result_names_async(
-                table_name, result_names, group_by_indices, indices_with_values, realizations
+                table_name, result_names, group_by_indices, indices_with_values, realizations, table_source
             )
         )
         (
@@ -242,6 +388,7 @@ class InplaceVolumesTableAssembler:
             warnings,
         )
 
+    # pylint: disable-next=too-many-arguments
     async def create_accumulated_by_selection_statistical_volumes_table_data_async(
         self,
         table_name: str,
@@ -249,6 +396,7 @@ class InplaceVolumesTableAssembler:
         indices_with_values: list[InplaceVolumesIndexWithValues],
         group_by_indices: list[InplaceVolumes.TableIndexColumns] | None,
         realizations: list[int] | None,
+        table_source: InplaceVolumesTableSource = InplaceVolumesTableSource.STATIC,
     ) -> ResultWithWarning[InplaceVolumesStatisticalTableDataPerFluidSelection]:
         """
         Create result table statistical data per fluid selection, i.e. a table per fluid or a single table with all selected fluids accumulated.
@@ -271,7 +419,7 @@ class InplaceVolumesTableAssembler:
         # - Fluid value: The unique fluid value for the DataFrame, e.g. "Oil", "Gas", "Water", or "Oil + Gas" (if fluids are accumulated)
         accumulated_result = (
             await self._create_accumulated_real_inplace_volumes_df_per_fluid_and_categorized_result_names_async(
-                table_name, result_names, group_by_indices, indices_with_values, realizations
+                table_name, result_names, group_by_indices, indices_with_values, realizations, table_source
             )
         )
         (
@@ -327,7 +475,7 @@ class InplaceVolumesTableAssembler:
             warnings,
         )
 
-    # pylint: disable-next=too-many-locals
+    # pylint: disable-next=too-many-locals,too-many-arguments
     async def _create_accumulated_real_inplace_volumes_df_per_fluid_and_categorized_result_names_async(
         self,
         table_name: str,
@@ -335,6 +483,7 @@ class InplaceVolumesTableAssembler:
         group_by_indices: list[InplaceVolumes.TableIndexColumns] | None,
         indices_with_values: list[InplaceVolumesIndexWithValues],
         realizations: list[int] | None,
+        table_source: InplaceVolumesTableSource = InplaceVolumesTableSource.STATIC,
     ) -> ResultWithWarning[tuple[dict[str, pl.DataFrame], CategorizedResultNames, list[str] | None]]:
         """
         Get a dictionary with accumulated Inplace Volumes DataFrame per unique fluid value, and categorized result names for the given DataFrame.
@@ -387,7 +536,7 @@ class InplaceVolumesTableAssembler:
 
         # Create volumes df filtered on indices values and realizations, for all necessary volumes
         row_filtered_volumes_df_result = await self._get_row_filtered_inplace_volumes_df_async(
-            table_name, all_necessary_volume_names, realizations, effective_indices_with_values
+            table_name, all_necessary_volume_names, realizations, effective_indices_with_values, table_source
         )
         row_filtered_volumes_df = row_filtered_volumes_df_result.get_value(propagate_warnings_to=warnings)
 
@@ -443,12 +592,14 @@ class InplaceVolumesTableAssembler:
             warnings,
         )
 
+    # pylint: disable-next=too-many-arguments
     async def _get_row_filtered_inplace_volumes_df_async(
         self,
         table_name: str,
         volume_names: set[str],
         realizations: list[int] | None,
         indices_with_values: list[InplaceVolumesIndexWithValues],
+        table_source: InplaceVolumesTableSource = InplaceVolumesTableSource.STATIC,
     ) -> ResultWithWarning[pl.DataFrame]:
         """
         This function creates an inplace volumes DataFrame for requested volumes, filtered on the provided indices values and realizations.
@@ -468,11 +619,18 @@ class InplaceVolumesTableAssembler:
             )
 
         timer = PerfTimer()
+        warnings: list[TextWarning] = []
 
         # Get the inplace volumes table as DataFrame
-        volumes_table_df: pl.DataFrame = await self._get_inplace_volumes_table_as_polars_df_async(
-            table_name=table_name, volume_columns=volume_names
-        )
+        if table_source == InplaceVolumesTableSource.SIMULATOR:
+            sim_table_result = await self._get_simulator_inplace_volumes_table_as_polars_df_async(
+                table_name=table_name, volume_columns=volume_names
+            )
+            volumes_table_df = sim_table_result.get_value(propagate_warnings_to=warnings)
+        else:
+            volumes_table_df = await self._get_inplace_volumes_table_as_polars_df_async(
+                table_name=table_name, volume_columns=volume_names
+            )
 
         # Create dataframe filtered on indices and realizations
         row_filtered_volumes_df_result = InplaceVolumesTableAssembler._create_row_filtered_inplace_volumes_df(
@@ -481,11 +639,57 @@ class InplaceVolumesTableAssembler:
             realizations=realizations,
             indices_with_values=indices_with_values,
         )
+        row_filtered_volumes_df = row_filtered_volumes_df_result.get_value(propagate_warnings_to=warnings)
 
         timer_create_row_filtered_df = timer.lap_ms()
         LOGGER.debug(f"Time creating row filtered DataFrame: {timer_create_row_filtered_df}ms")
 
-        return row_filtered_volumes_df_result
+        return ResultWithWarning(row_filtered_volumes_df, warnings)
+
+    async def _get_simulator_inplace_volumes_table_as_polars_df_async(
+        self, table_name: str, volume_columns: set[str]
+    ) -> ResultWithWarning[pl.DataFrame]:
+        """
+        Get simulator inplace volumes table as a Polars DataFrame filtered to earliest DATE
+        and mapped from FIPNUM to (ZONE, REGION) via simulator_fipregions_mapping.
+        """
+        if self._simulator_inplace_volumes_access is None or self._fip_regions_mapping_access is None:
+            raise InvalidDataError(
+                "Simulator inplace volumes accessors are not configured",
+                Service.GENERAL,
+            )
+
+        pa_table, raw_mapping_df = await asyncio.gather(
+            self._simulator_inplace_volumes_access.get_aggregated_table_async(table_name, volume_columns),
+            self._fip_regions_mapping_access.get_fip_regions_mapping_df_async(),
+        )
+
+        if raw_mapping_df is None:
+            raise InvalidDataError(
+                f"Missing or invalid simulator_fipregions_mapping for simulator table '{table_name}'",
+                Service.SUMO,
+            )
+
+        mapping_df = validate_and_normalize_fip_mapping_df(raw_mapping_df)
+        if mapping_df is None:
+            raise InvalidDataError(
+                f"Invalid or conflicting simulator_fipregions_mapping for simulator table '{table_name}'",
+                Service.SUMO,
+            )
+
+        sim_df = pl.DataFrame(pa_table)
+        if sim_df.is_empty():
+            return ResultWithWarning(sim_df)
+
+        warnings: list[TextWarning] = []
+        earliest_df = filter_to_earliest_date(sim_df, table_name).get_value(propagate_warnings_to=warnings)
+        joined_df = join_fip_mapping_to_simulator_volumes_df(earliest_df, mapping_df, table_name).get_value(
+            propagate_warnings_to=warnings
+        )
+        if not joined_df.is_empty():
+            joined_df = remove_invalid_optional_index_columns(joined_df)
+
+        return ResultWithWarning(joined_df, warnings)
 
     async def _get_inplace_volumes_table_as_polars_df_async(
         self, table_name: str, volume_columns: set[str]

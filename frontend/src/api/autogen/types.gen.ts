@@ -981,6 +981,7 @@ export type InplaceVolumesTableDefinition_api = {
      * Tablename
      */
     tableName: string;
+    tableSource: InplaceVolumesTableSource_api;
     /**
      * Resultnames
      */
@@ -990,6 +991,16 @@ export type InplaceVolumesTableDefinition_api = {
      */
     indicesWithValues: Array<InplaceVolumesIndexWithValues_api>;
 };
+
+/**
+ * InplaceVolumesTableSource
+ *
+ * Source of an inplace volumes table
+ */
+export enum InplaceVolumesTableSource_api {
+    STATIC = "static",
+    SIMULATOR = "simulator",
+}
 
 /**
  * LroCommandResp
@@ -4250,6 +4261,10 @@ export type PostGetAggregatedPerRealizationInplaceTableDataData_api = {
          * Optional list of realizations encoded as string to include. If not specified, all realizations will be included.
          */
         realizations_encoded_as_uint_list_str?: string | null;
+        /**
+         * Source of the inplace volumes table
+         */
+        table_source?: InplaceVolumesTableSource_api;
         _cacheBust?: string;
     };
     url: "/inplace_volumes/get_aggregated_per_realization_inplace_table_data/";
@@ -4315,6 +4330,10 @@ export type PostGetAggregatedStatisticalInplaceTableDataData_api = {
          * Optional list of realizations encoded as string to include. If not specified, all realizations will be included.
          */
         realizations_encoded_as_uint_list_str?: string | null;
+        /**
+         * Source of the inplace volumes table
+         */
+        table_source?: InplaceVolumesTableSource_api;
         _cacheBust?: string;
     };
     url: "/inplace_volumes/get_aggregated_statistical_inplace_table_data/";
