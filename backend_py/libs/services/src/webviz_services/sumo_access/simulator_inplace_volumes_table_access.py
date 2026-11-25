@@ -8,6 +8,7 @@ from webviz_core_utils.perf_metrics import PerfMetrics
 
 from webviz_services.inplace_volumes_table_assembler._utils.simulator_volumes_df_utils import (
     filter_to_earliest_date,
+    normalize_fipnum_series,
 )
 from webviz_services.service_exceptions import InvalidDataError, Service
 
@@ -77,9 +78,7 @@ class SimulatorInplaceVolumesTableAccess:
 
         index_column_unique_values_map: dict[str, list[str]] = {}
         for col in index_columns:
-            series = earliest_df[col]
-            if col == "FIPNUM":
-                series = series.cast(pl.Int64, strict=False)
+            series = normalize_fipnum_series(earliest_df[col]) if col == "FIPNUM" else earliest_df[col]
             unique_values = series.unique(maintain_order=True).to_list()
             valid_unique_values = [str(val) for val in unique_values if val not in IGNORED_INDEX_COLUMN_VALUES]
             index_column_unique_values_map[col] = valid_unique_values

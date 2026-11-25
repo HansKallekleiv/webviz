@@ -26,9 +26,9 @@ from webviz_services.sumo_access.inplace_volumes_table_types import (
 from webviz_services.service_exceptions import (
     InvalidDataError,
     InvalidParameterError,
+    MultipleDataMatchesError,
     NoDataError,
     Service,
-    ServiceLayerException,
 )
 from webviz_core_utils.perf_timer import PerfTimer
 from webviz_core_utils.text_warning import TextWarning
@@ -59,6 +59,7 @@ from ._utils.simulator_volumes_df_utils import (
 )
 
 LOGGER = logging.getLogger(__name__)
+_SIMULATOR_METADATA_DATA_ERRORS = (InvalidDataError, NoDataError, MultipleDataMatchesError)
 
 
 def _apply_deferred_facies_filter(
@@ -203,7 +204,7 @@ class InplaceVolumesTableAssembler:
 
         try:
             raw_mapping_df = await self._fip_regions_mapping_access.get_fip_regions_mapping_df_async()
-        except ServiceLayerException as exc:
+        except _SIMULATOR_METADATA_DATA_ERRORS as exc:
             return (
                 None,
                 TextWarning(
@@ -248,14 +249,7 @@ class InplaceVolumesTableAssembler:
         valid_fluids = [elm for elm in fluids if elm is not None]
 
         raw_fipnums = index_columns_uniques_dict.get("FIPNUM", [])
-        sim_fipnums: list[int] = []
-        for raw_fid in raw_fipnums:
-            try:
-                fip_float = float(raw_fid)
-                if fip_float.is_integer():
-                    sim_fipnums.append(int(fip_float))
-            except (TypeError, ValueError):
-                continue
+        sim_fipnums = [int(raw_fid) for raw_fid in raw_fipnums]
 
         unmapped_fipnums = sorted(set(sim_fipnums) - mapped_fipnums_set)
         if unmapped_fipnums:
@@ -320,7 +314,7 @@ class InplaceVolumesTableAssembler:
         warnings: list[TextWarning] = []
         try:
             sim_table_names = await self._simulator_inplace_volumes_access.get_table_names_async()
-        except ServiceLayerException as exc:
+        except _SIMULATOR_METADATA_DATA_ERRORS as exc:
             warnings.append(TextWarning(f"Simulator inplace volumes tables could not be loaded: {exc.message}"))
             return ResultWithWarning([], warnings)
 
@@ -341,7 +335,7 @@ class InplaceVolumesTableAssembler:
             try:
                 columns_meta = await sim_access.get_volume_columns_and_index_unique_values_async(table_name)
                 return (table_name, columns_meta, None)
-            except ServiceLayerException as exc:
+            except _SIMULATOR_METADATA_DATA_ERRORS as exc:
                 return (
                     table_name,
                     None,

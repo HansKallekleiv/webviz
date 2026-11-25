@@ -1,5 +1,5 @@
 from datetime import date
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import polars as pl
 import pyarrow as pa
@@ -8,7 +8,8 @@ import pytest
 from webviz_services.inplace_volumes_table_assembler.inplace_volumes_table_assembler import (
     InplaceVolumesTableAssembler,
 )
-from webviz_services.service_exceptions import InvalidDataError, Service
+from webviz_services.service_exceptions import InvalidDataError, Service, ServiceTimeoutError
+from webviz_services.sumo_access.simulator_inplace_volumes_table_access import SimulatorInplaceVolumesTableAccess
 from webviz_services.sumo_access.inplace_volumes_table_types import (
     InplaceVolumes,
     InplaceVolumesIndexWithValues,
@@ -296,11 +297,13 @@ async def test_metadata_broken_simulator_table_does_not_hide_static_tables() -> 
 
 
 @pytest.mark.asyncio
-async def test_metadata_failing_mapping_download_does_not_hide_static_tables() -> None:
+async def test_metadata_mapping_data_error_does_not_hide_static_tables() -> None:
     static_access = _make_static_access_mock(table_names=["geogrid"])
     sim_access = _make_sim_access_mock(table_names=["simgrid"])
     mapping_access = AsyncMock()
-    mapping_access.get_fip_regions_mapping_df_async.side_effect = InvalidDataError("Sumo timeout", Service.SUMO)
+    mapping_access.get_fip_regions_mapping_df_async.side_effect = InvalidDataError(
+        "Malformed mapping table", Service.SUMO
+    )
 
     assembler = InplaceVolumesTableAssembler(static_access, sim_access, mapping_access)
     result = await assembler.get_inplace_volumes_tables_metadata_async()
@@ -314,13 +317,51 @@ async def test_metadata_failing_mapping_download_does_not_hide_static_tables() -
 
 
 @pytest.mark.asyncio
-async def test_metadata_float_formatted_fipnums_resolve_zone_and_region() -> None:
-    static_access = _make_static_access_mock(table_names=[])
-    sim_access = _make_sim_access_mock(table_names=["simgrid"], fipnums=["1.0", "2.0"])
-    mapping_df = pl.DataFrame({"FIPNUM": [1, 2], "ZONE": ["Valysar", "Therys"], "REGION": ["North", "South"]})
+async def test_metadata_transient_timeout_is_not_swallowed() -> None:
+    static_access = _make_static_access_mock(table_names=["geogrid"])
+    sim_access = _make_sim_access_mock(table_names=["simgrid"])
+    mapping_access = AsyncMock()
+    mapping_access.get_fip_regions_mapping_df_async.side_effect = ServiceTimeoutError("Sumo timeout", Service.SUMO)
 
-    assembler = InplaceVolumesTableAssembler(static_access, sim_access, _make_fip_mapping_access_mock(mapping_df))
-    result = await assembler.get_inplace_volumes_tables_metadata_async()
+    assembler = InplaceVolumesTableAssembler(static_access, sim_access, mapping_access)
+    with pytest.raises(ServiceTimeoutError):
+        await assembler.get_inplace_volumes_tables_metadata_async()
+
+
+@pytest.mark.asyncio
+async def test_accessor_float_fipnum_column_resolves_zone_and_region_through_assembler() -> None:
+    pa_table = pa.table(
+        {
+            "DATE": [date(2020, 1, 1), date(2020, 1, 1)],
+            "FLUID": ["oil", "gas"],
+            "FIPNUM": pa.array([1.0, 2.0], type=pa.float64()),
+            "STOIIP": [100.0, 0.0],
+            "GIIP": [0.0, 200.0],
+            "HCPV": [120.0, 250.0],
+        }
+    )
+
+    with (
+        patch(
+            "webviz_services.sumo_access.simulator_inplace_volumes_table_access.SearchContext"
+        ),
+        patch(
+            "webviz_services.sumo_access.simulator_inplace_volumes_table_access.ArrowTableLoader"
+        ) as mock_loader_cls,
+    ):
+        mock_loader = mock_loader_cls.return_value
+        mock_loader.get_single_realization_async = AsyncMock(return_value=pa_table)
+
+        sim_access = SimulatorInplaceVolumesTableAccess(MagicMock(), "case-uuid", "iter-0")
+        sim_access.get_table_names_async = AsyncMock(return_value=["simgrid"])  # type: ignore[method-assign]
+        with patch.object(sim_access, "_get_first_realization_with_table_async", AsyncMock(return_value=0)):
+            mapping_df = pl.DataFrame({"FIPNUM": [1, 2], "ZONE": ["Valysar", "Therys"], "REGION": ["North", "South"]})
+            assembler = InplaceVolumesTableAssembler(
+                _make_static_access_mock(table_names=[]),
+                sim_access,
+                _make_fip_mapping_access_mock(mapping_df),
+            )
+            result = await assembler.get_inplace_volumes_tables_metadata_async()
 
     assert not result.has_warnings()
     tables = result.get_value()

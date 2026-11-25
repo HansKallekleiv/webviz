@@ -95,13 +95,33 @@ def validate_and_normalize_fip_mapping_df(mapping_df: pl.DataFrame) -> pl.DataFr
     return normalized
 
 
+def normalize_fipnum_series(series: pl.Series) -> pl.Series:
+    """
+    Normalize a FIPNUM Series to Int64, converting non-integer, non-finite, or unparseable values to null.
+
+    Accepts integer dtypes, integral floats (e.g. 1.0), and numeric strings (e.g. "1", "1.0").
+    Non-integral floats (e.g. 1.5), NaN/inf, empty strings, and non-numeric strings become null.
+    """
+    if series.dtype.is_integer():
+        return series.cast(pl.Int64)
+
+    as_float = series.cast(pl.Float64, strict=False)
+    is_valid_int = as_float.is_finite() & (as_float == as_float.floor())
+    return pl.DataFrame({"f": as_float, "valid": is_valid_int}).select(
+        pl.when(pl.col("valid"))
+        .then(pl.col("f").cast(pl.Int64, strict=False))
+        .otherwise(None)
+        .alias(series.name)
+    )[series.name]
+
+
 def join_fip_mapping_to_simulator_volumes_df(
     sim_df: pl.DataFrame, mapping_df: pl.DataFrame, table_name: str
 ) -> ResultWithWarning[pl.DataFrame]:
     """
     Join a validated FIPNUM -> (ZONE, REGION) mapping onto a simulator inplace volumes DataFrame.
 
-    - Casts FIPNUM to Int64 on both sides before joining.
+    - Normalizes FIPNUM to Int64 leniently on sim_df, dropping rows with invalid/missing FIPNUM with a warning.
     - Detects any FIPNUM values in sim_df missing from mapping_df, emits a concise TextWarning, and
       drops unmapped rows via inner join.
     - Attaches ZONE and REGION and drops FIPNUM.
@@ -112,18 +132,28 @@ def join_fip_mapping_to_simulator_volumes_df(
             Service.GENERAL,
         )
 
-    sim_cast = sim_df.with_columns(pl.col("FIPNUM").cast(pl.Int64))
+    warnings: list[TextWarning] = []
+    normalized_fipnum = normalize_fipnum_series(sim_df["FIPNUM"])
+    num_invalid_fipnum_rows = int(normalized_fipnum.null_count())
+    if num_invalid_fipnum_rows > 0:
+        warnings.append(
+            TextWarning(
+                f"Simulator inplace volumes table '{table_name}' had {num_invalid_fipnum_rows} row(s) "
+                "with invalid or missing FIPNUM values that were excluded."
+            )
+        )
+
+    sim_cast = sim_df.with_columns(normalized_fipnum.alias("FIPNUM")).filter(pl.col("FIPNUM").is_not_null())
     mapping_cast = mapping_df.select(
         pl.col("FIPNUM").cast(pl.Int64),
         pl.col("ZONE").cast(pl.String),
         pl.col("REGION").cast(pl.String),
     )
 
-    sim_fipnums = set(sim_cast["FIPNUM"].drop_nulls().unique().to_list())
+    sim_fipnums = set(sim_cast["FIPNUM"].unique().to_list())
     mapped_fipnums = set(mapping_cast["FIPNUM"].drop_nulls().unique().to_list())
     unmapped_fipnums = sorted(sim_fipnums - mapped_fipnums)
 
-    warnings: list[TextWarning] = []
     if unmapped_fipnums:
         warnings.append(make_unmapped_fipnums_warning(table_name, unmapped_fipnums))
 

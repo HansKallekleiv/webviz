@@ -6,6 +6,7 @@ import pytest
 from webviz_services.inplace_volumes_table_assembler._utils.simulator_volumes_df_utils import (
     filter_to_earliest_date,
     join_fip_mapping_to_simulator_volumes_df,
+    normalize_fipnum_series,
     validate_and_normalize_fip_mapping_df,
 )
 from webviz_services.service_exceptions import InvalidDataError
@@ -217,5 +218,69 @@ def test_join_fip_mapping_unmapped_fipnums_dropped_and_warned() -> None:
 
     out = result.get_value()
     assert out.height == 1
+    assert out["ZONE"].to_list() == ["Valysar"]
+    assert out["STOIIP"].to_list() == [100.0]
+
+
+def test_normalize_fipnum_series_handles_ints_floats_strings_and_invalid_values() -> None:
+    int_result = normalize_fipnum_series(pl.Series("FIPNUM", [1, 2, None], dtype=pl.Int32))
+    assert int_result.dtype == pl.Int64
+    assert int_result.to_list() == [1, 2, None]
+
+    float_result = normalize_fipnum_series(
+        pl.Series("FIPNUM", [1.0, 2.0, 1.5, float("nan"), float("inf"), None], dtype=pl.Float64)
+    )
+    assert float_result.dtype == pl.Int64
+    assert float_result.to_list() == [1, 2, None, None, None, None]
+
+    str_result = normalize_fipnum_series(pl.Series("FIPNUM", ["1", "2.0", "1.5", "", "abc", None], dtype=pl.String))
+    assert str_result.dtype == pl.Int64
+    assert str_result.to_list() == [1, 2, None, None, None, None]
+
+
+def test_join_fip_mapping_float_and_invalid_fipnums_drop_bad_rows_with_warning() -> None:
+    sim_df = pl.DataFrame(
+        {
+            "REAL": [0, 0, 0, 0],
+            "FIPNUM": pl.Series([1.0, 2.0, 1.5, None], dtype=pl.Float64),
+            "FLUID": ["oil"] * 4,
+            "STOIIP": [100.0, 200.0, 50.0, 25.0],
+        }
+    )
+    mapping_df = pl.DataFrame(
+        {
+            "FIPNUM": [1, 2],
+            "ZONE": ["Valysar", "Therys"],
+            "REGION": ["North", "South"],
+        }
+    )
+
+    result = join_fip_mapping_to_simulator_volumes_df(sim_df, mapping_df, "simgrid")
+    warnings = result.get_warnings()
+    assert len(warnings) == 1
+    assert "2 row(s) with invalid or missing FIPNUM" in warnings[0].message
+
+    out = result.get_value().sort("STOIIP")
+    assert out["ZONE"].to_list() == ["Valysar", "Therys"]
+    assert out["STOIIP"].to_list() == [100.0, 200.0]
+
+
+def test_join_fip_mapping_empty_string_fipnum_drops_bad_row_with_warning() -> None:
+    sim_df = pl.DataFrame(
+        {
+            "REAL": [0, 0],
+            "FIPNUM": pl.Series(["1", ""], dtype=pl.String),
+            "FLUID": ["oil", "oil"],
+            "STOIIP": [100.0, 50.0],
+        }
+    )
+    mapping_df = pl.DataFrame({"FIPNUM": [1], "ZONE": ["Valysar"], "REGION": ["North"]})
+
+    result = join_fip_mapping_to_simulator_volumes_df(sim_df, mapping_df, "simgrid")
+    warnings = result.get_warnings()
+    assert len(warnings) == 1
+    assert "1 row(s) with invalid or missing FIPNUM" in warnings[0].message
+
+    out = result.get_value()
     assert out["ZONE"].to_list() == ["Valysar"]
     assert out["STOIIP"].to_list() == [100.0]
