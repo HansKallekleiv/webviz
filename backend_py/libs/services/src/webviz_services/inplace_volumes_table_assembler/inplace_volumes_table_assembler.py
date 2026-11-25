@@ -23,7 +23,13 @@ from webviz_services.sumo_access.inplace_volumes_table_types import (
     InplaceVolumesStatisticalTableDataPerFluidSelection,
     VolumeColumnsAndIndexUniqueValues,
 )
-from webviz_services.service_exceptions import Service, InvalidDataError, InvalidParameterError, NoDataError
+from webviz_services.service_exceptions import (
+    InvalidDataError,
+    InvalidParameterError,
+    NoDataError,
+    Service,
+    ServiceLayerException,
+)
 from webviz_core_utils.perf_timer import PerfTimer
 from webviz_core_utils.text_warning import TextWarning
 from webviz_core_utils.result_with_warning import ResultWithWarning
@@ -186,50 +192,161 @@ class InplaceVolumesTableAssembler:
             )
         return tables_info
 
-    async def get_simulator_tables_metadata_async(self) -> ResultWithWarning[list[InplaceVolumesTableDefinition]]:
-        # pylint: disable=too-many-locals
-        if self._simulator_inplace_volumes_access is None:
-            return ResultWithWarning([])
-
-        sim_table_names = await self._simulator_inplace_volumes_access.get_table_names_async()
-        if not sim_table_names:
-            return ResultWithWarning([])
-
-        warnings: list[TextWarning] = []
+    async def _load_validated_fip_mapping_async(self) -> tuple[pl.DataFrame | None, TextWarning | None]:
         if self._fip_regions_mapping_access is None:
-            warnings.append(
+            return (
+                None,
                 TextWarning(
                     "Simulator inplace volumes tables were skipped because no FIP regions mapping accessor is configured."
-                )
+                ),
             )
-            return ResultWithWarning([], warnings)
 
-        raw_mapping_df = await self._fip_regions_mapping_access.get_fip_regions_mapping_df_async()
+        try:
+            raw_mapping_df = await self._fip_regions_mapping_access.get_fip_regions_mapping_df_async()
+        except ServiceLayerException as exc:
+            return (
+                None,
+                TextWarning(
+                    f"Simulator inplace volumes tables were skipped because simulator_fipregions_mapping could not be loaded: {exc.message}"
+                ),
+            )
+
         if raw_mapping_df is None:
-            warnings.append(
+            return (
+                None,
                 TextWarning(
                     "Simulator inplace volumes tables were skipped because simulator_fipregions_mapping is missing or invalid."
-                )
+                ),
             )
-            return ResultWithWarning([], warnings)
 
         mapping_df = validate_and_normalize_fip_mapping_df(raw_mapping_df)
         if mapping_df is None:
-            warnings.append(
+            return (
+                None,
                 TextWarning(
                     "Simulator inplace volumes tables were skipped because simulator_fipregions_mapping is empty "
                     "or has conflicting FIPNUM entries."
+                ),
+            )
+
+        return (mapping_df, None)
+
+    @staticmethod
+    def _build_simulator_table_definition(
+        table_name: str,
+        columns_meta: VolumeColumnsAndIndexUniqueValues,
+        mapping_df: pl.DataFrame,
+        mapped_fipnums_set: set[int],
+    ) -> tuple[InplaceVolumesTableDefinition | None, list[TextWarning]]:
+        # pylint: disable=too-many-locals
+        warnings: list[TextWarning] = []
+        index_columns_uniques_dict = columns_meta.index_unique_values_map
+        volume_column_names = columns_meta.volume_columns
+
+        unique_fluids = index_columns_uniques_dict.get(InplaceVolumes.TableIndexColumns.FLUID.value, [])
+        fluids = [get_fluid_from_string(str(elm)) for elm in unique_fluids]
+        valid_fluids = [elm for elm in fluids if elm is not None]
+
+        raw_fipnums = index_columns_uniques_dict.get("FIPNUM", [])
+        sim_fipnums: list[int] = []
+        for raw_fid in raw_fipnums:
+            try:
+                fip_float = float(raw_fid)
+                if fip_float.is_integer():
+                    sim_fipnums.append(int(fip_float))
+            except (TypeError, ValueError):
+                continue
+
+        unmapped_fipnums = sorted(set(sim_fipnums) - mapped_fipnums_set)
+        if unmapped_fipnums:
+            warnings.append(make_unmapped_fipnums_warning(table_name, unmapped_fipnums))
+
+        matched_mapping_df = mapping_df.filter(pl.col("FIPNUM").is_in(sim_fipnums))
+        unique_zones = matched_mapping_df["ZONE"].unique(maintain_order=True).to_list()
+        unique_regions = matched_mapping_df["REGION"].unique(maintain_order=True).to_list()
+
+        if not unique_zones or not unique_regions:
+            warnings.append(
+                TextWarning(
+                    f"Simulator inplace volumes table '{table_name}' was skipped because none of its FIPNUM values "
+                    "matched simulator_fipregions_mapping."
                 )
             )
+            return (None, warnings)
+
+        indices_with_values: list[InplaceVolumesIndexWithValues] = []
+        if valid_fluids:
+            indices_with_values.append(
+                InplaceVolumesIndexWithValues(
+                    index=InplaceVolumes.TableIndexColumns.FLUID,
+                    values=[f.value for f in valid_fluids],
+                )
+            )
+        indices_with_values.append(
+            InplaceVolumesIndexWithValues(
+                index=InplaceVolumes.TableIndexColumns.ZONE,
+                values=unique_zones,
+            )
+        )
+        indices_with_values.append(
+            InplaceVolumesIndexWithValues(
+                index=InplaceVolumes.TableIndexColumns.REGION,
+                values=unique_regions,
+            )
+        )
+
+        calculated_volumes = get_available_calculated_volumes_from_volume_names(volume_column_names)
+        available_property_names = get_available_properties_from_volume_names(
+            volume_column_names, index_columns=[iwv.index.value for iwv in indices_with_values]
+        )
+        result_names = volume_column_names + calculated_volumes + available_property_names
+        valid_result_names = get_valid_result_names_from_list(result_names)
+
+        return (
+            InplaceVolumesTableDefinition(
+                table_name=table_name,
+                fluids=valid_fluids,
+                result_names=valid_result_names,
+                indices_with_values=indices_with_values,
+                table_source=InplaceVolumesTableSource.SIMULATOR,
+            ),
+            warnings,
+        )
+
+    async def get_simulator_tables_metadata_async(self) -> ResultWithWarning[list[InplaceVolumesTableDefinition]]:
+        if self._simulator_inplace_volumes_access is None:
+            return ResultWithWarning([])
+
+        warnings: list[TextWarning] = []
+        try:
+            sim_table_names = await self._simulator_inplace_volumes_access.get_table_names_async()
+        except ServiceLayerException as exc:
+            warnings.append(TextWarning(f"Simulator inplace volumes tables could not be loaded: {exc.message}"))
+            return ResultWithWarning([], warnings)
+
+        if not sim_table_names:
+            return ResultWithWarning([])
+
+        mapping_df, mapping_warning = await self._load_validated_fip_mapping_async()
+        if mapping_warning is not None:
+            warnings.append(mapping_warning)
+        if mapping_df is None:
             return ResultWithWarning([], warnings)
 
         sim_access = self._simulator_inplace_volumes_access
 
-        async def get_sim_table_meta_async(table_name: str) -> tuple[str, VolumeColumnsAndIndexUniqueValues]:
-            return (
-                table_name,
-                await sim_access.get_volume_columns_and_index_unique_values_async(table_name),
-            )
+        async def get_sim_table_meta_async(
+            table_name: str,
+        ) -> tuple[str, VolumeColumnsAndIndexUniqueValues | None, TextWarning | None]:
+            try:
+                columns_meta = await sim_access.get_volume_columns_and_index_unique_values_async(table_name)
+                return (table_name, columns_meta, None)
+            except ServiceLayerException as exc:
+                return (
+                    table_name,
+                    None,
+                    TextWarning(f"Simulator inplace volumes table '{table_name}' was skipped: {exc.message}"),
+                )
 
         table_name_and_columns_meta_arr = await asyncio.gather(
             *(get_sim_table_meta_async(name) for name in sim_table_names)
@@ -238,69 +355,18 @@ class InplaceVolumesTableAssembler:
         mapped_fipnums_set = set(mapping_df["FIPNUM"].to_list())
         tables_info: list[InplaceVolumesTableDefinition] = []
 
-        for table_name, columns_meta in table_name_and_columns_meta_arr:
-            index_columns_uniques_dict = columns_meta.index_unique_values_map
-            volume_column_names = columns_meta.volume_columns
+        for table_name, columns_meta, table_warning in table_name_and_columns_meta_arr:
+            if table_warning is not None:
+                warnings.append(table_warning)
+            if columns_meta is None:
+                continue
 
-            unique_fluids = index_columns_uniques_dict.get(InplaceVolumes.TableIndexColumns.FLUID.value, [])
-            fluids = [get_fluid_from_string(str(elm)) for elm in unique_fluids]
-            valid_fluids = [elm for elm in fluids if elm is not None]
-
-            raw_fipnums = index_columns_uniques_dict.get("FIPNUM", [])
-            sim_fipnums: list[int] = []
-            for raw_fid in raw_fipnums:
-                try:
-                    sim_fipnums.append(int(raw_fid))
-                except (TypeError, ValueError):
-                    continue
-
-            unmapped_fipnums = sorted(set(sim_fipnums) - mapped_fipnums_set)
-            if unmapped_fipnums:
-                warnings.append(make_unmapped_fipnums_warning(table_name, unmapped_fipnums))
-
-            matched_mapping_df = mapping_df.filter(pl.col("FIPNUM").is_in(sim_fipnums))
-            unique_zones = matched_mapping_df["ZONE"].unique(maintain_order=True).to_list()
-            unique_regions = matched_mapping_df["REGION"].unique(maintain_order=True).to_list()
-
-            indices_with_values: list[InplaceVolumesIndexWithValues] = []
-            if valid_fluids:
-                indices_with_values.append(
-                    InplaceVolumesIndexWithValues(
-                        index=InplaceVolumes.TableIndexColumns.FLUID,
-                        values=[f.value for f in valid_fluids],
-                    )
-                )
-            if unique_zones:
-                indices_with_values.append(
-                    InplaceVolumesIndexWithValues(
-                        index=InplaceVolumes.TableIndexColumns.ZONE,
-                        values=unique_zones,
-                    )
-                )
-            if unique_regions:
-                indices_with_values.append(
-                    InplaceVolumesIndexWithValues(
-                        index=InplaceVolumes.TableIndexColumns.REGION,
-                        values=unique_regions,
-                    )
-                )
-
-            calculated_volumes = get_available_calculated_volumes_from_volume_names(volume_column_names)
-            available_property_names = get_available_properties_from_volume_names(
-                volume_column_names, index_columns=[iwv.index.value for iwv in indices_with_values]
+            table_def, table_warnings = self._build_simulator_table_definition(
+                table_name, columns_meta, mapping_df, mapped_fipnums_set
             )
-            result_names = volume_column_names + calculated_volumes + available_property_names
-            valid_result_names = get_valid_result_names_from_list(result_names)
-
-            tables_info.append(
-                InplaceVolumesTableDefinition(
-                    table_name=table_name,
-                    fluids=valid_fluids,
-                    result_names=valid_result_names,
-                    indices_with_values=indices_with_values,
-                    table_source=InplaceVolumesTableSource.SIMULATOR,
-                )
-            )
+            warnings.extend(table_warnings)
+            if table_def is not None:
+                tables_info.append(table_def)
 
         return ResultWithWarning(tables_info, warnings)
 

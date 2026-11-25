@@ -114,6 +114,7 @@ class DEPRECATED_InplaceVolumetricsAccess:
         table_context = self._ensemble_context.tables.filter(
             name=table_name,
             content="volumes",
+            standard_result=False,
             column=volumetric_columns if volumetric_columns is None else list(volumetric_columns),
         )
 
@@ -134,6 +135,7 @@ class DEPRECATED_InplaceVolumetricsAccess:
 
         table_loader = ArrowTableLoader(self._sumo_client, self._case_uuid, self._ensemble_name)
         table_loader.require_content_type("volumes")
+        table_loader.require_standard_result(False)
         table_loader.require_table_name(table_name)
         pa_table = await table_loader.get_aggregated_multiple_columns_async(requested_columns)
         perf_metrics.record_lap("load-table")
@@ -157,7 +159,7 @@ class DEPRECATED_InplaceVolumetricsAccess:
         """
 
         table_context = self._ensemble_context.tables.filter(
-            name=table_name, content="volumes", realization=True, aggregation=False
+            name=table_name, content="volumes", standard_result=False, realization=True, aggregation=False
         )
         realizations = await table_context.realizationids_async
         if len(realizations) == 0:
@@ -167,6 +169,7 @@ class DEPRECATED_InplaceVolumetricsAccess:
             )
         table_loader = ArrowTableLoader(self._sumo_client, self._case_uuid, self._ensemble_name)
         table_loader.require_content_type("volumes")
+        table_loader.require_standard_result(False)
         table_loader.require_table_name(table_name)
 
         pa_table = await table_loader.get_single_realization_async(min(realizations))

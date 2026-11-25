@@ -28,7 +28,7 @@ class ArrowTableLoader:
         self._req_table_name: str | None = None
         self._req_content_types: list[str] | None = None
         self._req_tagname: str | None = None
-        self._req_standard_result: str | None = None
+        self._req_standard_result: str | bool | None = None
 
     def require_table_name(self, table_name: str) -> None:
         self._req_table_name = table_name
@@ -39,7 +39,7 @@ class ArrowTableLoader:
     def require_tagname(self, tagname: str) -> None:
         self._req_tagname = tagname
 
-    def require_standard_result(self, standard_result: str) -> None:
+    def require_standard_result(self, standard_result: str | bool) -> None:
         self._req_standard_result = standard_result
 
     async def get_aggregated_single_column_async(

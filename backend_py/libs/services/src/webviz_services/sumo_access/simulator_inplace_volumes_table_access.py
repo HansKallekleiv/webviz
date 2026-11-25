@@ -77,7 +77,10 @@ class SimulatorInplaceVolumesTableAccess:
 
         index_column_unique_values_map: dict[str, list[str]] = {}
         for col in index_columns:
-            unique_values = earliest_df[col].unique(maintain_order=True).to_list()
+            series = earliest_df[col]
+            if col == "FIPNUM":
+                series = series.cast(pl.Int64, strict=False)
+            unique_values = series.unique(maintain_order=True).to_list()
             valid_unique_values = [str(val) for val in unique_values if val not in IGNORED_INDEX_COLUMN_VALUES]
             index_column_unique_values_map[col] = valid_unique_values
 

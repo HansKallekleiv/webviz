@@ -18,10 +18,7 @@ import type { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
 import { encodeAsUintListStr } from "@lib/utils/queryStringUtils";
 import { subtractPerRealizationTablesMemoized } from "@modules/_shared/InplaceVolumes/deltaTableUtils";
 import type { SensitivityCaseIdent } from "@modules/_shared/InplaceVolumes/sensitivityUtils";
-import {
-    decodeTableKey,
-    formatTableDisplayName,
-} from "@modules/_shared/InplaceVolumes/tableIdentUtils";
+import { decodeTableKey, formatTableDisplayName } from "@modules/_shared/InplaceVolumes/tableIdentUtils";
 import type {
     DeltaDroppedFluidSelections,
     DeltaUnmatchedRows,

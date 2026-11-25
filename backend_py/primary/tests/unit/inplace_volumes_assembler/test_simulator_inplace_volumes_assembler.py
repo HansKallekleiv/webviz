@@ -8,6 +8,7 @@ import pytest
 from webviz_services.inplace_volumes_table_assembler.inplace_volumes_table_assembler import (
     InplaceVolumesTableAssembler,
 )
+from webviz_services.service_exceptions import InvalidDataError, Service
 from webviz_services.sumo_access.inplace_volumes_table_types import (
     InplaceVolumes,
     InplaceVolumesIndexWithValues,
@@ -261,3 +262,87 @@ async def test_simulator_statistical_n_to_1_mapping_aggregates_and_propagates_wa
     assert stoiip_stats.statistic_values[Statistic.MEAN] == [225.0]
     assert stoiip_stats.statistic_values[Statistic.MIN] == [150.0]
     assert stoiip_stats.statistic_values[Statistic.MAX] == [300.0]
+
+
+@pytest.mark.asyncio
+async def test_metadata_broken_simulator_table_does_not_hide_static_tables() -> None:
+    static_access = _make_static_access_mock(table_names=["geogrid"])
+    sim_access = AsyncMock()
+    sim_access.get_table_names_async.return_value = ["broken_sim", "healthy_sim"]
+
+    async def get_meta_side_effect(table_name: str) -> VolumeColumnsAndIndexUniqueValues:
+        if table_name == "broken_sim":
+            raise InvalidDataError("DATE column is missing", Service.GENERAL)
+        return VolumeColumnsAndIndexUniqueValues(
+            volume_columns=["STOIIP", "HCPV"],
+            index_unique_values_map={"FLUID": ["oil"], "FIPNUM": ["1"]},
+        )
+
+    sim_access.get_volume_columns_and_index_unique_values_async.side_effect = get_meta_side_effect
+    mapping_df = pl.DataFrame({"FIPNUM": [1], "ZONE": ["Valysar"], "REGION": ["North"]})
+
+    assembler = InplaceVolumesTableAssembler(static_access, sim_access, _make_fip_mapping_access_mock(mapping_df))
+    result = await assembler.get_inplace_volumes_tables_metadata_async()
+
+    warnings = result.get_warnings()
+    assert len(warnings) == 1
+    assert "broken_sim" in warnings[0].message
+
+    tables = result.get_value()
+    assert [(t.table_name, t.table_source) for t in tables] == [
+        ("geogrid", InplaceVolumesTableSource.STATIC),
+        ("healthy_sim", InplaceVolumesTableSource.SIMULATOR),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_metadata_failing_mapping_download_does_not_hide_static_tables() -> None:
+    static_access = _make_static_access_mock(table_names=["geogrid"])
+    sim_access = _make_sim_access_mock(table_names=["simgrid"])
+    mapping_access = AsyncMock()
+    mapping_access.get_fip_regions_mapping_df_async.side_effect = InvalidDataError("Sumo timeout", Service.SUMO)
+
+    assembler = InplaceVolumesTableAssembler(static_access, sim_access, mapping_access)
+    result = await assembler.get_inplace_volumes_tables_metadata_async()
+
+    warnings = result.get_warnings()
+    assert len(warnings) == 1
+    assert "simulator_fipregions_mapping" in warnings[0].message
+
+    tables = result.get_value()
+    assert [(t.table_name, t.table_source) for t in tables] == [("geogrid", InplaceVolumesTableSource.STATIC)]
+
+
+@pytest.mark.asyncio
+async def test_metadata_float_formatted_fipnums_resolve_zone_and_region() -> None:
+    static_access = _make_static_access_mock(table_names=[])
+    sim_access = _make_sim_access_mock(table_names=["simgrid"], fipnums=["1.0", "2.0"])
+    mapping_df = pl.DataFrame({"FIPNUM": [1, 2], "ZONE": ["Valysar", "Therys"], "REGION": ["North", "South"]})
+
+    assembler = InplaceVolumesTableAssembler(static_access, sim_access, _make_fip_mapping_access_mock(mapping_df))
+    result = await assembler.get_inplace_volumes_tables_metadata_async()
+
+    assert not result.has_warnings()
+    tables = result.get_value()
+    assert len(tables) == 1
+    indices = {iwv.index: iwv.values for iwv in tables[0].indices_with_values}
+    assert indices[InplaceVolumes.TableIndexColumns.ZONE] == ["Valysar", "Therys"]
+    assert indices[InplaceVolumes.TableIndexColumns.REGION] == ["North", "South"]
+
+
+@pytest.mark.asyncio
+async def test_metadata_no_matching_fipnums_skips_simulator_table_with_warning() -> None:
+    static_access = _make_static_access_mock(table_names=["geogrid"])
+    sim_access = _make_sim_access_mock(table_names=["simgrid"], fipnums=["99"])
+    mapping_df = pl.DataFrame({"FIPNUM": [1], "ZONE": ["Valysar"], "REGION": ["North"]})
+
+    assembler = InplaceVolumesTableAssembler(static_access, sim_access, _make_fip_mapping_access_mock(mapping_df))
+    result = await assembler.get_inplace_volumes_tables_metadata_async()
+
+    warnings = result.get_warnings()
+    assert len(warnings) == 2
+    assert any("none of its FIPNUM values matched" in w.message for w in warnings)
+
+    tables = result.get_value()
+    assert [(t.table_name, t.table_source) for t in tables] == [("geogrid", InplaceVolumesTableSource.STATIC)]
+
