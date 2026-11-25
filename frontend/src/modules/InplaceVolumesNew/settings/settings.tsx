@@ -26,6 +26,7 @@ import { IndexValueCriteria } from "@modules/_shared/InplaceVolumes/TableDefinit
 import { FLUID_SPECIFIC_RESULT_NAMES, TableOriginKey } from "@modules/_shared/InplaceVolumes/types";
 import { createHoverTextForVolume } from "@modules/_shared/InplaceVolumes/volumeStringUtils";
 import { propagateAllApiErrorsToStatusWriter } from "@modules/_shared/utils/propagateApiErrorToStatusWriter";
+import { propagateWarningsToStatusWriter } from "@modules/_shared/utils/propagateWarningsToStatusWriter";
 
 import type { Interfaces } from "../interfaces";
 import { PlotType, plotTypeToStringMapping, type InplaceVolumesPlotOptions } from "../typesAndEnums";
@@ -88,6 +89,7 @@ export function Settings(props: ModuleSettingsProps<Interfaces>): React.ReactNod
     const [showTable, setShowTable] = useAtom(showTableAtom);
 
     propagateAllApiErrorsToStatusWriter(tableDefinitionsQueryResult.errors, statusWriter);
+    propagateWarningsToStatusWriter(tableDefinitionsQueryResult.warnings, statusWriter);
 
     function handleFilterChange(newFilter: InplaceVolumesFilterSettings) {
         const haveEnsemblesChanged = !areEnsembleIdentListsEqual(
@@ -387,6 +389,7 @@ export function Settings(props: ModuleSettingsProps<Interfaces>): React.ReactNod
                     tableNamesAnnotations={selectedTableNamesAnnotations}
                     selectionAnnotations={selectedIndicesWithValuesAnnotations}
                     areCurrentlySelectedTablesComparable={tableDefinitionsAccessor.getAreTablesComparable()}
+                    differingIndexColumns={tableDefinitionsAccessor.getIndexColumnsWithDifferingValues()}
                     allowDeltaEnsembles
                     onChange={handleFilterChange}
                 />

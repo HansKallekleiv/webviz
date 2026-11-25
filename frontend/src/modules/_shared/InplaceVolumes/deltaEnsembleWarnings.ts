@@ -1,6 +1,7 @@
 import type { EnsembleSet } from "@framework/EnsembleSet";
 import { makeDistinguishableEnsembleDisplayName } from "@modules/_shared/ensembleNameUtils";
 
+import { formatTableDisplayName } from "./tableIdentUtils";
 import type { DeltaDroppedFluidSelections, DeltaUnmatchedRows } from "./types";
 
 /**
@@ -14,6 +15,7 @@ export function makeDroppedFluidSelectionWarnings(
 
     for (const dropped of droppedFluidSelections) {
         const name = makeDistinguishableEnsembleDisplayName(dropped.ensembleIdent, ensembleSet.getEnsembleArray());
+        const tableDisplayName = formatTableDisplayName(dropped.tableName);
         for (const missingFrom of ["comparison", "reference"] as const) {
             const fluidSelections = dropped.fluidSelections
                 .filter((entry) => entry.missingFrom === missingFrom)
@@ -22,7 +24,7 @@ export function makeDroppedFluidSelectionWarnings(
                 continue;
             }
             warnings.push(
-                `Delta ensemble "${name}" (${dropped.tableName}): ${fluidSelections.join(", ")} ` +
+                `Delta ensemble "${name}" (${tableDisplayName}): ${fluidSelections.join(", ")} ` +
                     `not present in the ${missingFrom} ensemble, so excluded from the difference.`,
             );
         }
@@ -34,9 +36,10 @@ export function makeDroppedFluidSelectionWarnings(
 export function makeUnmatchedDeltaRowWarnings(unmatchedRows: DeltaUnmatchedRows[], ensembleSet: EnsembleSet): string[] {
     return unmatchedRows.flatMap(function makeTableRowWarnings(unmatched) {
         const name = makeDistinguishableEnsembleDisplayName(unmatched.ensembleIdent, ensembleSet.getEnsembleArray());
+        const tableDisplayName = formatTableDisplayName(unmatched.tableName);
         return unmatched.rows.map(
             (rows) =>
-                `Delta ensemble "${name}" (${unmatched.tableName}, ${rows.fluidSelection}): ` +
+                `Delta ensemble "${name}" (${tableDisplayName}, ${rows.fluidSelection}): ` +
                 `${rows.comparisonOnlyRowCount} comparison and ${rows.referenceOnlyRowCount} reference rows had no matching selector tuple and were excluded.`,
         );
     });

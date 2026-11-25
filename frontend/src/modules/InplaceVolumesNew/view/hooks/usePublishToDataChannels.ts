@@ -9,6 +9,7 @@ import { getEnsembleIdentFromString } from "@framework/utils/ensembleIdentUtils"
 import type { ColorSet } from "@lib/utils/ColorSet";
 import { makeDistinguishableEnsembleDisplayName } from "@modules/_shared/ensembleNameUtils";
 import type { Table } from "@modules/_shared/InplaceVolumes/Table";
+import { formatTableDisplayName } from "@modules/_shared/InplaceVolumes/tableIdentUtils";
 import { TableOriginKey } from "@modules/_shared/InplaceVolumes/types";
 import { ChannelIds } from "@modules/InplaceVolumesNew/channelDefs";
 import type { Interfaces } from "@modules/InplaceVolumesNew/interfaces";
@@ -51,7 +52,8 @@ function buildContentIdString(ctx: ContentContext): string {
 }
 
 function buildDisplayName(ctx: ContentContext): string {
-    const baseParts = [ctx.ensembleName, ctx.tableName, ctx.fluidZone];
+    const tableDisplayName = formatTableDisplayName(String(ctx.tableName));
+    const baseParts = [ctx.ensembleName, tableDisplayName, ctx.fluidZone];
     const extraParts: (string | number)[] = [];
     if (ctx.subplotByValue !== undefined) extraParts.push(ctx.subplotByValue);
     if (ctx.colorByValue !== undefined) extraParts.push(ctx.colorByValue);

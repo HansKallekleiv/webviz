@@ -1,7 +1,12 @@
 import type { QueryObserverResult } from "@tanstack/query-core";
 
-import type { InplaceVolumesTableDefinition_api } from "@api";
-import { getInplaceTableDefinitionsOptions } from "@api";
+import type { InplaceVolumesTableDefinition_api, ResultWithWarnings } from "@api";
+import {
+    getInplaceTableDefinitions,
+    getInplaceTableDefinitionsOptions,
+    InplaceVolumesTableSource_api,
+    withWarnings,
+} from "@api";
 import type { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
 import type { PersistableAtomDependenciesState } from "@framework/utils/atomUtils";
 import { atomWithQueries, computeQueriesDependenciesState } from "@framework/utils/atomUtils";
@@ -41,13 +46,16 @@ export const tableDefinitionsQueryAtom = atomWithQueries((get) => {
     }
 
     const queries = ensembleIdents.map((ensembleIdent, index) => {
-        const options = getInplaceTableDefinitionsOptions({
-            query: {
-                case_uuid: ensembleIdent.getCaseUuid(),
-                ensemble_name: ensembleIdent.getEnsembleName(),
-                ...makeCacheBustingQueryParam(ensembleIdent),
-            },
-        });
+        const options = withWarnings(
+            getInplaceTableDefinitionsOptions({
+                query: {
+                    case_uuid: ensembleIdent.getCaseUuid(),
+                    ensemble_name: ensembleIdent.getEnsembleName(),
+                    ...makeCacheBustingQueryParam(ensembleIdent),
+                },
+            }),
+            getInplaceTableDefinitions,
+        );
         return () => ({
             ...options,
             enabled: ensembleIdentValidFlags[index],
@@ -57,11 +65,14 @@ export const tableDefinitionsQueryAtom = atomWithQueries((get) => {
     return {
         queries,
         combine: (
-            results: QueryObserverResult<InplaceVolumesTableDefinition_api[], Error>[],
+            results: QueryObserverResult<ResultWithWarnings<InplaceVolumesTableDefinition_api[]>, Error>[],
         ): TableDefinitionsQueryResult => ({
             data: results.map((result, index) => ({
                 ensembleIdent: ensembleIdents[index],
-                tableDefinitions: result.data ?? [],
+                // Waterfall decomposition requires BULK/PORV, which simulator tables lack; restrict to static tables.
+                tableDefinitions: (result.data?.value ?? []).filter(
+                    (def) => def.tableSource === InplaceVolumesTableSource_api.STATIC,
+                ),
             })),
             isLoading: results.some((result) => result.isLoading),
             errors: results.map((result) => result.error).filter((error): error is Error => error !== null),

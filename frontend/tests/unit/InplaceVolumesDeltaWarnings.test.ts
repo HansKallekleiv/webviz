@@ -49,6 +49,33 @@ describe("makeUnmatchedDeltaRowWarnings", () => {
                 "2 comparison and 3 reference rows had no matching selector tuple and were excluded.",
         ]);
     });
+
+    test("formats simulator table keys cleanly in dropped-fluid and unmatched-row warnings", () => {
+        const deltaIdent = new DeltaEnsembleIdent(COMPARISON, REFERENCE);
+        const droppedWarnings = makeDroppedFluidSelectionWarnings(
+            [
+                {
+                    ensembleIdent: deltaIdent,
+                    tableName: "simulator::simgrid",
+                    fluidSelections: [{ fluidSelection: "gas", missingFrom: "reference" }],
+                },
+            ],
+            new EnsembleSet([]),
+        );
+        const unmatchedWarnings = makeUnmatchedDeltaRowWarnings(
+            [
+                {
+                    ensembleIdent: deltaIdent,
+                    tableName: "simulator::simgrid",
+                    rows: [{ fluidSelection: "oil", comparisonOnlyRowCount: 1, referenceOnlyRowCount: 0 }],
+                },
+            ],
+            new EnsembleSet([]),
+        );
+
+        expect(droppedWarnings[0]).toContain("(simgrid (simulator))");
+        expect(unmatchedWarnings[0]).toContain("(simgrid (simulator), oil)");
+    });
 });
 
 describe("delta warning display names", function displayNameTests() {

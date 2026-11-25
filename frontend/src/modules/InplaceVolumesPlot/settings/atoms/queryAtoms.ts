@@ -1,7 +1,12 @@
 import type { QueryObserverResult } from "@tanstack/query-core";
 
-import type { InplaceVolumesTableDefinition_api } from "@api";
-import { getInplaceTableDefinitionsOptions } from "@api";
+import type { InplaceVolumesTableDefinition_api, ResultWithWarnings } from "@api";
+import {
+    getInplaceTableDefinitions,
+    getInplaceTableDefinitionsOptions,
+    InplaceVolumesTableSource_api,
+    withWarnings,
+} from "@api";
 import type { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
 import type { PersistableAtomDependenciesState } from "@framework/utils/atomUtils";
 import { atomWithQueries, computeQueriesDependenciesState } from "@framework/utils/atomUtils";
@@ -27,25 +32,31 @@ export const tableDefinitionsQueryAtom = atomWithQueries((get) => {
     const { value: selectedEnsembleIdents, isValidInContext: ensembleIdentsValid } = get(selectedEnsembleIdentsAtom);
 
     const queries = selectedEnsembleIdents.map((ensembleIdent) => {
-        const options = getInplaceTableDefinitionsOptions({
-            query: {
-                case_uuid: ensembleIdent.getCaseUuid(),
-                ensemble_name: ensembleIdent.getEnsembleName(),
-                ...makeCacheBustingQueryParam(ensembleIdent),
-            },
-        });
+        const options = withWarnings(
+            getInplaceTableDefinitionsOptions({
+                query: {
+                    case_uuid: ensembleIdent.getCaseUuid(),
+                    ensemble_name: ensembleIdent.getEnsembleName(),
+                    ...makeCacheBustingQueryParam(ensembleIdent),
+                },
+            }),
+            getInplaceTableDefinitions,
+        );
         return () => ({ ...options, enabled: ensembleIdentsValid });
     });
 
     return {
         queries,
         combine: (
-            results: QueryObserverResult<InplaceVolumesTableDefinition_api[], Error>[],
+            results: QueryObserverResult<ResultWithWarnings<InplaceVolumesTableDefinition_api[]>, Error>[],
         ): TableDefinitionsQueryResult => {
             const tableDefinitionsPerEnsembleIdent: TableDefinitionsQueryResult["data"] = results.map(
                 (result, index) => ({
                     ensembleIdent: selectedEnsembleIdents[index],
-                    tableDefinitions: result.data ?? [],
+                    // Deprecated module kept for saved-session compatibility; restrict to static tables.
+                    tableDefinitions: (result.data?.value ?? []).filter(
+                        (def) => def.tableSource === InplaceVolumesTableSource_api.STATIC,
+                    ),
                 }),
             );
             return {

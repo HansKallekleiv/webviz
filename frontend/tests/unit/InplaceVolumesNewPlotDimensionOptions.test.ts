@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import type { InplaceVolumesTableDefinition_api } from "@api";
+import { InplaceVolumesTableSource_api } from "@api";
 import { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
 import { IndexValueCriteria, TableDefinitionsAccessor } from "@modules/_shared/InplaceVolumes/TableDefinitionsAccessor";
 import { makeColorByOptions, makeSubplotByOptions } from "@modules/InplaceVolumesNew/settings/utils/plotDimensionUtils";
@@ -14,7 +15,12 @@ const INDICES = [
 ];
 
 function makeDefinitions(tableNames: string[]): InplaceVolumesTableDefinition_api[] {
-    return tableNames.map((tableName) => ({ tableName, resultNames: ["STOIIP"], indicesWithValues: INDICES }));
+    return tableNames.map((tableName) => ({
+        tableName,
+        tableSource: InplaceVolumesTableSource_api.STATIC,
+        resultNames: ["STOIIP"],
+        indicesWithValues: INDICES,
+    }));
 }
 
 function makeAccessor(ensembleIdents: RegularEnsembleIdent[], tableNames: string[]): TableDefinitionsAccessor {

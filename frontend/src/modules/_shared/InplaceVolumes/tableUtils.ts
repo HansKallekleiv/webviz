@@ -1,6 +1,7 @@
 import { type InplaceVolumesStatistic_api } from "@api";
 
 import { Column, ColumnType, Table } from "./Table";
+import { formatTableDisplayName } from "./tableIdentUtils";
 import type {
     InplaceVolumesStatisticalTableData,
     InplaceVolumesTableData,
@@ -65,7 +66,7 @@ export function makeTableFromApiData(data: InplaceVolumesTableData[]): Table {
 
                     if (!mainColumnsAdded) {
                         columns.get("ensemble")?.addRowValue(tableSet.ensembleIdent);
-                        columns.get("table")?.addRowValue(tableSet.tableName);
+                        columns.get("table")?.addRowValue(formatTableDisplayName(tableSet.tableName));
                         columns.get("fluid")?.addRowValue(perFluidTable.fluidSelection);
                     }
                 }
@@ -83,7 +84,7 @@ export function makeTableFromApiData(data: InplaceVolumesTableData[]): Table {
 
                     if (!mainColumnsAdded) {
                         columns.get("ensemble")?.addRowValue(tableSet.ensembleIdent);
-                        columns.get("table")?.addRowValue(tableSet.tableName);
+                        columns.get("table")?.addRowValue(formatTableDisplayName(tableSet.tableName));
                         columns.get("fluid")?.addRowValue(perFluidTable.fluidSelection);
                     }
                 }
@@ -184,7 +185,7 @@ export function makeStatisticalTableColumnDataFromApiData(
             const numRows = Object.values(perFluidTableData.resultColumnStatistics[0].statisticValues)[0].length;
             for (let i = 0; i < numRows; i++) {
                 nonStatisticalColumns.get("ensemble")?.addRowValue(tableSet.ensembleIdent);
-                nonStatisticalColumns.get("table")?.addRowValue(tableSet.tableName);
+                nonStatisticalColumns.get("table")?.addRowValue(formatTableDisplayName(tableSet.tableName));
                 nonStatisticalColumns.get("fluid")?.addRowValue(perFluidTableData.fluidSelection);
             }
 

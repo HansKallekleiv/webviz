@@ -18,6 +18,10 @@ import type { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
 import { encodeAsUintListStr } from "@lib/utils/queryStringUtils";
 import { subtractPerRealizationTablesMemoized } from "@modules/_shared/InplaceVolumes/deltaTableUtils";
 import type { SensitivityCaseIdent } from "@modules/_shared/InplaceVolumes/sensitivityUtils";
+import {
+    decodeTableKey,
+    formatTableDisplayName,
+} from "@modules/_shared/InplaceVolumes/tableIdentUtils";
 import type {
     DeltaDroppedFluidSelections,
     DeltaUnmatchedRows,
@@ -47,7 +51,8 @@ function makeSourceWarnings(
     makeEnsembleDisplayName: EnsembleDisplayNameFunc,
 ) {
     const ensembleName = makeEnsembleDisplayName(source.ensembleIdent);
-    return warnings.map((warning) => `${ensembleName}, table "${source.tableName}": ${warning}`);
+    const tableDisplayName = formatTableDisplayName(source.tableName);
+    return warnings.map((warning) => `${ensembleName}, table "${tableDisplayName}": ${warning}`);
 }
 
 export type AggregatedTableDataResults = {
@@ -143,12 +148,14 @@ export function makeAggregatedStatisticalTableDataQueryOptionsFromSources(
     const queries = sources.map((source) => {
         const validRealizations = source.realizations.length === 0 ? null : [...source.realizations];
         const validRealizationsEncodedAsUintListStr = validRealizations ? encodeAsUintListStr(validRealizations) : null;
+        const { tableName, tableSource } = decodeTableKey(source.tableName);
         const options = withWarnings(
             postGetAggregatedStatisticalInplaceTableDataOptions({
                 query: {
                     ensemble_name: source.ensembleIdent.getEnsembleName(),
                     case_uuid: source.ensembleIdent.getCaseUuid(),
-                    table_name: source.tableName,
+                    table_name: tableName,
+                    table_source: tableSource,
                     result_names: resultNames,
                     group_by_indices: validGroupByIndices,
                     realizations_encoded_as_uint_list_str: validRealizationsEncodedAsUintListStr,
@@ -235,12 +242,14 @@ export function makeAggregatedPerRealizationTableDataQueryOptions(
     const queries = uniqueSources.map((source) => {
         const validRealizations = source.realizations.length === 0 ? null : [...source.realizations];
         const validRealizationsEncodedAsUintListStr = validRealizations ? encodeAsUintListStr(validRealizations) : null;
+        const { tableName, tableSource } = decodeTableKey(source.tableName);
         const options = withWarnings(
             postGetAggregatedPerRealizationInplaceTableDataOptions({
                 query: {
                     ensemble_name: source.ensembleIdent.getEnsembleName(),
                     case_uuid: source.ensembleIdent.getCaseUuid(),
-                    table_name: source.tableName,
+                    table_name: tableName,
+                    table_source: tableSource,
                     result_names: resultNames,
                     group_by_indices: validGroupByIndices,
                     realizations_encoded_as_uint_list_str: validRealizationsEncodedAsUintListStr,
@@ -358,12 +367,14 @@ export function makeAggregatedPerRealizationDeltaTableDataQueryOptions(
     const queries = querySpecs.map(function makeDeltaSourceQuery(spec) {
         const validRealizations = spec.realizations.length === 0 ? null : [...spec.realizations];
         const validRealizationsEncodedAsUintListStr = validRealizations ? encodeAsUintListStr(validRealizations) : null;
+        const { tableName, tableSource } = decodeTableKey(spec.tableName);
         const options = withWarnings(
             postGetAggregatedPerRealizationInplaceTableDataOptions({
                 query: {
                     ensemble_name: spec.ensembleName,
                     case_uuid: spec.caseUuid,
-                    table_name: spec.tableName,
+                    table_name: tableName,
+                    table_source: tableSource,
                     result_names: resultNames,
                     group_by_indices: validGroupByIndices,
                     realizations_encoded_as_uint_list_str: validRealizationsEncodedAsUintListStr,
@@ -412,7 +423,7 @@ export function makeAggregatedPerRealizationDeltaTableDataQueryOptions(
             }
 
             if (comparisonResult?.data && referenceResult?.data) {
-                const deltaLabel = `${makeEnsembleDisplayName(queryPair.deltaEnsembleIdent)}, table "${queryPair.tableName}"`;
+                const deltaLabel = `${makeEnsembleDisplayName(queryPair.deltaEnsembleIdent)}, table "${formatTableDisplayName(queryPair.tableName)}"`;
                 if (
                     queries[queryPair.comparisonQueryIndex]().enabled &&
                     queries[queryPair.referenceQueryIndex]().enabled

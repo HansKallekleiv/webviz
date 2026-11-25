@@ -16,6 +16,7 @@ import {
     makeSensitivityCasesWithoutRealizationsWarning,
     SENSITIVITY_ENSEMBLE_SELECTION_BLOCKED_MESSAGE,
 } from "@modules/_shared/InplaceVolumes/sensitivityUtils";
+import { formatTableDisplayName } from "@modules/_shared/InplaceVolumes/tableIdentUtils";
 import { propagateAllApiErrorsToStatusWriter } from "@modules/_shared/utils/propagateApiErrorToStatusWriter";
 import { propagateWarningsToStatusWriter } from "@modules/_shared/utils/propagateWarningsToStatusWriter";
 
@@ -112,7 +113,7 @@ export function useMakeViewStatusWriterMessages(statusWriter: ViewStatusWriter, 
         // the result columns will be visible in the table component if they are present in any of the fluid selections
         if (missingResultNames.length > 0) {
             statusWriter.addWarning(
-                `Missing result names for Table "${tableData.tableName}": ${missingResultNames.join(", ")}`,
+                `Missing result names for Table "${formatTableDisplayName(tableData.tableName)}": ${missingResultNames.join(", ")}`,
             );
         }
     }

@@ -6,6 +6,7 @@ import type { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
 import { isEnsembleIdentOfType } from "@framework/utils/ensembleIdentUtils";
 
 import { sortResultNameStrings } from "./sortResultNames";
+import { getTableKeyFromDefinition } from "./tableIdentUtils";
 
 type TableDefinitionsForEnsembleIdent = {
     ensembleIdent: RegularEnsembleIdent;
@@ -23,7 +24,7 @@ export function makeUniqueTableNamesIntersection(
     for (const [index, tableDefinition] of tableDefinitionsPerEnsembleIdent.entries()) {
         if (index === 0) {
             // Initialize intersection of table names
-            tableDefinition.tableDefinitions.forEach((el) => tableNamesIntersection.add(el.tableName));
+            tableDefinition.tableDefinitions.forEach((el) => tableNamesIntersection.add(getTableKeyFromDefinition(el)));
             continue;
         }
 
@@ -33,7 +34,7 @@ export function makeUniqueTableNamesIntersection(
         }
 
         // Update intersection of table names
-        const newTableNames = new Set(tableDefinition.tableDefinitions.map((el) => el.tableName));
+        const newTableNames = new Set(tableDefinition.tableDefinitions.map((el) => getTableKeyFromDefinition(el)));
         for (const tableName of tableNamesIntersection) {
             if (!newTableNames.has(tableName)) {
                 tableNamesIntersection.delete(tableName);
@@ -89,7 +90,10 @@ export class TableDefinitionsAccessor {
 
         let isInitialized = false;
         for (const tableDefinition of this._tableDefinitions) {
-            if (this._tableNamesFilter && !this._tableNamesFilter.includes(tableDefinition.tableName)) {
+            if (
+                this._tableNamesFilter &&
+                !this._tableNamesFilter.includes(getTableKeyFromDefinition(tableDefinition))
+            ) {
                 continue;
             }
 

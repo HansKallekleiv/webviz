@@ -22,6 +22,7 @@ import { useDebouncedFunction } from "@lib/hooks/usedDebouncedStateEmit";
 import { filterAndOrderSelectedIndexValues } from "@modules/_shared/InplaceVolumes/indexWithValuesUtils";
 import type { SensitivityCaseOption, SensitivityCaseIdent } from "@modules/_shared/InplaceVolumes/sensitivityUtils";
 import { makeSensitivityCaseKey } from "@modules/_shared/InplaceVolumes/sensitivityUtils";
+import { formatTableDisplayName } from "@modules/_shared/InplaceVolumes/tableIdentUtils";
 
 export type InplaceVolumesFilterComponentProps = {
     ensembleSet: EnsembleSet;
@@ -45,6 +46,7 @@ export type InplaceVolumesFilterComponentProps = {
     allowDeltaEnsembles?: boolean;
     isPending?: boolean;
     areCurrentlySelectedTablesComparable?: boolean;
+    differingIndexColumns?: string[];
 
     additionalSettings?: React.ReactNode;
 
@@ -285,7 +287,10 @@ export function InplaceVolumesFilterComponent(props: InplaceVolumesFilterCompone
         maybeDebounceOnChange(filter, publish);
     }
 
-    const tableSourceOptions = props.availableTableNames.map((source) => ({ value: source, label: source }));
+    const tableSourceOptions = props.availableTableNames.map((source) => ({
+        value: source,
+        label: formatTableDisplayName(source),
+    }));
     const sensitivityCaseOptions = (props.availableSensitivityCases ?? []).map((option) => ({
         value: makeSensitivityCaseKey(option.caseIdent),
         label: option.label,
@@ -401,6 +406,18 @@ export function InplaceVolumesFilterComponent(props: InplaceVolumesFilterCompone
                         Selected tables are not comparable because they have no filters in common
                     </Banner>
                 )}
+
+                {!props.areCurrentlySelectedTablesComparable &&
+                    props.availableIndicesWithValues.length > 0 &&
+                    !props.tableNamesAnnotations?.length &&
+                    props.differingIndexColumns &&
+                    props.differingIndexColumns.length > 0 && (
+                        <Banner layoutClassName="col-span-3" tone="danger">
+                            Selected tables are not comparable because filter values differ for{" "}
+                            {props.differingIndexColumns.join(", ")}. Enable &quot;Compare using common filter
+                            values&quot; to compare them.
+                        </Banner>
+                    )}
 
                 {otherSelectionAnnotations.map((annotation) => (
                     <Banner

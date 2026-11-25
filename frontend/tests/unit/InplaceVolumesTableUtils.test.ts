@@ -159,6 +159,51 @@ describe("SENSITIVITY selector column", () => {
         ]);
         expect(nonStatisticalColumns[3].getType()).toBe(ColumnType.SENSITIVITY);
     });
+
+    test("formats simulator table keys in the TABLE_NAME column for per-realization and statistical tables", () => {
+        const perRealTable = makeTableFromApiData([
+            {
+                ensembleIdent: ENSEMBLE_IDENT,
+                tableName: "simulator::simgrid",
+                data: {
+                    tableDataPerFluidSelection: [
+                        {
+                            fluidSelection: "oil",
+                            selectorColumns: [{ columnName: "ZONE", uniqueValues: ["A"], indices: [0] }],
+                            resultColumns: [{ columnName: "STOIIP", columnValues: [10] }],
+                        },
+                    ],
+                },
+            },
+        ]);
+        expect(perRealTable.getColumn("TABLE_NAME")?.getAllRowValues()).toEqual(["simgrid (simulator)"]);
+
+        const { nonStatisticalColumns } = makeStatisticalTableColumnDataFromApiData(
+            [
+                {
+                    ensembleIdent: ENSEMBLE_IDENT,
+                    tableName: "simulator::simgrid",
+                    data: {
+                        tableDataPerFluidSelection: [
+                            {
+                                fluidSelection: "oil",
+                                selectorColumns: [{ columnName: "ZONE", uniqueValues: ["A"], indices: [0] }],
+                                resultColumnStatistics: [
+                                    {
+                                        columnName: "STOIIP",
+                                        statisticValues: { [InplaceVolumesStatistic_api.MEAN]: [10] },
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                },
+            ],
+            [InplaceVolumesStatistic_api.MEAN],
+        );
+        const tableNameCol = nonStatisticalColumns.find((col) => col.getName() === "TABLE_NAME");
+        expect(tableNameCol?.getAllRowValues()).toEqual(["simgrid (simulator)"]);
+    });
 });
 
 describe("sortTableRowsByCategoryOrder", () => {

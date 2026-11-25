@@ -30,6 +30,7 @@ import {
 } from "@modules/_shared/InplaceVolumes/types";
 import { createHoverTextForVolume } from "@modules/_shared/InplaceVolumes/volumeStringUtils";
 import { propagateAllApiErrorsToStatusWriter } from "@modules/_shared/utils/propagateApiErrorToStatusWriter";
+import { propagateWarningsToStatusWriter } from "@modules/_shared/utils/propagateWarningsToStatusWriter";
 
 import type { Interfaces } from "../interfaces";
 import { StatisticsLayout, StatisticsLayoutToStringMapping } from "../types";
@@ -104,6 +105,7 @@ export function Settings(props: ModuleSettingsProps<Interfaces>): React.ReactNod
     );
 
     propagateAllApiErrorsToStatusWriter(tableDefinitionsQuery.errors, statusWriter);
+    propagateWarningsToStatusWriter(tableDefinitionsQuery.warnings, statusWriter);
 
     useApplyInitialSettingsToState(
         props.initialSettings,
@@ -281,6 +283,7 @@ export function Settings(props: ModuleSettingsProps<Interfaces>): React.ReactNod
                     }
                     additionalSettings={tableSettings}
                     areCurrentlySelectedTablesComparable={tableDefinitionsAccessor.getAreTablesComparable()}
+                    differingIndexColumns={tableDefinitionsAccessor.getIndexColumnsWithDifferingValues()}
                     selectionAnnotations={selectedIndicesWithValuesAnnotations}
                     ensembleAnnotations={selectedEnsembleIdentsAnnotations}
                     tableNamesAnnotations={selectedTableNamesAnnotations}

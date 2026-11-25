@@ -1,8 +1,10 @@
 import { describe, expect, test } from "vitest";
 
 import type { InplaceVolumesTableDefinition_api } from "@api";
+import { InplaceVolumesTableSource_api } from "@api";
 import { RegularEnsembleIdent } from "@framework/RegularEnsembleIdent";
 import { IndexValueCriteria, TableDefinitionsAccessor } from "@modules/_shared/InplaceVolumes/TableDefinitionsAccessor";
+import { encodeTableKey } from "@modules/_shared/InplaceVolumes/tableIdentUtils";
 
 const REFERENCE_ENSEMBLE_IDENT = new RegularEnsembleIdent("11111111-2222-3333-8444-555555555555", "iter-0");
 const COMPARISON_ENSEMBLE_IDENT = new RegularEnsembleIdent("66666666-7777-4888-9999-000000000000", "iter-0");
@@ -11,12 +13,16 @@ const TABLE_NAME = "geogrid";
 
 function makeTableDefinition(
     indicesWithValues: { indexColumn: string; values: string[] }[],
+    tableName = TABLE_NAME,
+    tableSource = InplaceVolumesTableSource_api.STATIC,
+    resultNames = ["BULK", "PORV", "HCPV", "STOIIP"],
 ): InplaceVolumesTableDefinition_api {
     return {
-        tableName: TABLE_NAME,
-        resultNames: ["BULK", "PORV", "HCPV", "STOIIP"],
+        tableName,
+        tableSource,
+        resultNames,
         indicesWithValues,
-    } as InplaceVolumesTableDefinition_api;
+    };
 }
 
 function makeAccessor(
@@ -120,5 +126,80 @@ describe("TableDefinitionsAccessor index value handling", () => {
         );
 
         expect(accessor.getAreTablesComparable()).toBe(false);
+    });
+});
+
+describe("TableDefinitionsAccessor static and simulator table sources", () => {
+    const staticSimgrid = makeTableDefinition(
+        [
+            { indexColumn: "ZONE", values: ["A", "B"] },
+            { indexColumn: "FLUID", values: ["oil", "gas", "water"] },
+        ],
+        "simgrid",
+        InplaceVolumesTableSource_api.STATIC,
+        ["BULK", "PORV", "HCPV", "STOIIP"],
+    );
+    const simulatorSimgrid = makeTableDefinition(
+        [
+            { indexColumn: "ZONE", values: ["A", "B"] },
+            { indexColumn: "FLUID", values: ["oil", "gas"] },
+        ],
+        "simgrid",
+        InplaceVolumesTableSource_api.SIMULATOR,
+        ["HCPV", "STOIIP"],
+    );
+
+    const staticKey = encodeTableKey("simgrid", InplaceVolumesTableSource_api.STATIC);
+    const simulatorKey = encodeTableKey("simgrid", InplaceVolumesTableSource_api.SIMULATOR);
+
+    test("keeps same-name static and simulator tables distinct in the table intersection", () => {
+        const accessor = new TableDefinitionsAccessor(
+            [{ ensembleIdent: REFERENCE_ENSEMBLE_IDENT, tableDefinitions: [staticSimgrid, simulatorSimgrid] }],
+            [staticKey, simulatorKey],
+            IndexValueCriteria.ALLOW_INTERSECTION,
+        );
+
+        expect(accessor.getTableNamesIntersection()).toEqual(["simgrid", "simulator::simgrid"]);
+        expect(accessor.hasTableNames([staticKey, simulatorKey])).toBe(true);
+        expect(accessor.getResultNamesIntersection()).toEqual(["STOIIP", "HCPV"]);
+    });
+
+    test("reports differing FLUID values and allows comparison with ALLOW_INTERSECTION", () => {
+        const strictAccessor = new TableDefinitionsAccessor(
+            [{ ensembleIdent: REFERENCE_ENSEMBLE_IDENT, tableDefinitions: [staticSimgrid, simulatorSimgrid] }],
+            [staticKey, simulatorKey],
+            IndexValueCriteria.REQUIRE_EQUALITY,
+        );
+
+        expect(strictAccessor.getAreTablesComparable()).toBe(false);
+        expect(strictAccessor.getIndexColumnsWithDifferingValues()).toEqual(["FLUID"]);
+
+        const intersectedAccessor = new TableDefinitionsAccessor(
+            [{ ensembleIdent: REFERENCE_ENSEMBLE_IDENT, tableDefinitions: [staticSimgrid, simulatorSimgrid] }],
+            [staticKey, simulatorKey],
+            IndexValueCriteria.ALLOW_INTERSECTION,
+        );
+
+        expect(intersectedAccessor.getAreTablesComparable()).toBe(true);
+        expect(intersectedAccessor.getIndexColumnsWithDifferingValues()).toEqual(["FLUID"]);
+        expect(intersectedAccessor.getCommonIndicesWithValues()).toEqual([
+            { indexColumn: "ZONE", values: ["A", "B"] },
+            { indexColumn: "FLUID", values: ["oil", "gas"] },
+        ]);
+    });
+
+    test("filters only the selected table source when static and simulator share a name", () => {
+        const simulatorOnlyAccessor = new TableDefinitionsAccessor(
+            [{ ensembleIdent: REFERENCE_ENSEMBLE_IDENT, tableDefinitions: [staticSimgrid, simulatorSimgrid] }],
+            [simulatorKey],
+            IndexValueCriteria.REQUIRE_EQUALITY,
+        );
+
+        expect(simulatorOnlyAccessor.getAreTablesComparable()).toBe(true);
+        expect(simulatorOnlyAccessor.getCommonIndicesWithValues()).toEqual([
+            { indexColumn: "ZONE", values: ["A", "B"] },
+            { indexColumn: "FLUID", values: ["oil", "gas"] },
+        ]);
+        expect(simulatorOnlyAccessor.getResultNamesIntersection()).toEqual(["STOIIP", "HCPV"]);
     });
 });
