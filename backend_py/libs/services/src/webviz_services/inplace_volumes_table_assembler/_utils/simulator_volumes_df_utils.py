@@ -108,10 +108,7 @@ def normalize_fipnum_series(series: pl.Series) -> pl.Series:
     as_float = series.cast(pl.Float64, strict=False)
     is_valid_int = as_float.is_finite() & (as_float == as_float.floor())
     return pl.DataFrame({"f": as_float, "valid": is_valid_int}).select(
-        pl.when(pl.col("valid"))
-        .then(pl.col("f").cast(pl.Int64, strict=False))
-        .otherwise(None)
-        .alias(series.name)
+        pl.when(pl.col("valid")).then(pl.col("f").cast(pl.Int64, strict=False)).otherwise(None).alias(series.name)
     )[series.name]
 
 

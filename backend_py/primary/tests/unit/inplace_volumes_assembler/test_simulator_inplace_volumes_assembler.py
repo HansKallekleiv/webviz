@@ -342,12 +342,8 @@ async def test_accessor_float_fipnum_column_resolves_zone_and_region_through_ass
     )
 
     with (
-        patch(
-            "webviz_services.sumo_access.simulator_inplace_volumes_table_access.SearchContext"
-        ),
-        patch(
-            "webviz_services.sumo_access.simulator_inplace_volumes_table_access.ArrowTableLoader"
-        ) as mock_loader_cls,
+        patch("webviz_services.sumo_access.simulator_inplace_volumes_table_access.SearchContext"),
+        patch("webviz_services.sumo_access.simulator_inplace_volumes_table_access.ArrowTableLoader") as mock_loader_cls,
     ):
         mock_loader = mock_loader_cls.return_value
         mock_loader.get_single_realization_async = AsyncMock(return_value=pa_table)
@@ -386,4 +382,3 @@ async def test_metadata_no_matching_fipnums_skips_simulator_table_with_warning()
 
     tables = result.get_value()
     assert [(t.table_name, t.table_source) for t in tables] == [("geogrid", InplaceVolumesTableSource.STATIC)]
-

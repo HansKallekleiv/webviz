@@ -88,9 +88,7 @@ class SimulatorInplaceVolumesTableAccess:
             index_unique_values_map=index_column_unique_values_map,
         )
 
-    async def get_aggregated_table_async(
-        self, table_name: str, volume_columns: set[str] | None = None
-    ) -> pa.Table:
+    async def get_aggregated_table_async(self, table_name: str, volume_columns: set[str] | None = None) -> pa.Table:
         """
         Get aggregated simulator inplace volumes table for requested volumetric columns.
 
