@@ -763,14 +763,14 @@ tests = ["coverage[toml]", "pytest", "pytest-cov"]
 
 [[package]]
 name = "fmu-datamodels"
-version = "0.27.0"
+version = "0.27.2"
 description = "FMU data standard, including models and schemas"
 optional = false
 python-versions = ">=3.11"
 groups = ["main"]
 files = [
-    {file = "fmu_datamodels-0.27.0-py3-none-any.whl", hash = "sha256:07f49ed089de8f5ecc5f2dc45ec1a3f006e45fda923d38330107c21c59200d55"},
-    {file = "fmu_datamodels-0.27.0.tar.gz", hash = "sha256:c549ab33e980c7cd03f4c1a8622186a8635e915448cb8591c0815f74320cea12"},
+    {file = "fmu_datamodels-0.27.2-py3-none-any.whl", hash = "sha256:3e5166f46fdb43c00d294816c3847355c13573f2ba2d4dee1402678525d97c85"},
+    {file = "fmu_datamodels-0.27.2.tar.gz", hash = "sha256:a12ab0473997b5debe2e11f712dde63e48bf6ebc778915dcd29f1f066edf46a9"},
 ]
 
 [package.dependencies]
@@ -3621,4 +3621,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.13"
-content-hash = "8d6fe142f3473b23b712c119e52eecb6dcd7e80c24caba90c8a95b3130899f65"
+content-hash = "bd4f53348ff13274277db08f80dd5a698c280d2ee7299772d1a33f4997143443"
